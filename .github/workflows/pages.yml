@@ -27,7 +27,7 @@ jobs:
           test -s index.html && test -s styles.css && test -s app.js && test -s demo-ledger.js
           node --check app.js
           node --check demo-ledger.js
-          npm test > /tmp/nkpro2-tests.tap
+          node --test --test-reporter=tap tests/*.test.cjs > /tmp/nkpro2-tests.tap
           tail -n 24 /tmp/nkpro2-tests.tap
           if grep -Eq 'nkpro_browser_v85_qualitaets_cockpit_data|/drive/v3/files' app.js; then
             echo 'Prohibited production-storage/Drive integration detected'; exit 1
