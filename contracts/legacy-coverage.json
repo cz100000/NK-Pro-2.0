@@ -1,0 +1,487 @@
+{
+  "source": {
+    "repository": "cz100000/NK-Pro",
+    "commit": "a089e1fe660dd5502799560efe2bc4b65a09f278",
+    "codeBlobs": {
+      "js/navigation.js": "5ba918652ab8a6062002e92cefd2d69207deac50",
+      "js/quality-rules.js": "75921b3f5800718d56f7dc41f85a8284fae5e937"
+    }
+  },
+  "note": "Mapping completeness only; ui-prototype-only is NOT function or accounting parity. No real tenant data.",
+  "pageStatusEnum": [
+    "ui-prototype-only",
+    "planned",
+    "function-parity-tested"
+  ],
+  "ruleStatusEnum": [
+    "not-ported",
+    "ported-and-parity-tested"
+  ],
+  "targetAreas": [
+    "overview",
+    "billing",
+    "object",
+    "analytics",
+    "documents",
+    "system"
+  ],
+  "pages": [
+    {
+      "id": "objekt",
+      "targetArea": "object",
+      "targetScreen": "overview",
+      "migration": "object master",
+      "status": "ui-prototype-only"
+    },
+    {
+      "id": "wohnungsverwaltung",
+      "targetArea": "object",
+      "targetScreen": "units",
+      "migration": "one master-data route",
+      "status": "ui-prototype-only"
+    },
+    {
+      "id": "wasser",
+      "targetArea": "object",
+      "targetScreen": "meters",
+      "migration": "meters master; readings in billing",
+      "status": "ui-prototype-only"
+    },
+    {
+      "id": "mieterverwaltung",
+      "targetArea": "object",
+      "targetScreen": "tenancies",
+      "migration": "master tenancy editor",
+      "status": "planned"
+    },
+    {
+      "id": "start",
+      "targetArea": "overview",
+      "targetScreen": "billing-year",
+      "migration": "active year and tasks",
+      "status": "ui-prototype-only"
+    },
+    {
+      "id": "mieter",
+      "targetArea": "billing",
+      "targetScreen": "tenants",
+      "migration": "year-specific occupancy",
+      "status": "planned"
+    },
+    {
+      "id": "einnahmen",
+      "targetArea": "billing",
+      "targetScreen": "advance",
+      "migration": "prepayments per settlement",
+      "status": "ui-prototype-only"
+    },
+    {
+      "id": "einstellungen",
+      "targetArea": "billing",
+      "targetScreen": "costs",
+      "migration": "central cost editor",
+      "status": "ui-prototype-only"
+    },
+    {
+      "id": "manuellewerte",
+      "targetArea": "billing",
+      "targetScreen": "individual",
+      "migration": "case-level external inputs",
+      "status": "ui-prototype-only"
+    },
+    {
+      "id": "umlage",
+      "targetArea": "billing",
+      "targetScreen": "allocation",
+      "migration": "ledger plus audit drawer",
+      "status": "ui-prototype-only"
+    },
+    {
+      "id": "vorauszahlungsanpassung",
+      "targetArea": "billing",
+      "targetScreen": "adjustments",
+      "migration": "optional next-period step",
+      "status": "planned"
+    },
+    {
+      "id": "qualitaet",
+      "targetArea": "billing",
+      "targetScreen": "review",
+      "migration": "critical/review/hint cockpit",
+      "status": "ui-prototype-only"
+    },
+    {
+      "id": "briefe",
+      "targetArea": "documents",
+      "targetScreen": "letters",
+      "migration": "print preview and preflight",
+      "status": "ui-prototype-only"
+    },
+    {
+      "id": "auswertungen",
+      "targetArea": "analytics",
+      "targetScreen": "all",
+      "migration": "NK, Finance, Tax views",
+      "status": "ui-prototype-only"
+    },
+    {
+      "id": "kostenumlagenabgleich",
+      "targetArea": "billing",
+      "targetScreen": "reconciliation",
+      "migration": "review and allocation detail",
+      "status": "planned"
+    },
+    {
+      "id": "regelinventar",
+      "targetArea": "system",
+      "targetScreen": "rules",
+      "migration": "expert feature outside main navigation",
+      "status": "planned"
+    },
+    {
+      "id": "archiv",
+      "targetArea": "documents",
+      "targetScreen": "archive",
+      "migration": "immutable historical snapshots",
+      "status": "ui-prototype-only"
+    },
+    {
+      "id": "sicherung",
+      "targetArea": "system",
+      "targetScreen": "backup",
+      "migration": "export/restore transaction",
+      "status": "planned"
+    },
+    {
+      "id": "export",
+      "targetArea": "documents",
+      "targetScreen": "export",
+      "migration": "generated deliverables",
+      "status": "planned"
+    },
+    {
+      "id": "objektuebersicht",
+      "targetArea": "overview",
+      "targetScreen": "object",
+      "migration": "single overview",
+      "status": "ui-prototype-only"
+    },
+    {
+      "id": "verbraeuche",
+      "targetArea": "billing",
+      "targetScreen": "water",
+      "migration": "meter readings during current settlement",
+      "status": "ui-prototype-only"
+    }
+  ],
+  "rules": [
+    {
+      "id": "NKP-FACH-001",
+      "category": "MANDATORY",
+      "group": "object-period",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-002",
+      "category": "MANDATORY",
+      "group": "object-period",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-003",
+      "category": "MANDATORY",
+      "group": "units-tenancies",
+      "targetArea": "object",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-004",
+      "category": "MANDATORY",
+      "group": "units-tenancies",
+      "targetArea": "object",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-005",
+      "category": "MANDATORY",
+      "group": "units-tenancies",
+      "targetArea": "object",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-006",
+      "category": "MANDATORY",
+      "group": "units-tenancies",
+      "targetArea": "object",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-007",
+      "category": "MANDATORY",
+      "group": "units-tenancies",
+      "targetArea": "object",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-PLAU-001",
+      "category": "PLAUSIBILITY",
+      "group": "units-tenancies",
+      "targetArea": "object",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-008",
+      "category": "MANDATORY",
+      "group": "units-tenancies",
+      "targetArea": "object",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-HINW-001",
+      "category": "HINT",
+      "group": "units-tenancies",
+      "targetArea": "object",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-HINW-002",
+      "category": "HINT",
+      "group": "units-tenancies",
+      "targetArea": "object",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-HINW-003",
+      "category": "HINT",
+      "group": "units-tenancies",
+      "targetArea": "object",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-009",
+      "category": "MANDATORY",
+      "group": "costs",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-010",
+      "category": "MANDATORY",
+      "group": "costs",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-011",
+      "category": "MANDATORY",
+      "group": "costs",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-012",
+      "category": "MANDATORY",
+      "group": "costs",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-013",
+      "category": "MANDATORY",
+      "group": "costs",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-PLAU-002",
+      "category": "PLAUSIBILITY",
+      "group": "costs",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-PLAU-003",
+      "category": "PLAUSIBILITY",
+      "group": "costs",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-014",
+      "category": "MANDATORY",
+      "group": "consumption",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-PLAU-004",
+      "category": "PLAUSIBILITY",
+      "group": "consumption",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-PLAU-005",
+      "category": "PLAUSIBILITY",
+      "group": "consumption",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-PLAU-006",
+      "category": "PLAUSIBILITY",
+      "group": "consumption",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-PLAU-012",
+      "category": "PLAUSIBILITY",
+      "group": "consumption",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-PLAU-007",
+      "category": "PLAUSIBILITY",
+      "group": "consumption",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-PLAU-008",
+      "category": "PLAUSIBILITY",
+      "group": "consumption",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-HINW-004",
+      "category": "HINT",
+      "group": "consumption",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-015",
+      "category": "MANDATORY",
+      "group": "prepayments",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-PLAU-009",
+      "category": "PLAUSIBILITY",
+      "group": "prepayments",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-020",
+      "category": "MANDATORY",
+      "group": "prepayments",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-HINW-005",
+      "category": "HINT",
+      "group": "prepayments",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-016",
+      "category": "MANDATORY",
+      "group": "allocation",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-PLAU-010",
+      "category": "PLAUSIBILITY",
+      "group": "allocation",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-PLAU-011",
+      "category": "PLAUSIBILITY",
+      "group": "allocation",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-017",
+      "category": "MANDATORY",
+      "group": "letters",
+      "targetArea": "documents",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-018",
+      "category": "MANDATORY",
+      "group": "letters",
+      "targetArea": "documents",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-HINW-006",
+      "category": "HINT",
+      "group": "letters",
+      "targetArea": "documents",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-FACH-019",
+      "category": "MANDATORY",
+      "group": "completion",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-TECH-001",
+      "category": "TECHNICAL",
+      "group": "completion",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-TECH-002",
+      "category": "TECHNICAL",
+      "group": "completion",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-TECH-003",
+      "category": "TECHNICAL",
+      "group": "completion",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-TECH-004",
+      "category": "TECHNICAL",
+      "group": "completion",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-TECH-005",
+      "category": "TECHNICAL",
+      "group": "completion",
+      "targetArea": "billing",
+      "status": "not-ported"
+    },
+    {
+      "id": "NKP-TECH-006",
+      "category": "TECHNICAL",
+      "group": "completion",
+      "targetArea": "billing",
+      "status": "not-ported"
+    }
+  ]
+}
