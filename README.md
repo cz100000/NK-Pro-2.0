@@ -47,8 +47,12 @@ Die aktuelle Entwicklungsstrategie ist **UX zuerst, Fachparität vor Produktivfr
 Die Oberfläche ist als eigenständiger UX-Prototyp veröffentlicht. Die tatsächliche Abrechnungslogik wird derzeit **getrennt von der Demo** aufgebaut und gegen die bestehende V99.4.86-Version verglichen.
 
 - **Sechs Umlageverfahren** sind in [`experimental/settlement-cost.js`](experimental/settlement-cost.js) als isolierte Referenzportierung implementiert und in synthetischen Fällen direkt gegen den gepinnten Original-Rechenkern getestet: Wohnfläche, Personentage, Miettage, Verbrauch, alle Wohneinheiten und aktive Wohneinheiten.
-- **29 automatisierte Tests** bestanden im zuletzt abgeschlossenen GitHub-Actions-Lauf. Darunter sind Originalvergleich, Leerstand, Teiljahre, Privatnutzung, Mieterwechsel und Summenprüfung.
+- **36 automatisierte Tests** bestanden im zuletzt abgeschlossenen GitHub-Actions-Lauf. Darunter sind Originalvergleich, Leerstand, Teiljahre, Privatnutzung, Mieterwechsel und Summenprüfung.
 - **17 bestehende Menüpunkte und 4 interne Seiten** sowie **44 Qualitätsregeln** sind in einer [maschinell geprüften Ist–Soll-Matrix](docs/MIGRATION_COVERAGE.md) vollständig einem Zielbereich zugeordnet. Die Regeln sind ausdrücklich noch nicht portiert.
 - Technische Übersicht: [Legacy-Paritätsbericht](docs/EXPERIMENTAL_LEGACY_PARITY.md) und [Original-Kontrakt](docs/LEGACY_PARITY_CONTRACT.md).
 
 **Noch nicht umgesetzt:** vollständige Originalberechnung einschließlich externer Techem-Fälle, vollständige Qualitätssicherung, sichere Datenmigration, professionelle Briefe/PDF, Archiv und Drive-Synchronisation. Die Design-Demo darf nicht für echte Nebenkostenabrechnungen genutzt werden. Die produktive NK-Pro-1.0-Anwendung bleibt unangetastet.
+
+## Experimenteller Legacy-JSON-Inspektor (noch keine Datenübernahme)
+
+Für die spätere sichere Migration gibt es ein [separates, ausschließlich lesendes Prüfmodul](docs/LEGACY_BACKUP_PREVIEW.md). Es unterscheidet rohe NK-Pro-JSON-Exporte von mit Prüfsummen geschützten Sicherungen, kontrolliert die Original-Prüfsummen und liefert nur anonymisierte Strukturangaben. Es ist nicht in die öffentliche Website eingebunden, lädt keine Daten hoch und bietet **keinen Import oder Restore**. Die bestehenden NK-Pro-Dateien werden davon nicht berührt.
