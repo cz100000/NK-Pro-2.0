@@ -47,7 +47,7 @@ Die aktuelle Entwicklungsstrategie ist **UX zuerst, Fachparität vor Produktivfr
 Die Oberfläche ist als eigenständiger UX-Prototyp veröffentlicht. Die tatsächliche Abrechnungslogik wird derzeit **getrennt von der Demo** aufgebaut und gegen die bestehende V99.4.86-Version verglichen.
 
 - **Sechs Umlageverfahren** sind in [`experimental/settlement-cost.js`](experimental/settlement-cost.js) als isolierte Referenzportierung implementiert und in synthetischen Fällen direkt gegen den gepinnten Original-Rechenkern getestet: Wohnfläche, Personentage, Miettage, Verbrauch, alle Wohneinheiten und aktive Wohneinheiten.
-- **36 automatisierte Tests** bestanden im zuletzt abgeschlossenen GitHub-Actions-Lauf. Darunter sind Originalvergleich, Leerstand, Teiljahre, Privatnutzung, Mieterwechsel und Summenprüfung.
+- **60 automatisierte Tests** bestanden im zuletzt abgeschlossenen GitHub-Actions-Lauf. Darunter sind Originalvergleich, Leerstand, Teiljahre, Privatnutzung, Mieterwechsel und Summenprüfung.
 - **17 bestehende Menüpunkte und 4 interne Seiten** sowie **44 Qualitätsregeln** sind in einer [maschinell geprüften Ist–Soll-Matrix](docs/MIGRATION_COVERAGE.md) vollständig einem Zielbereich zugeordnet. Die Regeln sind ausdrücklich noch nicht portiert.
 - Technische Übersicht: [Legacy-Paritätsbericht](docs/EXPERIMENTAL_LEGACY_PARITY.md) und [Original-Kontrakt](docs/LEGACY_PARITY_CONTRACT.md).
 
@@ -56,3 +56,13 @@ Die Oberfläche ist als eigenständiger UX-Prototyp veröffentlicht. Die tatsäc
 ## Experimenteller Legacy-JSON-Inspektor (noch keine Datenübernahme)
 
 Für die spätere sichere Migration gibt es ein [separates, ausschließlich lesendes Prüfmodul](docs/LEGACY_BACKUP_PREVIEW.md). Es unterscheidet rohe NK-Pro-JSON-Exporte von mit Prüfsummen geschützten Sicherungen, kontrolliert die Original-Prüfsummen und liefert nur anonymisierte Strukturangaben. Es ist nicht in die öffentliche Website eingebunden, lädt keine Daten hoch und bietet **keinen Import oder Restore**. Die bestehenden NK-Pro-Dateien werden davon nicht berührt.
+
+## Wasser 2025, Techem und Prüfentscheidungen – experimentelle Fachmodule
+
+**60 automatisierte Tests bestanden** (Stand: 21.11.2026). Drei neue, ausdrücklich **nicht produktive** Bausteine wurden implementiert und über synthetische Referenzfälle getestet:
+
+- [Wasser-2025-Referenzlogik](docs/WATER_2025_PARITY.md): bestätigte K002-Rundungsregel, getrennte KW-/WW-Werte, Haus-/Wohnungsdifferenz sowie Entwurf einer kontrollierten Vorjahresübernahme. Originalfunktionen aus V99.4.86 werden im Node-Test direkt ausgeführt und verglichen.
+- [Techem / externe Einzelabrechnung](docs/EXTERNAL_TECHEM_PARITY.md): konkrete Abrechnungsfälle für Mietwechsel, Privatanteil, Leerstand sowie ein getrennt dokumentierter, ausschließlich vermieterseitiger 3,88-€-Posten. Auch hier werden Originalverhalten und neue Implementierung mit synthetischen Fällen abgeglichen.
+- [Gemeinsamer Prüfadapter](docs/WATER_EXTERNAL_REVIEW.md): Prototyp für kritische Mängel, bewusst bestätigte Abweichungen und automatische Neubewertung bei Quelländerungen. Eine echte Freigabe bleibt bewusst technisch gesperrt.
+
+**Noch nicht umgesetzt:** Echte Techem-Belegdaten und CO₂-Kosten, vollständiger 2025-Datenimport, alle 44 Qualitätsregeln, vollständige Abrechnungsbriefe, produktive Archivierung und Cloud-Synchronisation. Die öffentliche Demo lädt diese drei experimentellen Komponenten bewusst nicht. Nur die ursprüngliche NK-Pro-1.0-App kann vorerst reale Nebenkosten abrechnen.
