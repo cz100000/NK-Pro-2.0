@@ -1,0 +1,12 @@
+{
+  "name": "nk-pro-2-ux-demo",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Synthetic UX prototype and pure demo cent ledger. NOT production NK billing.",
+  "scripts": {
+    "test": "node --test tests/*.test.cjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -14,3 +14,11 @@
   .metric:last-child{grid-column:1/-1;border-top:1px solid var(--border);padding-top:14px;margin-top:14px}
   .metric-number{overflow-wrap:anywhere}
 }
+
+/* Focused demo calculation trace in the existing sidebar drawer. */
+.drawer-breakdown{margin-top:22px;padding-top:18px;border-top:1px solid var(--border)}
+.drawer-table-scroll{overflow-x:auto;max-width:100%}
+.drawer-breakdown .data-table{font-size:11px;min-width:345px}
+.drawer-breakdown .data-table td{padding:9px 7px}
+.drawer-breakdown .data-table th{padding:8px 7px}
+.drawer-breakdown .data-table strong{font-weight:600}

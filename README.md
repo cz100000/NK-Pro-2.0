@@ -29,3 +29,15 @@ Die Anwendung ist ein interaktiver Entwurf für eine minimalistische Benutzerfü
 Die aktuelle Entwicklungsstrategie ist **UX zuerst, Fachparität vor Produktivfreigabe**. Die bisherige Abrechnungslogik wird zunächst anhand eines Golden Masters mit allen Sonderfällen überprüft, bevor echte Berechnungen in NK-Pro 2.0 freigegeben werden.
 
 **Projektstatus und Plan:** https://chatgpt.com/space/page_7bbf6b4cfefc8191bd962a700b8caa61
+
+## Demo-Version 0.2: prüfbare Muster-Umlage
+
+- Reiner Demo-Rechenkern in `demo-ledger.js` (keine Produktivabrechnung und kein Datenimport).
+- Jeder synthetische Bruttokostenbetrag kann einen ausdrücklich **nicht umgelegten Vermieteranteil** enthalten.
+- Cent-genaue Verteilung synthetischer Fläche/Verbrauch mittels deterministischem Restcent-Verfahren; alle Summen prüfbar.
+- Neue Berechnungsnachweise je Mustereinheit; Eingabe- und Umlagefehler blockieren die simulierte Freigabe.
+- Wasserdifferenzentscheidungen werden bei jeder einzelnen Zähleränderung ungültig, auch wenn die Zählersumme unverändert bleibt.
+- Bereits bestätigte Musterbriefe gelten nach jeder Betrags-/Stammdatenänderung als erneut prüfpflichtig.
+- Automatisierte Node-Tests: `npm test`. Der GitHub-Pages-Workflow wird erst nach erfolgreichen Tests deployen.
+
+**Wichtig:** Diese Verbesserungen dienen der technisch geprüften Demo-Verarbeitung. Der ursprüngliche NK-Pro-Rechenkern ist weiterhin **nicht migriert** und muss vor Echtdaten-Nutzung centgenau verglichen werden.
