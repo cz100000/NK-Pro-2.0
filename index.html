@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#F7F9FA" />
+  <meta name="description" content="NK-Pro 2.0 – eigenständiger interaktiver UI-/UX-Konzeptprototyp mit synthetischen Musterdaten." />
+  <title>NK-Pro 2.0 · Designprototyp</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar" aria-label="Hauptnavigation">
+      <div class="brand" aria-label="NK-Pro 2.0">
+        <span class="brand-mark"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V5l8-2v17M12 8h8v12M7 9h2M7 13h2M15 12h2M15 16h2" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
+        <span class="brand-name">NK-Pro <small>2.0</small><span class="brand-subtitle">DESIGNPROTOTYP</span></span>
+      </div>
+      <div class="sidebar-caption">ARBEITSBEREICHE</div>
+      <nav class="main-nav" id="mainNav" aria-label="Arbeitsbereiche">
+        <button class="nav-item active" data-view="overview" aria-current="page" type="button"><span data-icon="overview"></span><span>Übersicht</span></button>
+        <button class="nav-item" data-view="billing" type="button"><span data-icon="bill"></span><span>Abrechnungen</span></button>
+        <button class="nav-item" data-view="object" type="button"><span data-icon="building"></span><span>Objekt</span></button>
+        <button class="nav-item" data-view="analytics" type="button"><span data-icon="chart"></span><span>Analysen</span></button>
+        <button class="nav-item" data-view="documents" type="button"><span data-icon="folder"></span><span>Dokumente & Archiv</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="system-label">SYSTEMSTATUS</div>
+        <div class="system-row"><span class="signal-dot"></span><span>Lokale Demo · keine Cloud</span></div>
+        <button class="sidebar-link" id="resetDemo" type="button"><span data-icon="reset"></span>Demo zurücksetzen</button>
+        <div class="sidebar-version">Konzeptstand · 21.11.2026</div>
+      </div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar">
+        <button class="icon-button mobile-menu" id="openMenu" type="button" aria-label="Menü öffnen"><span data-icon="menu"></span></button>
+        <div class="breadcrumbs"><span>Musterobjekt</span><span class="slash">/</span><strong id="breadcrumbView">Übersicht</strong></div>
+        <div class="topbar-right"><span class="demo-badge">NUR MUSTERDATEN</span><span class="top-divider"></span><span class="avatar">NK</span></div>
+      </header>
+      <main class="page" id="appMain" aria-live="polite"></main>
+      <footer class="app-footer">NK-Pro 2.0 · Interaktiver Entwurf – keine produktive Abrechnungssoftware. Kein Zugriff auf NK-Pro 1.0 oder Google Drive.</footer>
+    </div>
+  </div>
+  <div class="overlay" id="overlay" hidden></div>
+  <section class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle" hidden>
+    <div class="drawer-header"><div><div class="eyebrow" id="drawerEyebrow">DETAILS</div><h2 id="drawerTitle">Bearbeiten</h2></div><button class="icon-button" id="closeDrawer" type="button" aria-label="Schließen"><span data-icon="close"></span></button></div>
+    <div class="drawer-body" id="drawerBody"></div>
+    <div class="drawer-footer" id="drawerFooter"></div>
+  </section>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

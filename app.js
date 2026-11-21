@@ -1,0 +1,208 @@
+/* NK-Pro 2.0 – isolated UX prototype. NO production calculation or data integration. */
+(() => {
+  'use strict';
+  const STORAGE_KEY = 'nkpro2_design_demo_20261121_v1'; // Never use NK-Pro 1.x keys.
+  const icons = {
+    overview:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
+    bill:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+    building:'<path d="M4 21V5l8-2v18M12 9h8v12M7 9h2M7 13h2M15 13h2M15 17h2"/>',
+    chart:'<path d="M4 20V12M10 20V5M16 20V9M22 20V2M2 20h21"/>',
+    folder:'<path d="M3 6a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+    reset:'<path d="M3 11a9 9 0 1 1 3 7M3 4v7h7"/>',
+    menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+    close:'<path d="m5 5 14 14M19 5 5 19"/>',
+    chevron:'<path d="m9 5 7 7-7 7"/>',
+    check:'<path d="m5 12 4 4L19 6"/>',
+    info:'<circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7v.4"/>',
+    alert:'<path d="M12 3 2 21h20L12 3Z"/><path d="M12 9v5M12 17v1"/>',
+    arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>',
+    save:'<path d="M4 3h14l3 3v15H3V3h1ZM7 3v6h10V3M7 21v-9h10v9"/>',
+    pencil:'<path d="m4 20 4.5-1 10-10a2 2 0 0 0-3-3l-10 10L4 20Z"/>',
+    calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v5M17 3v5M3 10h18"/>',
+    layers:'<path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5m-18 5 9 5 9-5"/>',
+    print:'<path d="M6 9V3h12v6M6 18H4V9h16v9h-2M6 15h12v6H6z"/>',
+    file:'<path d="M6 2h8l5 5v14H6zM14 2v6h5M9 12h7M9 16h7"/>'
+  };
+  const icon=(name)=>`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icons[name]||icons.info}</svg>`;
+  const initial=()=>({
+    fixture:true,period:'2025',houseWater:266,waterDecision:null,heatingEvidence:false,heatingEvidenceFingerprint:null,letterChecked:false,demoFinalized:false,
+    costs:[
+      {id:'water',name:'Wasser & Abwasser',category:'Verbrauch',amount:1850,method:'Verbrauch',label:'Zählerdaten'},
+      {id:'waste',name:'Müllbeseitigung',category:'Betriebskosten',amount:1550,method:'Fläche',label:'Kostenbeleg'},
+      {id:'heat',name:'Heizung / Warmwasser',category:'Extern',amount:8900,method:'Fläche',label:'Musterverteilung'},
+      {id:'insurance',name:'Gebäudeversicherung',category:'Betriebskosten',amount:1320,method:'Fläche',label:'Kostenbeleg'},
+      {id:'power',name:'Allgemeinstrom',category:'Betriebskosten',amount:480,method:'Fläche',label:'Kostenbeleg'}
+    ],
+    units:[
+      {id:'DEMO-W01',label:'Wohnung A',position:'Erdgeschoss links',area:68,waterStart:112,waterEnd:155,advance:2000},
+      {id:'DEMO-W02',label:'Wohnung B',position:'Erdgeschoss rechts',area:74,waterStart:90,waterEnd:126,advance:1900},
+      {id:'DEMO-W03',label:'Wohnung C',position:'1. Obergeschoss links',area:80,waterStart:223,waterEnd:258,advance:2250},
+      {id:'DEMO-W04',label:'Wohnung D',position:'1. Obergeschoss rechts',area:62,waterStart:110,waterEnd:148,advance:1800},
+      {id:'DEMO-W05',label:'Wohnung E',position:'2. Obergeschoss links',area:89,waterStart:71,waterEnd:102,advance:2300},
+      {id:'DEMO-W06',label:'Wohnung F',position:'2. Obergeschoss rechts',area:77,waterStart:158,waterEnd:200,advance:2000},
+      {id:'DEMO-W07',label:'Wohnung G',position:'Dachgeschoss',area:71,waterStart:194,waterEnd:223,advance:2050}
+    ]
+  });
+  const $=id=>document.getElementById(id);
+  const safeText=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmt=n=>Number(n||0).toLocaleString('de-DE',{style:'currency',currency:'EUR'});
+  const int=n=>Number(n||0).toLocaleString('de-DE',{maximumFractionDigits:0});
+  const num=v=>Number.isFinite(Number(v))?Number(v):0;
+  const euroNum=n=>Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const round=n=>Math.round(n*100)/100;
+  const parseField=(field)=>{const raw=String(field.value||'').trim().replace(/\s/g,'').replace(',','.');const val=Number(raw);return Number.isFinite(val)?val:NaN};
+  function load(){try{const v=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(v&&v.fixture===true&&Array.isArray(v.units)&&v.units.length===7&&Array.isArray(v.costs))return v;}catch(_){/* standalone file localStorage might be blocked */}return initial()}
+  let data=load();const ui={view:'overview',step:'costs',analytics:'nk',filter:'',drawer:null,lastFocus:null};
+  function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch(_){/* safe in-memory fallback; never touch real NK-Pro keys */}}
+  function stateChange(){data.demoFinalized=false;persist();render()}
+  const consumption=u=>Math.max(0,num(u.waterEnd)-num(u.waterStart));
+  const unitConsumption=()=>data.units.reduce((s,u)=>s+consumption(u),0);
+  const waterGap=()=>num(data.houseWater)-unitConsumption();
+  const waterFingerprint=()=>`${data.houseWater}:${unitConsumption()}`;
+  const heatFingerprint=()=>String(data.costs.find(c=>c.id==='heat')?.amount??'');
+  const waterResolved=()=>waterGap()===0||!!(data.waterDecision&&data.waterDecision.fingerprint===waterFingerprint()&&data.waterDecision.note.trim().length>=5);
+  const heatResolved=()=>data.heatingEvidence&&data.heatingEvidenceFingerprint===heatFingerprint();
+  const checks=()=>[
+    {id:'water',title:'Haus- und Wohnungsverbrauch abgleichen',note:waterGap()===0?'Verbrauch stimmt überein.':`Abweichung ${int(waterGap())} m³ · Prüfung und Begründung notwendig.`,done:waterResolved(),action:'check-water'},
+    {id:'heat',title:'Externen Heizkostenbeleg bestätigen',note:'Beleglage der Beispielkosten ausdrücklich dokumentieren.',done:heatResolved(),action:'check-heat'},
+    {id:'letter',title:'Musterbrief visuell kontrollieren',note:'Dokumentdarstellung und Seitenlayout bestätigen.',done:!!data.letterChecked,action:'go-letter'},
+    {id:'costs',title:'Gesamtkosten sind erfasst',note:'Alle Kostenbeträge sind größer als null.',done:data.costs.length>0&&data.costs.every(c=>c.amount>0),action:'go-costs'}
+  ];
+  const unresolved=()=>checks().filter(x=>!x.done);
+  const allCost=()=>round(data.costs.reduce((s,c)=>s+num(c.amount),0));
+  const allAdvance=()=>round(data.units.reduce((s,u)=>s+num(u.advance),0));
+  const allocation=(unit)=>{
+    const sumArea=data.units.reduce((s,u)=>s+num(u.area),0)||1;
+    const sumUse=unitConsumption()||1;
+    return round(data.costs.reduce((s,c)=>s+(c.method==='Verbrauch'?(num(c.amount)*consumption(unit)/sumUse):(num(c.amount)*num(unit.area)/sumArea)),0));
+  };
+  const balance=u=>round(allocation(u)-num(u.advance));
+  const labelStatus=(done,t='Vollständig',f='Offen')=>`<span class="status ${done?'green':'amber'}">${done?t:f}</span>`;
+  const iconButton=(action,id,aria='Details öffnen')=>`<button class="row-button" data-action="${action}" data-id="${safeText(id)}" aria-label="${safeText(aria)}" title="${safeText(aria)}" type="button">${icon('chevron')}</button>`;
+  const button=(label,action,id,cls='')=>`<button class="button ${cls}" type="button" data-action="${action}"${id?` data-id="${safeText(id)}"`:''}>${label}</button>`;
+  const section=(title,inner,extra='',classes='')=>`<section class="section ${classes}"><div class="section-header"><div><h2>${title}</h2></div>${extra}</div>${inner}</section>`;
+  const head=(kicker,title,description,action='')=>`<div class="page-heading"><div><div class="eyebrow">${safeText(kicker)}</div><h1>${title}</h1><p>${description}</p></div>${action?`<div class="heading-actions">${action}</div>`:''}</div>`;
+  function progress(){const done=checks().filter(c=>c.done).length;let html='<div class="flow-track">';for(let i=0;i<6;i++)html+=`<div class="flow-segment ${i<done?'complete':i===done?'current':''}"></div>`;return html+`</div><div class="flow-labels">${['Kosten','Verbräuche','Zahlungen','Umlage','Prüfen','Briefe'].map((x,i)=>`<span class="${i===Math.min(done,5)?'highlight':''}">${x}</span>`).join('')}</div>`}
+  function overview(){
+    const done=checks().length-unresolved().length;
+    const tasks=unresolved();
+    return head('MUSTEROBJEKT · 2025','Übersicht','Ein klarer Arbeitsstand. Die wichtigsten Aufgaben stehen direkt im Mittelpunkt.',button('Abrechnung fortsetzen '+icon('arrow'),'go-costs',null,'button-primary'))+
+      `<div class="metric-row"><div class="metric"><span class="metric-label">Aktive Abrechnung</span><div class="metric-number">2025</div><span class="metric-helper">Entwurf · 7 Wohnungen</span></div><div class="metric"><span class="metric-label">Noch zu erledigen</span><div class="metric-number">${tasks.length} <small>Prüfpunkte</small></div><span class="metric-helper">Direkt aus dem Workflow</span></div><div class="metric"><span class="metric-label">Abrechnungsvolumen</span><div class="metric-number" style="font-size:23px">${fmt(allCost())}</div><span class="metric-helper">Synthetische Musterwerte</span></div></div>`+
+      `<div class="two-col"><div class="section"><div class="section-header"><div><h2>Als Nächstes</h2><p>${tasks.length?'Diese Punkte verhindern aktuell die Musterfreigabe.':'Alle Musterprüfpunkte wurden bearbeitet.'}</p></div></div>`+
+      (tasks.length?tasks.slice(0,4).map((x,i)=>`<div class="task-row"><div class="task-icon">${icon(i===0?'alert':'file')}</div><div class="task-copy"><strong>${safeText(x.title)}</strong><span>${safeText(x.note)}</span></div><button class="link" type="button" data-action="${x.action}">Bearbeiten →</button></div>`).join(''):`<div class="empty" style="padding:35px"><div class="empty-icon">${icon('check')}</div><h3>Keine offenen Prüfpunkte</h3><p>Der Musterablauf ist für eine simulierte Freigabe vorbereitet.</p></div>`)+
+      `</div><div class="section"><div class="section-header"><div><h2>Bearbeitungsstand</h2><p>${done} von ${checks().length} Kontrollen erledigt</p></div>${labelStatus(tasks.length===0,'Bereit','In Bearbeitung')}</div><div class="section-body">${progress()}<p class="note" style="margin:24px 0 0">Ein Schritt führt direkt zu den betroffenen Daten. Technische Prüflisten bleiben im Hintergrund.</p></div><div class="progress-foot">${button('Prüfcockpit öffnen','go-review',null,'button-quiet')}</div></div></div>`+
+      `<div class="divider-title">FINANZIELLE MOMENTAUFNAHME</div><div class="section"><div class="stat-inline"><div><small>Gesamtkosten</small><strong>${fmt(allCost())}</strong></div><div><small>Vorauszahlungen</small><strong>${fmt(allAdvance())}</strong></div><div><small>Saldo Gesamt (Muster)</small><strong>${fmt(round(allCost()-allAdvance()))}</strong></div></div><p class="section-note">Illustrative Werte. Die echte Abrechnung wird erst nach fachlicher Migration und Cent-genauen Vergleichstests freigeschaltet.</p></div>`;
+  }
+  const steps=[['costs','Gesamtkosten'],['water','Verbräuche'],['advance','Vorauszahlungen'],['allocation','Umlage'],['review','Prüfen'],['letters','Briefe']];
+  const renderSteps=()=>`<div class="tab-bar" role="tablist" aria-label="Abrechnungsprozess">${steps.map(([id,label])=>`<button class="tab-button ${ui.step===id?'active':''}" role="tab" aria-selected="${ui.step===id}" type="button" data-step="${id}">${label}</button>`).join('')}</div>`;
+  function billing(){
+    const ending=data.demoFinalized?'Simuliert abgeschlossen':'Entwurf';
+    let content='';let action='';let title='Abrechnung 2025';let description='Alle Arbeitsschritte in einem gemeinsamen Arbeitsplatz. Details bearbeiten, ohne den Kontext zu verlieren.';
+    if(ui.step==='costs'){action=button('Kostenart hinzufügen','new-cost',null,'button-primary');content=costs();}
+    else if(ui.step==='water'){action=button('Hauszähler prüfen','edit-house',null,'button-primary');content=water();}
+    else if(ui.step==='advance'){content=advances();}
+    else if(ui.step==='allocation'){content=allocations();}
+    else if(ui.step==='review'){content=review();}
+    else if(ui.step==='letters'){action=button(icon('print')+' Musterbrief drucken','print-letter',null,'button-primary');content=letters();}
+    return head(`ABRECHNUNG 2025 · ${ending}`,title,description,action)+renderSteps()+content;
+  }
+  function costs(){
+    let q=ui.filter.toLowerCase();const c=data.costs.filter(x=>(x.name+' '+x.category).toLowerCase().includes(q));
+    return `<div class="inline-toolbar"><h2>Gesamtkosten</h2><div class="filterbar"><input class="search" id="tableSearch" aria-label="Kosten durchsuchen" placeholder="Kostenarten suchen …" value="${safeText(ui.filter)}"></div></div>`+
+      `<section class="section"><div class="stat-inline"><div><small>Gesamtkosten</small><strong>${fmt(allCost())}</strong></div><div><small>Kostenarten</small><strong>${data.costs.length}</strong></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Kostenart</th><th>Bereich</th><th>Umlageschlüssel</th><th class="money">Gesamtbetrag</th><th>Status</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
+      (c.length?c.map(x=>`<tr><td><strong>${safeText(x.name)}</strong></td><td>${safeText(x.category)}</td><td>${safeText(x.method)}</td><td class="money">${fmt(x.amount)}</td><td>${labelStatus(x.amount>0)}</td><td>${iconButton('edit-cost',x.id,'Kostenart bearbeiten')}</td></tr>`).join(''):`<tr><td colspan="6" class="muted">Keine Treffer.</td></tr>`)+
+      `</tbody></table></div><div class="table-caption">Klicken Sie auf eine Kostenart. Alle Einstellungen öffnen rechts – die Übersicht bleibt bestehen.</div></section><p class="footnote">Demo: Die Verteilung im Prototyp ist vereinfacht. Es findet keine produktive Umlageberechnung statt.</p>`;
+  }
+  function water(){const used=unitConsumption(),gap=waterGap();return `<div class="inline-toolbar"><h2>Wohnungszähler</h2><span class="status ${waterResolved()?'green':'amber'}">${waterResolved()?'Geprüft':'Abgleich offen'}</span></div>`+
+    `<section class="section"><div class="stat-inline"><div><small>Hauszähler</small><strong>${int(data.houseWater)} m³</strong></div><div><small>Summe Wohnungen</small><strong>${int(used)} m³</strong></div><div><small>Differenz</small><strong style="color:${gap?'var(--amber)':'var(--green)'}">${gap>0?'+':''}${int(gap)} m³</strong></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Wohnung</th><th class="money">Anfang</th><th class="money">Ende</th><th class="money">Verbrauch</th><th>Status</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
+    data.units.map(u=>`<tr><td><strong>${safeText(u.label)}</strong><div class="small soft">${safeText(u.position)}</div></td><td class="money">${int(u.waterStart)} m³</td><td class="money">${int(u.waterEnd)} m³</td><td class="money"><strong>${int(consumption(u))} m³</strong></td><td>${labelStatus(u.waterEnd>=u.waterStart,'Plausibel','Fehler')}</td><td>${iconButton('edit-water',u.id,'Zählerstand bearbeiten')}</td></tr>`).join('')+
+    `</tbody></table></div><div class="table-caption">Nur Beispielzähler: ein Zähler je Musterwohnung. Der Originalbestand führt getrennte Kalt-/Warmwasserzähler.</div></section>`+
+    (gap!==0?`<div style="margin-top:18px" class="warning-line">${icon('alert')}<div>Die Summe der Wohnungszähler weicht um <strong>${int(gap)} m³</strong> vom Hauszähler ab. Die Differenz wird nicht still verteilt. ${waterResolved()?'Eine begründete Musterentscheidung liegt vor.':'Die Bearbeitung erfolgt direkt im Prüfbereich.'} <button class="link" type="button" data-action="check-water">Prüfen →</button></div></div>`:'');}
+  function advances(){return `<div class="inline-toolbar"><h2>Vorauszahlungen</h2><span class="small muted">Jahreswerte · Musterstand</span></div><section class="section"><div class="stat-inline"><div><small>Summe Vorauszahlungen</small><strong>${fmt(allAdvance())}</strong></div><div><small>Erfasste Wohnungen</small><strong>${data.units.length} von 7</strong></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Wohnung</th><th class="money">Vorauszahlung/Jahr</th><th class="money">Monatsäquivalent*</th><th>Status</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
+      data.units.map(u=>`<tr><td><strong>${safeText(u.label)}</strong><div class="small soft">${safeText(u.position)}</div></td><td class="money">${fmt(u.advance)}</td><td class="money">${fmt(u.advance/12)}</td><td>${labelStatus(u.advance>0)}</td><td>${iconButton('edit-advance',u.id,'Vorauszahlung bearbeiten')}</td></tr>`).join('')+`</tbody></table></div><div class="table-caption">*Nur rechnerisches Monatsäquivalent, keine Prüfung tatsächlich gezahlter Einzelmonate.</div></section>`;}
+  function allocations(){let res=data.units.map(u=>({unit:u,cost:allocation(u),saldo:balance(u)}));let sum=res.reduce((s,r)=>s+r.saldo,0);return `<div class="inline-toolbar"><h2>Abrechnungsergebnis</h2><span class="status amber">Nicht produktiv</span></div><section class="section"><div class="big-total"><div><small>Gesamtsaldo · synthetische Beispielrechnung</small><strong>${fmt(round(sum))}</strong></div><span class="small muted">Kosten minus Vorauszahlungen</span></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Wohnung</th><th class="money">Umlagekosten</th><th class="money">Vorauszahlungen</th><th class="money">Saldo</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
+    res.map(r=>`<tr><td><strong>${safeText(r.unit.label)}</strong></td><td class="money">${fmt(r.cost)}</td><td class="money">${fmt(r.unit.advance)}</td><td class="money"><span class="outcome ${r.saldo>0?'neg':'pos'}">${fmt(r.saldo)}</span></td><td>${iconButton('show-unit-result',r.unit.id,'Berechnungsgrundlage öffnen')}</td></tr>`).join('')+`</tbody></table></div><div class="table-caption">Die Musterverteilung nutzt nur Fläche bzw. vereinfachten Verbrauch. Nicht geeignet für echte Heizkosten, Steuerwerte oder Bescheide.</div></section><div style="margin-top:18px;text-align:right">${button('Zur Prüfung','go-review',null,'button-primary')}</div>`;}
+  function review(){const list=checks();const todo=list.filter(x=>!x.done);return `<div class="inline-toolbar"><h2>Prüfen und abschließen</h2><span class="status ${todo.length?'amber':'green'}">${todo.length?todo.length+' offene Punkte':'Alle Musterpunkte geprüft'}</span></div><section class="section"><div class="section-header"><div><h2>Abschlusskontrolle</h2><p>Jede Auffälligkeit führt direkt zur Ursache und möglichen Lösung.</p></div></div>`+
+    list.map(c=>`<div class="check-item"><div class="check-dot ${c.done?'pass':'todo'}">${icon(c.done?'check':'alert')}</div><div class="check-content"><strong>${safeText(c.title)}</strong><span>${safeText(c.note)}</span></div>${c.done?'<span class="status green">Erledigt</span>':`<button class="link" type="button" data-action="${c.action}">Bearbeiten →</button>`}</div>`).join('')+
+    `<div class="progress-foot" style="display:flex;align-items:center;justify-content:space-between;gap:14px"><span class="note">${list.length-todo.length}/${list.length} Musterkontrollen erledigt</span>${button(data.demoFinalized?'Musterabschluss erfolgt': 'Musterabschluss simulieren','demo-finish',null,'button-primary'+(todo.length?' disabled-look':''))}</div></section>`+
+    `<div class="info-line">Diese Statuslogik demonstriert nur die geplante Benutzerführung. Ein echter Abschluss bleibt deaktiviert, bis der vollständige Original-Rechenkern, sämtliche Regeln und die Druckprüfung migriert und abgenommen sind.</div>`;}
+  function docPaper(){const u=data.units[0];const cost=allocation(u),adv=u.advance,saldo=balance(u);return `<article class="doc-paper"><div class="doc-top">MUSTERHAUS · DEMO-VERMIETUNG</div><div class="doc-address">Musterempfänger<br>Wohnung A<br>Beispielstraße 1<br>00000 Musterstadt</div><div class="doc-title">Nebenkostenabrechnung 2025</div><div class="doc-prose">Sehr geehrte Damen und Herren,<br><br>für den Abrechnungszeitraum 01.01.2025 bis 31.12.2025 ergibt sich aus diesem unverbindlichen Muster folgende Übersicht:</div><div class="doc-results"><div><small>Umlagekosten</small><b>${fmt(cost)}</b></div><div><small>Vorauszahlungen</small><b>${fmt(adv)}</b></div><div><small>${saldo>0?'Nachzahlung':'Guthaben'}</small><b>${fmt(Math.abs(saldo))}</b></div></div><div class="doc-prose">Dies ist ausschließlich eine Layoutvorschau mit synthetischen Beträgen. Sie stellt keine versandfertige Abrechnung dar.</div><div class="doc-sign">Mit freundlichen Grüßen<strong>Mustermann Immobilien</strong>Vermietung</div><div class="demo-watermark">DESIGNDEMO · NICHT VERSENDEN</div></article>`;}
+  function letters(){return `<div class="inline-toolbar"><h2>Briefvorschau</h2><span class="status ${data.letterChecked?'green':'amber'}">${data.letterChecked?'Layout geprüft (Demo)':'Layoutprüfung offen'}</span></div><p class="print-note">Diese Vorschau nutzt keine realen Mieterdaten. Der spätere Dokumentengenerator muss auf dem bestehenden geprüften Briefsystem aufbauen.</p><section class="section printable"><div class="section-header"><div><h2>Musterbrief – Wohnung A</h2></div><button type="button" class="link" data-action="mark-letter">${data.letterChecked?'Prüfung zurücksetzen':'Musterlayout als geprüft markieren'}</button></div><div class="section-body">${docPaper()}</div></section>`;}
+  function object(){return head('STAMMDATEN','Objekt','Wohnungen und Zähler sind einmalig gepflegt. Jahresbezogene Daten werden im Abrechnungsarbeitsplatz bearbeitet.')+
+    `<div class="section"><div class="section-header"><div><h2>Musterobjekt</h2><p>7 Wohnungen · 1 Gebäude · ausschließlich synthetische Daten</p></div><span class="status green">Demo aktiv</span></div><div class="stat-inline"><div><small>Wohneinheiten</small><strong>${data.units.length}</strong></div><div><small>Gesamtfläche</small><strong>${int(data.units.reduce((s,u)=>s+u.area,0))} m²</strong></div><div><small>Zähler erfasst</small><strong>7 Musterzähler</strong></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Wohnung</th><th>Kennung</th><th>Lage</th><th class="money">Fläche</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
+    data.units.map(u=>`<tr><td><strong>${safeText(u.label)}</strong></td><td>${safeText(u.id)}</td><td>${safeText(u.position)}</td><td class="money">${int(u.area)} m²</td><td>${iconButton('edit-unit',u.id,'Wohnung bearbeiten')}</td></tr>`).join('')+`</tbody></table></div><div class="table-caption">Ein Stammzugang; keine doppelte Mietverhältnis-Verwaltung zwischen Objekt und Jahresabrechnung.</div></div>`;}
+  function analytics(){const choices=[['nk','Nebenkosten'],['finance','Finanzen'],['tax','Steuern']];let body='';
+    if(ui.analytics==='nk'){let max=Math.max(...data.costs.map(c=>c.amount));body=`<div class="metric-row"><div class="metric"><span class="metric-label">Gesamtkosten 2025</span><div class="metric-number" style="font-size:23px">${fmt(allCost())}</div><span class="metric-helper">Musterwerte</span></div><div class="metric"><span class="metric-label">Kosten je m²</span><div class="metric-number">${euroNum(allCost()/data.units.reduce((s,u)=>s+u.area,0))} <small>€/m²</small></div><span class="metric-helper">Rein illustrative Kennzahl</span></div><div class="metric"><span class="metric-label">Wohnungsverbrauch</span><div class="metric-number">${int(unitConsumption())} <small>m³</small></div><span class="metric-helper">Vereinfachte Musterzähler</span></div></div>`+
+      section('Kostenstruktur 2025',`<div class="section-body"><div class="bars">${data.costs.map(c=>`<div class="bar-row"><span>${safeText(c.name)}</span><div class="bar-rail"><div class="bar-fill" style="width:${Math.round(c.amount/max*100)}%"></div></div><span class="bar-value">${fmt(c.amount)}</span></div>`).join('')}</div><p class="footnote" style="margin-top:24px">Preis-/Verbrauchseffekte und Mehrjahresvergleiche werden erst gezeigt, wenn vergleichbare Vorjahresdaten nachweislich verfügbar sind.</p></div>`);
+    }else if(ui.analytics==='finance'){body=`<div class="no-data-box"><strong>Cashflow derzeit nicht berechenbar</strong><p>Die Demo enthält Kosten und Vorauszahlungen, aber keine verifizierten tatsächlichen Miet- oder Lieferantenzahlungen. NK-Pro 2.0 wird Soll, Ist, Forderungen und Cashflow getrennt erfassen.</p></div>`+section('Finanzielle Überleitung (Beispiel)',`<div class="stat-inline"><div><small>Nebenkosten (Soll)</small><strong>${fmt(allCost())}</strong></div><div><small>Vorauszahlungen (Abrechnungswert)</small><strong>${fmt(allAdvance())}</strong></div><div><small>Tatsächliche Zahlungen</small><strong>–</strong></div></div><div class="table-caption">Keine fiktiven Zahlungseingänge oder Renditen.</div>`);
+    }else{body=`<div class="no-data-box"><strong>Steuerliche Werte noch nicht klassifiziert</strong><p>Privatanteile, Steuerjahr, abzugsfähige Kosten und Belege müssen gesondert fachlich zugeordnet und bestätigt werden. Die Demo nimmt keine steuerlichen Einstufungen vor.</p></div>`+section('Steuerliche Überleitung',`<div class="stat-inline"><div><small>Unklassifizierte Kostenarten</small><strong>${data.costs.length}</strong></div><div><small>Bestätigtes Steuerjahr</small><strong>–</strong></div><div><small>Abzugsfähige Beträge</small><strong>–</strong></div></div><div class="table-caption">Kein Ersatz für steuerliche Prüfung.</div>`);}
+    return head('ANALYSEN','Analysezentrum','Drei fachlich getrennte Perspektiven. Werte ohne belastbare Datenbasis bleiben bewusst leer.')+`<div class="analytic-switch" role="tablist" aria-label="Analyseperspektive">${choices.map(([id,label])=>`<button type="button" role="tab" aria-selected="${ui.analytics===id}" class="${ui.analytics===id?'selected':''}" data-analytics="${id}">${label}</button>`).join('')}</div>`+body;
+  }
+  function documents(){return head('DOKUMENTE & HISTORIE','Dokumente & Archiv','Briefe, Prüfungen, Ausgabe und historische Stände – klar getrennt von der Bearbeitung.')+
+    `<section class="section"><div class="section-header"><div><h2>Dokumente · 2025</h2><p>Erstellte Dokumente werden erst nach der fachlichen Freigabe verbindlich.</p></div></div><div class="task-row"><div class="task-icon">${icon('file')}</div><div class="task-copy"><strong>Musterbrief · Wohnung A</strong><span>Vorschau · synthetische Beträge · nicht versandfertig</span></div><button class="link" type="button" data-action="go-letter">Vorschau →</button></div><div class="task-row"><div class="task-icon">${icon('layers')}</div><div class="task-copy"><strong>Prüf- und Abschlussprotokoll</strong><span>Erst nach Fachfreigabe des vollständigen Systems verfügbar</span></div><button class="link" type="button" data-action="go-review">Prüfstatus →</button></div></section>`+
+    `<section class="section"><div class="section-header"><div><h2>Archiv</h2></div><span class="status neutral">Leer</span></div><div class="empty"><div class="empty-icon">${icon('folder')}</div><h3>Keine historischen Abrechnungen in der Demo</h3><p>Das echte Archiv wird später vollständig separat und schreibgeschützt migriert. Die bisherige NK-Pro-App bleibt unverändert.</p></div></section>`;}
+  const viewTitles={overview:'Übersicht',billing:'Abrechnungen',object:'Objekt',analytics:'Analysen',documents:'Dokumente & Archiv'};
+  function render(){document.querySelectorAll('.nav-item').forEach(el=>{const active=el.dataset.view===ui.view;el.classList.toggle('active',active);if(active)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current')});$('breadcrumbView').textContent=viewTitles[ui.view];const target=$('appMain');target.innerHTML=({overview, billing,object,analytics,documents}[ui.view]||overview)();$('appMain').querySelectorAll('[data-icon]').forEach(n=>n.innerHTML=icon(n.dataset.icon));}
+  function navigate(view,step){ui.view=view;if(step)ui.step=step;ui.filter='';render();window.scrollTo({top:0,behavior:'instant'});document.body.classList.remove('menu-open');}
+  function toast(message){const el=$('toast');el.textContent=message;el.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.hidden=true,3200)}
+  function closeDrawer(){ui.drawer=null;$('drawer').hidden=true;$('overlay').hidden=true;document.body.style.overflow='';if(ui.lastFocus&&ui.lastFocus.isConnected)ui.lastFocus.focus()}
+  function openDrawer(type,id){const d={type,id};ui.drawer=d;ui.lastFocus=document.activeElement;let title='',eyebrow='',body='',actionLabel='Änderungen speichern';
+    if(type==='cost'||type==='new-cost'){
+      const c=type==='new-cost'?{name:'',amount:'',category:'Betriebskosten',method:'Fläche'}:data.costs.find(x=>x.id===id);if(!c)return;
+      title=type==='new-cost'?'Kostenart hinzufügen':c.name;eyebrow='GESAMTKOSTEN';body=`<form id="editForm" data-type="${type}"><div class="form-row"><label for="d-name">Kostenart</label><input id="d-name" name="name" required maxlength="60" value="${safeText(c.name)}"></div><div class="form-row"><label for="d-amount">Gesamtbetrag (€)</label><input id="d-amount" name="amount" type="number" required step="0.01" min="0.01" value="${c.amount}"></div><div class="form-row"><label for="d-method">Umlagebasis (nur Demo)</label><select id="d-method" name="method"><option value="Fläche" ${c.method==='Fläche'?'selected':''}>Wohnfläche</option><option value="Verbrauch" ${c.method==='Verbrauch'?'selected':''}>Beispielverbrauch</option></select><p class="form-help">Die echte Anwendung unterstützt die vollständige fachliche Schlüssellogik.</p></div><div class="drawer-note">Veränderte Musterwerte werden nur im isolierten Demo-Speicher abgelegt. Es erfolgt kein Zugriff auf die bestehende NK-Pro-App.</div></form>`;
+    } else if(type==='water'||type==='advance'||type==='unit'){
+      const u=data.units.find(x=>x.id===id);if(!u)return;title=u.label;eyebrow=type==='water'?'VERBRAUCHSDATEN':type==='advance'?'VORAUSZAHLUNGEN':'WOHNUNGSSTAMM';
+      if(type==='water')body=`<form id="editForm" data-type="water"><div class="form-row"><label for="d-start">Anfangsstand (m³)</label><input id="d-start" name="start" type="number" step="1" min="0" value="${u.waterStart}" required></div><div class="form-row"><label for="d-end">Endstand (m³)</label><input id="d-end" name="end" type="number" step="1" min="0" value="${u.waterEnd}" required></div><div class="drawer-note">Der reale Wasserzählerbestand ist komplexer; die Migration muss alle KW-/WW-Zähler und Rundungsregeln unverändert übernehmen.</div></form>`;
+      else if(type==='advance')body=`<form id="editForm" data-type="advance"><div class="form-row"><label for="d-advance">Jahresvorauszahlung (€)</label><input id="d-advance" name="advance" type="number" step="0.01" min="0" value="${u.advance}" required></div><div class="drawer-note">Musterjahreswert. Keine tatsächlichen Zahlungseingänge hinterlegt.</div></form>`;
+      else body=`<form id="editForm" data-type="unit"><div class="form-row"><label for="d-label">Wohnungsbezeichnung</label><input id="d-label" name="label" required value="${safeText(u.label)}"></div><div class="form-row"><label for="d-position">Lage</label><input id="d-position" name="position" required value="${safeText(u.position)}"></div><div class="form-row"><label for="d-area">Wohnfläche (m²)</label><input id="d-area" name="area" type="number" min="1" step="0.01" required value="${u.area}"></div><div class="drawer-note">Stammdaten nur einmal pflegen; der gesamte Workflow nutzt denselben Eintrag.</div></form>`;
+    }else if(type==='house') {title='Hauswasserzähler';eyebrow='VERBRAUCHSABGLEICH';body=`<form id="editForm" data-type="house"><div class="form-row"><label for="d-house">Jahresverbrauch Hauszähler (m³)</label><input id="d-house" name="house" type="number" step="1" min="0" required value="${data.houseWater}"></div><div class="drawer-note">Abweichungen zur Summe der Wohnungszähler bleiben prüfpflichtig und werden niemals stillschweigend umgelegt.</div></form>`;
+    }else if(type==='water-decision'){title='Wasserdifferenz prüfen';eyebrow='PRÜFENTSCHEIDUNG';const gap=waterGap();body=`<form id="editForm" data-type="water-decision"><div class="key-value" style="margin-bottom:23px"><small>Abweichung Haus-/Wohnungsverbrauch</small><strong>${gap>0?'+':''}${int(gap)} m³</strong></div><div class="form-row"><label for="d-reason">Begründung der Musterentscheidung</label><textarea id="d-reason" name="reason" minlength="5" required placeholder="Warum wird die Differenz als geprüft akzeptiert?">${safeText(data.waterDecision?.note||'')}</textarea><p class="form-help">Mindestens fünf Zeichen. Ändern sich die zugrunde liegenden Zählerwerte, wird die Entscheidung erneut prüfpflichtig.</p></div><div class="drawer-note">Im produktiven System gelten zusätzlich alle bestehenden fachlichen Prüfschritte und dokumentierten Entscheidungstypen.</div></form>`;actionLabel='Entscheidung dokumentieren';
+    }else if(type==='heat-evidence'){title='Heizkostenbeleg';eyebrow='PRÜFENTSCHEIDUNG';body=`<form id="editForm" data-type="heat-evidence"><div class="key-value" style="margin-bottom:20px"><small>Externe Heizkosten (Muster)</small><strong>${fmt(data.costs.find(x=>x.id==='heat')?.amount||0)}</strong></div><div class="form-row"><label><input name="confirmed" type="checkbox" style="width:auto;margin-right:8px" ${heatResolved()?'checked':''} required> Musterbeleg ist geprüft</label><p class="form-help">Diese Checkbox simuliert nur die später einzubindende Belegprüfung.</p></div></form>`;actionLabel='Belegstatus speichern';
+    }else if(type==='result'){const u=data.units.find(x=>x.id===id);if(!u)return;title=u.label;eyebrow='BERECHNUNGSNACHWEIS';let a=data.units.reduce((s,x)=>s+x.area,0),w=unitConsumption();body=`<div class="drawer-note">Ausschließlich vereinfachter Beispielnachweis. Die produktive Umlage besitzt zusätzliche Schlüssel, Nachweise und Sonderfälle.</div><div class="key-value" style="margin-bottom:17px"><small>Wohnflächenanteil</small><strong>${int(u.area)} / ${int(a)} m²</strong></div><div class="key-value" style="margin-bottom:17px"><small>Verbrauchsanteil</small><strong>${int(consumption(u))} / ${int(w)} m³</strong></div><div class="key-value" style="margin-bottom:17px"><small>Berechnete Kosten</small><strong>${fmt(allocation(u))}</strong></div><div class="key-value"><small>Saldo nach Vorauszahlungen</small><strong>${fmt(balance(u))}</strong></div>`;actionLabel='Schließen';
+    }
+    $('drawerTitle').textContent=title;$('drawerEyebrow').textContent=eyebrow;$('drawerBody').innerHTML=body;
+    $('drawerFooter').innerHTML=`<button class="button" type="button" data-action="close-drawer">Abbrechen</button>${type==='result'?'':`<button form="editForm" class="button button-primary" type="submit">${actionLabel}</button>`}`;
+    $('overlay').hidden=false;$('drawer').hidden=false;document.body.style.overflow='hidden';setTimeout(()=>{const input=$('drawerBody').querySelector('input,textarea,select');if(input)input.focus();else $('closeDrawer').focus()},10);
+  }
+  function saveDrawer(form){const {type,id}=ui.drawer||{};let good=true,msg='Musterwert gespeichert.';
+    if(type==='cost'||type==='new-cost'){
+      const name=form.elements.name.value.trim(),amt=parseField(form.elements.amount),method=form.elements.method.value;
+      if(!name||!Number.isFinite(amt)||amt<=0||!['Fläche','Verbrauch'].includes(method))return toast('Bitte gültige Werte eingeben.');
+      if(type==='cost'){Object.assign(data.costs.find(x=>x.id===id),{name,amount:round(amt),method});}else{data.costs.push({id:'new-'+Date.now(),name,category:'Betriebskosten',amount:round(amt),method,label:'Musterdaten'})}
+      if(id==='heat'){data.heatingEvidence=false;data.heatingEvidenceFingerprint=null}
+    }else if(type==='water'){const u=data.units.find(x=>x.id===id),start=parseField(form.elements.start),end=parseField(form.elements.end);if(!Number.isInteger(start)||!Number.isInteger(end)||start<0||end<start)return toast('Endstand muss mindestens dem Anfangsstand entsprechen.');u.waterStart=start;u.waterEnd=end;}
+    else if(type==='advance'){const val=parseField(form.elements.advance);if(!Number.isFinite(val)||val<0)return toast('Ungültige Vorauszahlung.');data.units.find(x=>x.id===id).advance=round(val);}
+    else if(type==='unit'){const u=data.units.find(x=>x.id===id);const area=parseField(form.elements.area);if(!Number.isFinite(area)||area<1)return toast('Bitte eine gültige Fläche eingeben.');u.label=form.elements.label.value.trim();u.position=form.elements.position.value.trim();u.area=area;if(!u.label||!u.position)return toast('Bezeichnung und Lage fehlen.');}
+    else if(type==='house'){const val=parseField(form.elements.house);if(!Number.isInteger(val)||val<0)return toast('Bitte einen ganzzahligen Verbrauch eingeben.');data.houseWater=val;}
+    else if(type==='water-decision'){let note=form.elements.reason.value.trim();if(note.length<5)return toast('Bitte eine fachliche Begründung erfassen.');data.waterDecision={fingerprint:waterFingerprint(),note,created:new Date().toISOString()};msg='Musterentscheidung dokumentiert.';}
+    else if(type==='heat-evidence'){if(!form.elements.confirmed.checked)return toast('Bitte die Musterprüfung ausdrücklich bestätigen.');data.heatingEvidence=true;data.heatingEvidenceFingerprint=heatFingerprint();msg='Musterbeleg bestätigt.';}
+    else good=false;
+    if(good){closeDrawer();stateChange();toast(msg)}
+  }
+  function doAction(action,id){
+    if(action==='new-cost'){openDrawer('new-cost');return}if(action==='edit-cost'){openDrawer('cost',id);return}if(action==='edit-water'){openDrawer('water',id);return}if(action==='edit-house'){openDrawer('house');return}
+    if(action==='edit-advance'){openDrawer('advance',id);return}if(action==='edit-unit'){openDrawer('unit',id);return}if(action==='show-unit-result'){openDrawer('result',id);return}
+    if(action==='check-water'){if(waterGap()===0){toast('Keine Wasserdifferenz.');return}openDrawer('water-decision');return}
+    if(action==='check-heat'){openDrawer('heat-evidence');return}if(action==='go-costs'){navigate('billing','costs');return}if(action==='go-review'){navigate('billing','review');return}if(action==='go-letter'){navigate('billing','letters');return}
+    if(action==='mark-letter'){data.letterChecked=!data.letterChecked;stateChange();toast(data.letterChecked?'Musterlayout als geprüft markiert.':'Musterprüfung zurückgesetzt.');return}
+    if(action==='print-letter'){window.print();return}
+    if(action==='demo-finish'){if(unresolved().length){toast('Bitte zunächst alle offenen Musterprüfungen bearbeiten.');return}data.demoFinalized=true;persist();render();toast('Musterabschluss simuliert – keine echte Freigabe.');return}
+    if(action==='close-drawer'){closeDrawer();return}
+  }
+  document.addEventListener('click',e=>{
+    const nav=e.target.closest('[data-view]');if(nav){navigate(nav.dataset.view);return}
+    const st=e.target.closest('[data-step]');if(st){ui.step=st.dataset.step;ui.filter='';render();return}
+    const an=e.target.closest('[data-analytics]');if(an){ui.analytics=an.dataset.analytics;render();return}
+    const action=e.target.closest('[data-action]');if(action){doAction(action.dataset.action,action.dataset.id||'')}
+  });
+  document.addEventListener('submit',e=>{if(e.target.id==='editForm'){e.preventDefault();saveDrawer(e.target)}});
+  document.addEventListener('input',e=>{if(e.target.id==='tableSearch'){ui.filter=e.target.value;const pos=e.target.selectionStart;render();const input=$('tableSearch');if(input){input.focus();input.setSelectionRange(pos,pos)}}});
+  $('closeDrawer').addEventListener('click',closeDrawer);$('overlay').addEventListener('click',closeDrawer);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('drawer').hidden)closeDrawer();document.body.classList.remove('menu-open')}if(e.key==='Tab'&&!$('drawer').hidden){const nodes=[...$('drawer').querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled)')].filter(x=>x.offsetParent!==null);if(!nodes.length)return;const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});
+  $('openMenu').addEventListener('click',()=>document.body.classList.toggle('menu-open'));
+  $('resetDemo').addEventListener('click',()=>{if(!window.confirm('Alle Änderungen an den synthetischen Demodaten zurücksetzen? Die bestehende NK-Pro-App bleibt unberührt.'))return;data=initial();persist();navigate('overview');toast('Demo zurückgesetzt.');});
+  document.querySelectorAll('[data-icon]').forEach(node=>node.innerHTML=icon(node.dataset.icon));
+  render();
+  // API only for automated prototype smoke testing; never expose data from any real NK-Pro system.
+  window.NKPRO2_DEMO_TEST=Object.freeze({getState:()=>JSON.parse(JSON.stringify(data)),checks,allocate:()=>data.units.map(u=>({id:u.id,amount:allocation(u),balance:balance(u)})),storageKey:STORAGE_KEY});
+})();
