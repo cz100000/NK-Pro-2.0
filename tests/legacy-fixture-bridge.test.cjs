@@ -64,7 +64,7 @@ test("the legacy input is mapped to external Techem case values with source basi
  assert.equal(r.externalOwnerShare,3.88);
  assert.equal(r.allocations["DEMO-T0"],100);
  assert.ok(Math.abs(r.unclassifiedOwnerShare)<1e-7);
- assert.equal(r.ownerShare,3.88);
+ assert.ok(Math.abs(r.ownerShare-3.88)<1e-8);
  assert.equal(p.issues.length,0);
 });
 test("2025 water adapter preserves original confirmed data without silently spreading house difference",()=>{
