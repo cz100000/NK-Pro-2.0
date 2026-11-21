@@ -74,15 +74,16 @@ function calculateExternal(input){
    ownerShare+=allocations[t.id];allocations[t.id]=0;
  }
  const documentedOwnerShare=vacancyShare+num(externalOwnerShare);
- const unclassifiedOwnerShare=ownerShare-documentedOwnerShare;
- const totalCaptured=Object.values(allocations).reduce((sum,x)=>sum+x,0)+documentedOwnerShare+(owners?tenants.filter(t=>excluded.has(t.id)).reduce((sum,t)=>sum+cases.filter(c=>c.tenantId===t.id).reduce((acc,c)=>acc+num(values[c.caseKey]),0),0):0);
+ const excludedOwnerShare=owners?tenants.filter(t=>excluded.has(t.id)).reduce((sum,t)=>sum+cases.filter(c=>c.tenantId===t.id).reduce((acc,c)=>acc+num(values[c.caseKey]),0),0):0;
+ const unclassifiedOwnerShare=ownerShare-documentedOwnerShare-excludedOwnerShare;
+ const totalCaptured=Object.values(allocations).reduce((sum,x)=>sum+x,0)+documentedOwnerShare+excludedOwnerShare;
  if(Math.abs(totalCaptured-num(cost.amount))>.01)issues.push({code:"PROVIDER_MISMATCH",difference:totalCaptured-num(cost.amount)});
  if(Math.abs(unclassifiedOwnerShare)>.01)issues.push({code:"UNCLASSIFIED_OWNER_BALANCE",amount:unclassifiedOwnerShare});
  if(tenants.length!==new Set(tenants.map(t=>t.id)).size)issues.push({code:"DUPLICATE_TENANT"});
  const status=Math.abs(ownerShare)<=.01?"Vollständig":ownerShare>0?"Nicht auf Mieter umgelegt":"Überverteilung prüfen";
  return{allocations,ownerShare,basisTotal:inputSum,inputSum,status,vacancyShare,
    externalOwnerShare:num(externalOwnerShare),documentedOwnerShare,caseValuesUsed:true,
-   cases,unclassifiedOwnerShare,issues,readyForDemoReview:issues.length===0};
+   cases,excludedOwnerShare,unclassifiedOwnerShare,issues,readyForDemoReview:issues.length===0};
 }
 return{deriveCases,calculateExternal,version:"external-reference-experimental-1"};
 });

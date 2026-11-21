@@ -14,3 +14,5 @@ Ein neues, isoliertes Modul [`experimental/external-techem.js`](../experimental/
 **Wichtig:** Der Referenztest nutzt nur komplett erfundene IDs und Kostenwerte sowie die ausdrücklich bestätigte abstrakte 3,88-€-Regel. **Keine** echten Techem-Rechnungsdatensätze oder Mieternamen im öffentlichen Repository.
 
 **Nicht umgesetzt:** Echte externe Techem-Quellfelder, CO₂-/Heizkosten-Vermieterpflichtanteile, Zählerwechsellogik, 2025-JSON-Migration, Stammdatenintegration, Druckreife und Freigabe. Das Modul wird **nicht** in der öffentlich sichtbaren NK-Pro-2.0-Demo geladen.
+
+**Ausweis ausgeschlossener Teilnehmer:** Bei explizit bestätigter Vermieterbehandlung eines Teilnehmerausschlusses wird dessen Betrag zusätzlich als `excludedOwnerShare` nachvollziehbar ausgewiesen. Der originale `documentedOwnerShare`-Wert bleibt unverändert; beide Größen dürfen nicht blind addiert werden, weil `ownerShare` die Beträge bereits enthält.

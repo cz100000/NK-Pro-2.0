@@ -96,6 +96,9 @@ test("owner-side exclusions remain allocated to owner, not tenants",()=>{
  assert.equal(r.allocations["DEMO-M2"],0);
  assert.equal(r.ownerShare,460);
  assert.equal(r.externalOwnerShare,3.88);
+ assert.equal(r.excludedOwnerShare,410);
+ assert.equal(r.unclassifiedOwnerShare,0);
+ assert.equal(r.issues.length,0);
 });
 test("missing case amount creates a review finding instead of invented source value",()=>{
  const x=filled(),missing=Object.keys(x.values)[0];delete x.values[missing];
