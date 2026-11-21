@@ -42,7 +42,7 @@ function project(source){
      private:privateUse,role:label,originalIndex:i};
  });
  const costs=(Array.isArray(state.kostenarten)?state.kostenarten:[]).map((c,i)=>{
-   const id=text(c?.id),amount=number(c?.gesamtbetrag),enabled:text(c?.inNK)==="Ja";
+   const id=text(c?.id),amount=number(c?.gesamtbetrag),enabled=text(c?.inNK)==="Ja";
    if(!id||seenCosts.has(id))problem("INVALID_COST_ID",id,"kostenarten["+i+"].id");
    seenCosts.add(id);
    if(enabled&&(amount===null||amount<0))problem("INVALID_COST_TOTAL",id,"kostenarten["+i+"].gesamtbetrag");
