@@ -31,7 +31,7 @@ test("synthetic seven-unit house water and Techem source fully reconcile, not pr
  assert.equal(r.water.house,275);assert.equal(r.water.units,275);assert.equal(r.water.gap,0);
  assert.ok(Math.abs(r.provider.ownerShare-53.88)<1e-8);assert.equal(r.provider.vacancyShare,50);
  assert.equal(r.provider.externalOwnerShare,3.88);
- assert.equal(r.provider.unclassifiedOwnerShare,0);
+ assert.ok(Math.abs(r.provider.unclassifiedOwnerShare)<1e-8);
  assert.equal(r.counts.critical,0);assert.equal(r.counts.decisions,0);
  assert.equal(r.experimentalChecksClear,true);
  assert.equal(r.readyForRealFinalization,false);
