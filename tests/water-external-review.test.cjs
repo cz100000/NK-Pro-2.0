@@ -29,7 +29,7 @@ function scenario(){
 test("synthetic seven-unit house water and Techem source fully reconcile, not production-ready",()=>{
  const s=scenario(),r=review.audit(s);
  assert.equal(r.water.house,275);assert.equal(r.water.units,275);assert.equal(r.water.gap,0);
- assert.equal(r.provider.ownerShare,53.88);assert.equal(r.provider.vacancyShare,50);
+ assert.ok(Math.abs(r.provider.ownerShare-53.88)<1e-8);assert.equal(r.provider.vacancyShare,50);
  assert.equal(r.provider.externalOwnerShare,3.88);
  assert.equal(r.provider.unclassifiedOwnerShare,0);
  assert.equal(r.counts.critical,0);assert.equal(r.counts.decisions,0);
@@ -82,7 +82,7 @@ test("provider 3.88 euro position never allocated to private or vacancy particip
  assert.equal(provider.allocations["D-M0"],100);
  assert.equal(provider.vacancyShare,50);
  assert.equal(provider.externalOwnerShare,3.88);
- assert.equal(provider.ownerShare,53.88);
+ assert.ok(Math.abs(provider.ownerShare-53.88)<1e-8);
 });
 test("tampered provider source reveals reconciliation defect",()=>{
  const s=scenario();
