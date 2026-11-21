@@ -76,3 +76,11 @@ Für die spätere sichere Migration gibt es ein [separates, ausschließlich lese
 - [Schema-5-Projektionsadapter](docs/SCHEMA5_BRIDGE.md): kontrollierte, schreibgeschützte Modellüberleitung für **ausschließlich synthetische** Altdatenfelder. Unklare Wohnungs-/Zähleridentitäten, fehlende Werte und nicht migrierte Messperioden werden sichtbar als Issues ausgegeben. Kein Import, keine Speicherung, keine Echtdaten-Verarbeitung.
 
 **Betriebsschutz:** Die alte App `cz100000/NK-Pro` wird nicht beschrieben. Auch nach diesen Entwicklungsschritten bleibt NK-Pro 2.0 ausschließlich Designprototyp und geschütztes Testlabor; für die Abrechnung 2025 wird weiterhin der alte, fachlich zu prüfende Produktivstand verwendet.
+
+## Technischer Entwicklungsmonitor
+
+Eine separate, nicht in die Abrechnungsnavigation eingreifende Seite zeigt den **tatsächlichen letzten erfolgreichen CI-Teststand** und die weiterhin gesperrten produktiven Freigabe-Gates:
+
+**[Entwicklungsstand](https://cz100000.github.io/NK-Pro-2.0/status.html)**
+
+Die Seite wird bei jedem GitHub-Pages-Deployment aus dem vollständig bestandenen Testprotokoll automatisch erzeugt. Sie zeigt ausschließlich aggregierte Test-/Modulmetadaten, **keine Mieter-, Abrechnungs- oder Speicherinhalte**. Der Veröffentlichungsworkflow lässt nur acht ausdrücklich freigegebene öffentliche Dateien durch; die experimentellen Fachmodule und gepinnten Legacy-Quellen bleiben ausschließlich im Code-/Testrepository.

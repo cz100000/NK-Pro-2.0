@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="de"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>NK-Pro 2.0 · Entwicklungsstand</title>
+<link rel="stylesheet" href="./styles.css">
+<style>
+.report{max-width:1110px;margin:auto;padding:29px 24px 60px}
+.report-nav{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:55px}
+.report-heading{margin-bottom:30px}.report-heading h1{max-width:690px}
+.report-heading p{font-size:13px;color:var(--sub);max-width:680px}
+.report-alert{background:#fff8ed;border:1px solid #f0e1c4;border-radius:10px;padding:19px 23px;color:#875f29;margin-bottom:24px;font-size:12px}
+.report-alert strong{display:block;font-size:13px;margin-bottom:5px}
+.report-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-bottom:23px}
+.report-metric{background:white;border:1px solid var(--border);border-radius:10px;padding:21px 23px}
+.report-metric small{display:block;color:var(--sub);font-size:11px;margin-bottom:7px}
+.report-metric strong{display:block;font-size:28px;font-variant-numeric:tabular-nums}
+.report-metric span{font-size:11px;color:var(--muted)}
+.report-lines{padding:0 23px}
+.report-line{padding:16px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:17px}
+.report-line:last-child{border-bottom:0}
+.report-line strong{font-size:12px}.report-line p{font-size:11px;color:var(--sub);margin:4px 0 0}
+.report-gates{padding:20px 23px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.report-gate{padding:11px 14px;border:1px solid var(--border);border-radius:8px;font-size:12px;display:flex;justify-content:space-between;gap:14px}
+.report-gate strong{color:var(--amber)}
+.report-bottom{font-size:11px;color:var(--sub);padding-top:25px}.report-bottom a{color:var(--blue)}
+@media(max-width:690px){.report{padding:18px 14px 40px}.report-nav{margin-bottom:36px}.report-metrics{grid-template-columns:1fr}.report-gates{grid-template-columns:1fr}.report-line{align-items:start;flex-direction:column;gap:5px}}
+</style>
+<script defer src="./status.js"></script>
+</head>
+<body><main class="report">
+ <nav class="report-nav"><a href="./" class="button button-quiet">← Zur NK-Pro-2.0-Demo</a><span class="demo-badge">ENTWICKLUNG</span></nav>
+ <header class="report-heading"><p class="eyebrow">NK-PRO 2.0 · TECHNISCHER STATUS</p><h1>Entwicklungsfortschritt</h1><p>Code- und Testergebnisse aus dem letzten GitHub-Build – getrennt von der fachlichen Freigabe.</p></header>
+ <div class="report-alert"><strong>NK-Pro 2.0 ist noch nicht abrechnungsfähig.</strong>Bitte keine echten Mieter- oder Objektdaten eingeben. Für reale Abrechnungen bleibt NK-Pro 1.0 unverändert.</div>
+ <div class="report-metrics" aria-label="Test- und Qualitätsfortschritt">
+  <div class="report-metric"><small>Automatisierte Tests</small><strong id="testCount">—</strong><span id="testResult">Lade …</span></div>
+  <div class="report-metric"><small>Erfasste Prüfregeln</small><strong id="rulesCount">—</strong><span>Vollständiges Regel-Inventar</span></div>
+  <div class="report-metric"><small>Experimentelle Prüfregeln</small><strong id="runRulesCount">—</strong><span id="notRunCount">Nicht gleich Produktivfreigabe</span></div>
+ </div>
+ <section class="section"><div class="section-header"><div><h2>Umsetzungsstand der Module</h2><p>Design-Demo, geprüfte Teilfunktionen und noch offene Arbeiten.</p></div></div>
+  <div id="moduleRows" class="report-lines" aria-live="polite"><p class="note">Projektmetadaten werden geladen.</p></div></section>
+ <section class="section" style="margin-top:18px"><div class="section-header"><div><h2>Produktive Freigabevoraussetzungen</h2><p>Kein einzelner erfolgreicher Testlauf ersetzt diese Abnahmen.</p></div></div>
+  <div id="gateRows" class="report-gates"></div></section>
+ <footer class="report-bottom"><p>Diese Seite liest nur aus dem erfolgreichen Testlauf erzeugte Projektmetadaten. Keine Echtdaten, kein Import, keine Browser-Datenspeicherung.</p><p><span id="revision">Revisionsstand wird geladen.</span> · <a href="https://github.com/cz100000/NK-Pro-2.0">GitHub-Repository</a> · <a href="https://cz100000.github.io/NK-Pro/">NK-Pro 1.0</a></p></footer>
+</main></body></html>
