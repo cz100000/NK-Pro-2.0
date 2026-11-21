@@ -44,6 +44,7 @@ function calculateCost(input){
     const house=num(cost.houseConsumption);
     const price=cost.manualPrice||house<=0?num(cost.pricePerUnit):total/house;
     for(const tenant of basis)inputSum+=num(tenant.consumption);
+    basisTotal=inputSum; // Pinned V99.4.86 reports consumed billing units as basisTotal.
     for(const tenant of basis)all[tenant.id]=moneyRound(num(tenant.consumption)*price);
     ownerShare=moneyRound(total-basis.reduce((sum,t)=>sum+all[t.id],0));
     return finalize(status(ownerShare));
