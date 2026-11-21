@@ -4,7 +4,7 @@ Dies ist die **eigenständige Neugestaltung** von NK-Pro. Das ursprüngliche Pro
 
 ## Demo
 
-Nach der ersten erfolgreichen Pages-Veröffentlichung: **https://cz100000.github.io/NK-Pro-2.0/**
+Interaktive, veröffentlichte Design-Demo: **https://cz100000.github.io/NK-Pro-2.0/**
 
 Die Anwendung ist ein interaktiver Entwurf für eine minimalistische Benutzerführung. Sie enthält die fünf Hauptbereiche **Übersicht, Abrechnungen, Objekt, Analysen, Dokumente & Archiv** sowie den zusammenhängenden Musterworkflow Kosten → Verbräuche → Vorauszahlungen → Ergebnisse → Prüfen → Briefe.
 
@@ -41,3 +41,14 @@ Die aktuelle Entwicklungsstrategie ist **UX zuerst, Fachparität vor Produktivfr
 - Automatisierte Node-Tests: `npm test`. Der GitHub-Pages-Workflow wird erst nach erfolgreichen Tests deployen.
 
 **Wichtig:** Diese Verbesserungen dienen der technisch geprüften Demo-Verarbeitung. Der ursprüngliche NK-Pro-Rechenkern ist weiterhin **nicht migriert** und muss vor Echtdaten-Nutzung centgenau verglichen werden.
+
+## Entwicklungsstand · Fachmigration (experimentell)
+
+Die Oberfläche ist als eigenständiger UX-Prototyp veröffentlicht. Die tatsächliche Abrechnungslogik wird derzeit **getrennt von der Demo** aufgebaut und gegen die bestehende V99.4.86-Version verglichen.
+
+- **Sechs Umlageverfahren** sind in [`experimental/settlement-cost.js`](experimental/settlement-cost.js) als isolierte Referenzportierung implementiert und in synthetischen Fällen direkt gegen den gepinnten Original-Rechenkern getestet: Wohnfläche, Personentage, Miettage, Verbrauch, alle Wohneinheiten und aktive Wohneinheiten.
+- **29 automatisierte Tests** bestanden im zuletzt abgeschlossenen GitHub-Actions-Lauf. Darunter sind Originalvergleich, Leerstand, Teiljahre, Privatnutzung, Mieterwechsel und Summenprüfung.
+- **17 bestehende Menüpunkte und 4 interne Seiten** sowie **44 Qualitätsregeln** sind in einer [maschinell geprüften Ist–Soll-Matrix](docs/MIGRATION_COVERAGE.md) vollständig einem Zielbereich zugeordnet. Die Regeln sind ausdrücklich noch nicht portiert.
+- Technische Übersicht: [Legacy-Paritätsbericht](docs/EXPERIMENTAL_LEGACY_PARITY.md) und [Original-Kontrakt](docs/LEGACY_PARITY_CONTRACT.md).
+
+**Noch nicht umgesetzt:** vollständige Originalberechnung einschließlich externer Techem-Fälle, vollständige Qualitätssicherung, sichere Datenmigration, professionelle Briefe/PDF, Archiv und Drive-Synchronisation. Die Design-Demo darf nicht für echte Nebenkostenabrechnungen genutzt werden. Die produktive NK-Pro-1.0-Anwendung bleibt unangetastet.
