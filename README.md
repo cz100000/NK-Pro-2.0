@@ -47,7 +47,7 @@ Die aktuelle Entwicklungsstrategie ist **UX zuerst, Fachparität vor Produktivfr
 Die Oberfläche ist als eigenständiger UX-Prototyp veröffentlicht. Die tatsächliche Abrechnungslogik wird derzeit **getrennt von der Demo** aufgebaut und gegen die bestehende V99.4.86-Version verglichen.
 
 - **Sechs Umlageverfahren** sind in [`experimental/settlement-cost.js`](experimental/settlement-cost.js) als isolierte Referenzportierung implementiert und in synthetischen Fällen direkt gegen den gepinnten Original-Rechenkern getestet: Wohnfläche, Personentage, Miettage, Verbrauch, alle Wohneinheiten und aktive Wohneinheiten.
-- **91 automatisierte Tests** bestanden im zuletzt abgeschlossenen GitHub-Actions-Lauf. Darunter sind Originalvergleich, Leerstand, Teiljahre, Privatnutzung, Mieterwechsel und Summenprüfung.
+- **Automatisierte Regressionstests** vergleichen synthetische Fälle mit Originalfunktionen (u. a. Leerstand, Teiljahre, Privatnutzung, Mieterwechsel). Die aktuelle Testanzahl steht auf der [Entwicklungsstatusseite](https://cz100000.github.io/NK-Pro-2.0/status.html).
 - **17 bestehende Menüpunkte und 4 interne Seiten** sowie **44 Qualitätsregeln** sind in einer [maschinell geprüften Ist–Soll-Matrix](docs/MIGRATION_COVERAGE.md) vollständig einem Zielbereich zugeordnet. Die Regeln sind ausdrücklich noch nicht portiert.
 - Technische Übersicht: [Legacy-Paritätsbericht](docs/EXPERIMENTAL_LEGACY_PARITY.md) und [Original-Kontrakt](docs/LEGACY_PARITY_CONTRACT.md).
 
@@ -59,7 +59,7 @@ Für die spätere sichere Migration gibt es ein [separates, ausschließlich lese
 
 ## Wasser 2025, Techem und Prüfentscheidungen – experimentelle Fachmodule
 
-**91 automatisierte Tests bestanden** (Stand: 21.11.2026). Drei neue, ausdrücklich **nicht produktive** Bausteine wurden implementiert und über synthetische Referenzfälle getestet:
+Drei ausdrücklich **nicht produktive** Fachbausteine wurden implementiert und über synthetische Referenzfälle getestet:
 
 - [Wasser-2025-Referenzlogik](docs/WATER_2025_PARITY.md): bestätigte K002-Rundungsregel, getrennte KW-/WW-Werte, Haus-/Wohnungsdifferenz sowie Entwurf einer kontrollierten Vorjahresübernahme. Originalfunktionen aus V99.4.86 werden im Node-Test direkt ausgeführt und verglichen.
 - [Techem / externe Einzelabrechnung](docs/EXTERNAL_TECHEM_PARITY.md): konkrete Abrechnungsfälle für Mietwechsel, Privatanteil, Leerstand sowie ein getrennt dokumentierter, ausschließlich vermieterseitiger 3,88-€-Posten. Auch hier werden Originalverhalten und neue Implementierung mit synthetischen Fällen abgeglichen.
@@ -69,7 +69,7 @@ Für die spätere sichere Migration gibt es ein [separates, ausschließlich lese
 
 ## Qualitätsregeln, Briefprüfung und Schema-5-Überleitung (nächste Ausbaustufe)
 
-**91 automatisierte Tests erfolgreich** (GitHub Actions). Die zuletzt hinzugefügten Module sind test-only und werden bewusst **nicht** auf die GitHub-Pages-Website ausgeliefert:
+Alle Fachmodule werden über GitHub Actions automatisiert geprüft. Die nachfolgenden Module bleiben test-only und werden bewusst **nicht** auf die GitHub-Pages-Website ausgeliefert:
 
 - [Qualitätskatalog](docs/QUALITY_MIGRATION.md): alle **44 Original-Regeln** mit unveränderten Metadaten und Zielseiten, direkt gegen den eingefrorenen Original-Registry-Code geprüft. **7** zentrale Daten-/Mietzeitraumprüfungen sind als **synthetische, nicht final paritätsgeprüfte** Ausführung verfügbar; **37** verbleiben explizit `not-run`. Produktivfreigabe technisch nicht möglich.
 - [Dokumenten-Datenprüfung](docs/LETTER_DATA_PREFLIGHT.md): Empfänger-, Kostenzeilen-, Cent-Summen- und Adressprüfung, Signatur/Fingerprint, Sammelprüfung auf fehlende Empfänger. Abrechnungssaldo bei synthetischen Fällen gegen den echten Originalbrief-Datenkern verglichen. **Keine** echte A4-/PDF-/Druckfreigabe.
@@ -84,3 +84,11 @@ Eine separate, nicht in die Abrechnungsnavigation eingreifende Seite zeigt den *
 **[Entwicklungsstand](https://cz100000.github.io/NK-Pro-2.0/status.html)**
 
 Die Seite wird bei jedem GitHub-Pages-Deployment aus dem vollständig bestandenen Testprotokoll automatisch erzeugt. Sie zeigt ausschließlich aggregierte Test-/Modulmetadaten, **keine Mieter-, Abrechnungs- oder Speicherinhalte**. Der Veröffentlichungsworkflow lässt nur acht ausdrücklich freigegebene öffentliche Dateien durch; die experimentellen Fachmodule und gepinnten Legacy-Quellen bleiben ausschließlich im Code-/Testrepository.
+
+## Synthetische End-to-End-Prüfkette und Original-Qualitätsvergleich
+
+Der neue [integrierte Testläufer](docs/SYNTHETIC_PIPELINE.md) kombiniert erstmals Datenstrukturprüfung, 44-Regel-Statuskatalog, Wasserabrechnung, Techem-Einzelfälle und Brief-Datenkontrolle in einem **gemeinsamen, nicht produktiven** Prüfbericht. Kritische Mängel, zu begründende Differenzen und bewusst nicht ausgeführte Regeln bleiben unterscheidbar. Quellenbezogene Prüfentscheidungen werden bei jeder Datenänderung ungültig.
+
+Zusätzlich vergleichen [separate Laufzeittests](tests/quality-legacy-execution.test.cjs) die ersten sieben synthetischen Stammdaten- und Mietzeitraumprüfungen gegen die tatsächlich ausgeführte `evaluateFactual()`-Funktion der eingefrorenen Originalversion V99.4.86. Diese Tests decken ausgewählte Normal-/Fehlerfälle ab, ersetzen aber **keine vollständige Paritätsabnahme mit Echtdaten**.
+
+**Release-Grenze unverändert:** Keine echten Mieterabrechnungen, keine vollständigen 44 Prüfungsberechnungen, keine echten A4-Briefe und keine produktive Archivierung. Die bestehende Anwendung auf `cz100000/NK-Pro` bleibt erhalten.
