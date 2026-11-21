@@ -27,6 +27,7 @@ test("public progress page uses no browser data storage or production data API",
  const root=path.join(__dirname,"..");
  const page=fs.readFileSync(path.join(root,"status.html"),"utf8");
  const js=fs.readFileSync(path.join(root,"status.js"),"utf8");
- assert.ok(page.includes("./status.json"));
+ assert.ok(page.includes("./status.js"));
+ assert.ok(js.includes("./status.json"));
  assert.ok(!/localStorage|sessionStorage|indexedDB|oauthToken|drive\/v3/.test(page+js));
 });
