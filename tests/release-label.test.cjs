@@ -8,7 +8,7 @@ test("published version label matches the 0.9 navigation UI assets",()=>{
  assert.match(html,/sidebar-version">Fachtest 0\.13 · 22\.11\.2026/);
  assert.doesNotMatch(html,/Fachtest 0\.7/);
  for(const asset of ["styles.css","demo-ledger.js","experimental/settlement-cost.js",
-   "water-detail.js","synthetic-billing.js","app.js","synthetic-property.js","synthetic-case-billing.js","synthetic-workflow.js","synthetic-letters.js","legacy-letter-engine.js","letter-workspace-ui.js","synthetic-review.js","synthetic-estate.js","synthetic-master-ui.js"]){
+   "water-detail.js","synthetic-billing.js","app.js","synthetic-property.js","synthetic-case-billing.js","synthetic-workflow.js","synthetic-letters.js","legacy-letter-engine.js","letter-workspace-ui.js","legacy-landlord-documents.js","synthetic-review.js","synthetic-estate.js","synthetic-master-ui.js"]){
    assert.ok(html.includes('./'+asset+'?v=0.13'),asset+" not versioned");
  }
  assert.ok(html.indexOf("water-detail.js")<html.indexOf("synthetic-billing.js"));
