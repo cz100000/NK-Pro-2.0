@@ -14,3 +14,4 @@ nkpro-cloud-snapshot-*.json
 nk-pro-gesamtbestand-*.json
 nkpro2-private-export-*.json
 *Privatdaten-migriert*.json
+/dist-private/
