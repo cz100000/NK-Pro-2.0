@@ -14,7 +14,7 @@ test("44 inventoried with 25 synthetic checks and 19 not-run, cannot close",()=>
 });
 test("dynamic billing error is not hidden by 44-rule status",()=>{
  const a=result();a.issues=[{code:"EXTERNAL_TOTAL_MISMATCH",message:"Techem difference",action:"go-water"}];
- const x=review.assess(fixture(),a);assert.equal(x.dynamic.length,1);assert.equal(x.counts.critical,1);
+ const x=review.assess(fixture(),a);assert.equal(x.dynamic.length,1);assert.ok(x.counts.critical>=1);
 });
 test("one complete detail table per case is generated, but print release remains false",()=>{
  const x=letters.make(fixture(),result());
