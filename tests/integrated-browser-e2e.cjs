@@ -119,7 +119,7 @@ const chromeBinary=()=>{
   const annual=await evalJS("return document.querySelector('#appMain').textContent;");
   assert.ok(annual.includes("keine Altwerte")||annual.includes("nicht migriert"));
   assert.ok(annual.includes("Kosten erfasst"));
-  assert.ok(!annual.includes("9.965,97"),"2025 Techem values must not appear");
+  assert.ok(!annual.includes("7.890,12"),"2025 Techem values must not appear");
   await shot("integrated-05-blank-2025");
   await cmd("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});
   await pause(400);
