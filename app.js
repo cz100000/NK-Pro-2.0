@@ -133,14 +133,25 @@
   const head=(kicker,title,description,action='')=>`<div class="page-heading"><div><div class="eyebrow">${safeText(kicker)}</div><h1>${title}</h1><p>${description}</p></div>${action?`<div class="heading-actions">${action}</div>`:''}</div>`;
   function progress(){const done=Math.min(6,qualityReport().counts.executed===44?6:4);let html='<div class="flow-track">';for(let i=0;i<7;i++)html+=`<div class="flow-segment ${i<done?'complete':i===done?'current':''}"></div>`;return html+`</div><div class="flow-labels">${['Mietverhältnisse','Vorauszahlungen','Gesamtkosten','Verbräuche','Prüfen','Ergebnis','Briefe'].map((x,i)=>`<span class="${i===Math.min(done,6)?'highlight':''}">${x}</span>`).join('')}</div>`}
   function overview(){
-    const done=checks().length-unresolved().length;
-    const tasks=unresolved();
-    return head('MUSTEROBJEKT · 2025','Übersicht','Ein klarer Arbeitsstand. Die wichtigsten Aufgaben stehen direkt im Mittelpunkt.',button('Abrechnung fortsetzen '+icon('arrow'),'go-costs',null,'button-primary'))+
-      `<div class="metric-row"><div class="metric"><span class="metric-label">Aktive Abrechnung</span><div class="metric-number">2025</div><span class="metric-helper">Entwurf · 7 Wohnungen</span></div><div class="metric"><span class="metric-label">Noch zu erledigen</span><div class="metric-number">${tasks.length} <small>Prüfpunkte</small></div><span class="metric-helper">Direkt aus dem Workflow</span></div><div class="metric"><span class="metric-label">Abrechnungsvolumen</span><div class="metric-number" style="font-size:23px">${fmt(allCost())}</div><span class="metric-helper">Synthetische Musterwerte</span></div></div>`+
-      `<div class="two-col"><div class="section"><div class="section-header"><div><h2>Als Nächstes</h2><p>${tasks.length?'Diese Punkte verhindern aktuell die Musterfreigabe.':'Alle Musterprüfpunkte wurden bearbeitet.'}</p></div></div>`+
-      (tasks.length?tasks.slice(0,4).map((x,i)=>`<div class="task-row"><div class="task-icon">${icon(i===0?'alert':'file')}</div><div class="task-copy"><strong>${safeText(x.title)}</strong><span>${safeText(x.note)}</span></div><button class="link" type="button" data-action="${x.action}">Bearbeiten →</button></div>`).join(''):`<div class="empty" style="padding:35px"><div class="empty-icon">${icon('check')}</div><h3>Keine offenen Prüfpunkte</h3><p>Der Musterablauf ist für eine simulierte Freigabe vorbereitet.</p></div>`)+
-      `</div><div class="section"><div class="section-header"><div><h2>Bearbeitungsstand</h2><p>${done} von ${checks().length} Kontrollen erledigt</p></div>${labelStatus(false,'Bereit','Nicht freigegeben')}</div><div class="section-body">${progress()}<p class="note" style="margin:24px 0 0">34 Originalregeln sind noch nicht ausgeführt. Das Prüfcockpit zeigt sämtliche Regeln und dynamischen Fehler ausdrücklich an.</p></div><div class="progress-foot">${button('Prüfcockpit öffnen','go-review',null,'button-quiet')}</div></div></div>`+
-      `<div class="divider-title">FINANZIELLE MOMENTAUFNAHME</div><div class="section"><div class="stat-inline"><div><small>Umlagefähige Musterkosten</small><strong>${fmt(ledger().totals.allocableCostsCents/100)}</strong></div><div><small>Vorauszahlungen</small><strong>${fmt(allAdvance())}</strong></div><div><small>Saldo Gesamt (Muster)</small><strong>${fmt(ledger().totals.balanceCents/100)}</strong></div></div><p class="section-note">Illustrative Werte. Bruttokosten: ${fmt(ledger().totals.grossCostsCents/100)}; davon Muster-Vermieteranteil: ${fmt(ledger().totals.landlordCostsCents/100)}. Kein produktiver Abrechnungsstand.</p></div>`;
+    const totals=portfolio.objects.reduce((x,o)=>{
+      x.units+=o.units.length;x.settlements+=Object.keys(o.settlements).length;return x;
+    },{units:0,settlements:0});
+    const cards=portfolio.objects.map(o=>'<div class="overview-object-card">'+
+      '<div><h3>'+safeText(o.name)+'</h3><p>'+safeText(o.street)+', '+
+        safeText(o.postalCode)+' '+safeText(o.city)+'</p></div>'+
+      '<div class="overview-count"><strong>'+o.units.length+'</strong><span>Wohnungen</span></div>'+
+      '<div class="overview-actions">'+button('Objekt öffnen','select-property',o.id,'button-quiet')+
+        button('Abrechnungen','object-billings',o.id,'button-quiet')+'</div></div>').join('');
+    return head('IMMOBILIENBESTAND · NUR MUSTERDATEN','Übersicht',
+      'Drei fiktive Immobilien. Die vollständige Dashboard-Gestaltung folgt nach Abschluss der Kernfunktionen.',
+      button('Alle Jahresabrechnungen','all-billings',null,'button-primary'))+
+      '<div class="portfolio-summary"><div><small>Objekte</small><strong>'+portfolio.objects.length+'</strong></div>'+
+      '<div><small>Wohnungen</small><strong>'+totals.units+'</strong></div>'+
+      '<div><small>Jahresabrechnungen</small><strong>'+totals.settlements+'</strong></div></div>'+
+      '<section class="section"><div class="section-header"><div><h2>Immobilienbestand</h2>'+
+        '<p>Objekt auswählen und die dazugehörigen Wohnungen, Mietverhältnisse oder Abrechnungen öffnen.</p></div></div>'+
+      cards+'</section>'+
+      '<div class="info-line">Die Übersichtsseite bleibt bewusst Work in Progress. Die neue Hierarchie „Objekt → Wohnungen/Mietverhältnisse → Jahresabrechnungen“ ist dagegen bereits als Kernnavigation umgesetzt. Historische Musterstände sind keine fachlich archivierten echten Abrechnungen.</div>';
   }
   const steps=[['advance','Vorauszahlungen'],['costs','Gesamtkosten'],['water','Verbräuche'],['review','Prüfen'],['allocation','Ergebnis'],['letters','Briefe']];
   const renderSteps=()=>`<div class="tab-bar" role="tablist" aria-label="Abrechnungsprozess">${steps.map(([id,label])=>`<button class="tab-button ${ui.step===id?'active':''}" role="tab" aria-selected="${ui.step===id}" type="button" data-step="${id}">${label}</button>`).join('')}</div>`;
@@ -246,7 +257,7 @@
        '<div><small>Leerstandstage</small><strong>'+model.vacancyDays+'</strong></div>'+
        '<div><small>Zu prüfende Einträge</small><strong>'+model.issues.length+'</strong></div></div>';
     return '<div class="inline-toolbar"><div><h2>Mietverhältnisse und Abrechnungsfälle</h2>'+
-      '<p class="small muted">Ein-/Auszug, Nutzung und Vorauszahlungen je Fall · 2025</p></div>'+
+      '<p class="small muted">Ein-/Auszug und Nutzung je Abrechnungsfall · '+activeYear()+'</p></div>'+
       button('Musterfall hinzufügen','new-tenancy',null,'button-primary')+'</div>'+
       info+'<section class="section"><div class="section-header"><div><h2>Teilnehmer und Zeiträume</h2>'+
       '<p>Eine Wohnung kann mehrere aufeinanderfolgende Mietverhältnisse besitzen. Privatanteile nehmen an der Abrechnung teil.</p></div></div>'+
@@ -263,7 +274,7 @@
     return `<div class="inline-toolbar"><h2>Gesamtkosten</h2><div class="filterbar"><input class="search" id="tableSearch" aria-label="Kosten durchsuchen" placeholder="Kostenarten suchen …" value="${safeText(ui.filter)}"></div></div>`+
       `<section class="section"><div class="stat-inline"><div><small>Gesamtkosten</small><strong>${fmt(allCost())}</strong></div><div><small>Kostenarten</small><strong>${data.costs.length}</strong></div><div><small>Vermieteranteile</small><strong>${fmt(ledger().totals.landlordCostsCents/100)}</strong></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Kostenart</th><th>Bereich</th><th>Rechnungsdatum</th><th>Umlageschlüssel</th><th class="money">Preis je Einheit</th><th class="money">Gesamtbetrag</th><th>Notiz</th><th>Status</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
       (c.length?c.map(x=>`<tr><td><strong>${safeText(x.name)}</strong></td><td>${safeText(x.category)}</td><td>${safeText(x.invoiceDate||'–')}</td><td>${safeText(x.method)}</td><td class="money">${x.method==='Verbrauch'?(waterDetails.priceFor(x,x.id==='water'?data.houseWater:x.consumptionTotal).valid?fmtPrice(waterDetails.priceFor(x,x.id==='water'?data.houseWater:x.consumptionTotal).effective,x.consumptionUnit||'m³'):'Preis fehlt'):'–'}</td><td class="money">${fmt(x.amount)}</td><td class="cost-note-cell">${x.note?safeText(x.note):'<span class="soft">–</span>'}</td><td>${x.active===false?labelStatus(false,'Aktiv','Inaktiv'):labelStatus(x.amount>0,'Betrag erfasst','Betrag fehlt')}</td><td><button class="link" type="button" data-action="toggle-cost" data-id="${safeText(x.id)}">${x.active===false?'Aktivieren':'Deaktivieren'}</button> ${x.id.startsWith('SYN-K-')?'<button class="link" type="button" data-action="delete-unused-cost" data-id="'+safeText(x.id)+'">Löschen</button>':''} ${iconButton('edit-cost',x.id,'Kostenart bearbeiten')}</td></tr>`).join(''):`<tr><td colspan="9" class="muted">Keine Treffer.</td></tr>`)+
-      `</tbody></table></div><div class="table-caption">Klicken Sie auf eine Kostenart. Alle Einstellungen öffnen rechts – die Übersicht bleibt bestehen.</div></section><p class="footnote">Funktionsmuster: Sechs Originalverfahren werden für synthetische Ein-Mieter-Wohnungen berechnet. Kein Produktivbetrieb, keine Mieterwechsel, keine vollständige Techem-Einzelabrechnung.</p>`;
+      `</tbody></table></div><div class="table-caption">Klicken Sie auf eine Kostenart. Alle Einstellungen öffnen rechts – die Übersicht bleibt bestehen.</div></section><p class="footnote">Funktionsmuster: Ausgewählte Originalverfahren und externe Teilwerte sind implementiert. Vollständige fachliche Parität, Briefprüfung und Abschlussfreigabe fehlen.</p>`;
   }
   function water(){
     const tabs=[['water','Wasser · KW / WW'],['techem','Heizung & Warmwasser · Techem'],['other','Weitere Verbräuche']];
@@ -1066,15 +1077,14 @@
     if(action==='edit-case-water'){openDrawer('case-water',id);return}
     if(action==='edit-external'){openDrawer('external',id);return}
     if(action==='edit-other-consumption'){openDrawer('other-consumption',id);return}
-    if(action==='edit-property'){openDrawer('property');return}
+    if(action==='edit-property'){openDrawer('master-property');return}
     if(action==='add-interim'){openDrawer('interim-reading',id);return}
     if(action==='replace-meter'){openDrawer('meter-replacement',id);return}
-    if(action==='new-tenancy'){openDrawer('new-tenancy');return}
-    if(action==='edit-tenancy'){openDrawer('tenancy',id);return}
+    if(action==='new-tenancy'||action==='edit-tenancy'){toast('Mietverhältnisse nur unter Objekt → Mietverhältnisse bearbeiten.');ui.objectTab='tenancies';navigate('object');return}
     if(action==='edit-payment'){openDrawer('payment',id);return}
     if(action==='go-tenancies'){ui.objectTab='tenancies';navigate('object');return}
     if(action==='new-cost'){openDrawer('new-cost');return}if(action==='edit-cost'){openDrawer('cost',id);return}if(action==='edit-water'){openDrawer('water',id);return}if(action==='edit-house'){openDrawer('house');return}
-    if(action==='edit-advance'){openDrawer('advance',id);return}if(action==='edit-unit'){openDrawer('unit',id);return}if(action==='show-unit-result'){openDrawer('result',id);return}
+    if(action==='edit-advance'){openDrawer('payment',id);return}if(action==='edit-unit'){openDrawer('master-unit',id);return}if(action==='show-unit-result'){openDrawer('result',id);return}
     if(action==='check-water'){const r=waterReport();if(!r.canReview){navigate('billing','water');toast('Bitte fehlende Zählerstände und Ablesedaten ergänzen.');return}if(r.exactMatch){toast('Beide Wasserabgleiche stimmen überein.');return}openDrawer('water-decision');return}
     if(action==='edit-water-price'){openDrawer('cost','water');return}
     if(action==='go-water'){navigate('billing','water');return}if(action==='go-advance'){navigate('billing','advance');return}if(action==='check-heat'){openDrawer('heat-evidence');return}if(action==='go-costs'){navigate('billing','costs');return}if(action==='go-review'){navigate('billing','review');return}if(action==='go-letter'){navigate('billing','letters');return}
