@@ -115,7 +115,7 @@ const chromeBinary=()=>{
   await click('.tree-property-button[data-id="SYN-B"]');
   await waitFor("return document.querySelector('#breadcrumbView').textContent.includes('Musterobjekt B');");
   await click('[data-action="toggle-tree-section"][data-id="master"]');
-  const alignment=await evalJS("return{master:Array.from(document.querySelectorAll('.tree-subitem>.tree-icon')).map(x=>x.getBoundingClientRect().left),"+
+  const alignment=await evalJS("return{master:Array.from(document.querySelectorAll('.tree-children>.tree-section:first-child .tree-subitem>.tree-icon')).map(x=>x.getBoundingClientRect().left),"+
     "years:Array.from(document.querySelectorAll('.tree-year-name>.tree-icon')).map(x=>x.getBoundingClientRect().left)};");
   assert.equal(alignment.master.length,4,"All four master subpages must share one icon column");
   assert.equal(alignment.years.length,2,"Both B yearly records must share one icon column");
