@@ -8,6 +8,7 @@
  const API="https://www.googleapis.com/drive/v3/files";
  const UPLOAD="https://www.googleapis.com/upload/drive/v3/files";
  const PREFIX="nkpro2-vault-v1-",FOLDER="NK-Pro 2.0 – Privatdaten";
+ const LEGACY_PREFIX="nkpro-cloud-snapshot-",LEGACY_FOLDER="NK-Pro – Privatdaten";
  const SCOPE="https://www.googleapis.com/auth/drive.file";
  const bad=(code)=>{throw new Error(code);};
  function create(options={}){
@@ -84,6 +85,40 @@
    if(!created?.id)bad("DRIVE_FOLDER_CREATE_FAILED");
    folderId=created.id;return folderId;
   }
+  /* Read-only source bridge. Same Google OAuth client as NK-Pro 1.0, drive.file.
+     Never mutate, trash, rename or rewrite any legacy folder or snapshot. */
+  async function legacySnapshots(){
+   const folders=await listAll("name = '"+LEGACY_FOLDER+"' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+    "id,name,mimeType");
+   if(folders.length>1)bad("LEGACY_FOLDER_AMBIGUOUS");
+   if(!folders.length)return [];
+   const directory=folders[0].id;
+   const files=await listAll("'"+directory+"' in parents and name contains '"+LEGACY_PREFIX+
+    "' and trashed = false","id,name,createdTime,size,parents,mimeType");
+   return files.filter(f=>typeof f.id==="string"&&
+    typeof f.name==="string"&&f.name.startsWith(LEGACY_PREFIX)&&
+    f.name.endsWith(".json")&&
+    (f.mimeType==="application/json"||f.mimeType==="application/octet-stream"||!f.mimeType)&&
+    (!Array.isArray(f.parents)||f.parents.includes(directory))&&
+    (!f.size||Number(f.size)<=20*1024*1024))
+    .sort((a,b)=>String(b.createdTime||"").localeCompare(String(a.createdTime||""))||
+     String(b.name).localeCompare(String(a.name)))
+    .map(({id,name,createdTime,size})=>({id,name,createdTime,size:Number(size||0)}));
+  }
+  async function readLegacySnapshot(fileId){
+   const found=(await legacySnapshots()).find(x=>x.id===fileId);
+   if(!found)bad("LEGACY_SOURCE_NOT_ACCESSIBLE");
+   if(found.size>20*1024*1024)bad("LEGACY_SOURCE_TOO_LARGE");
+   const source=await(await request(API+"/"+encodeURIComponent(fileId)+"?alt=media")).json();
+   if(source?.format!=="nkpro-drive-snapshot-v1"||
+    !source.data||source.data?.meta?.dataSchemaVersion!==5||
+    source.data?.meta?.abrechnungsjahr!=="2025"||
+    !source.snapshotId||!found.name.includes(String(source.snapshotId)))
+    bad("LEGACY_SOURCE_FORMAT_MISMATCH");
+   /* The full source checksum is verified by integrated-data.migrate before
+      a single byte of 2.0 live state is committed. */
+   return source;
+  }
   async function history(){
    const files=await listAll("name contains '"+PREFIX+"' and trashed = false",
     "id,name,createdTime,parents,appProperties");
@@ -136,8 +171,8 @@
    return {fileId:uploaded.id,count:after.count};
   }
   return Object.freeze({signIn,signOut,isConnected,history,read,uploadEnvelope,
-    locateFolder,getOAuthClientId:()=>activeClientId,
-    injectAccessTokenForTest});
+    locateFolder,legacySnapshots,readLegacySnapshot,
+    getOAuthClientId:()=>activeClientId,injectAccessTokenForTest});
  }
  return Object.freeze({create,PREFIX,FOLDER,SCOPE});
 });

@@ -4,7 +4,7 @@
 
 Die Hauptanwendung [NK-Pro 2.0](https://cz100000.github.io/NK-Pro-2.0/) enthält die Google-Cloud-Anbindung direkt im Systemstatus. Der alte zusätzliche Bereich `/NK-Pro-2.0/private/` wird **nicht mehr veröffentlicht**. Verschlüsselte Speicherung und Google Drive sind jetzt technische Komponenten der einen Hauptanwendung, ohne zusätzlichen Hostinganbieter.
 
-Ein Schema-5-Original-Snapshot aus NK-Pro 1.0 kann über den Button unter **Systemstatus** lokal ausgewählt werden. Es werden **nur die Stammdaten des echten Objekts ARB5 (Objektname und Anschrift ausschließlich aus privatem Snapshot), seine 7 Wohnungen und 5 Mietverhältnisse, der Zählerstamm sowie die 5 historischen Archiv-Snapshots** migriert. Beide Fassungen für 2023 bleiben erhalten. **Die gesamte Abrechnung 2025 wird nicht migriert:** keine aktuellen Rechnungen, Kostenzuordnungen, Wasserstände, Vorauszahlungen, Techem-Einzelwerte oder Rechenergebnisse. 2025 wird in NK-Pro 2.0 neu angelegt.
+**Kein manueller Dateiimport erforderlich:** Nach **Systemstatus → Google verbinden** erkennt NK-Pro 2.0 den bereits vorhandenen Original-Snapshot im bestehenden privaten Google-Drive-Ordner von Version 1.0. Der Button **Altdaten direkt aus Drive übernehmen** prüft ihn, überführt nur die alten Stammdaten und historischen Archive und legt den neuen verschlüsselten 2.0-Datenbestand in einem separaten Drive-Ordner ab. Die einzige erforderliche Nutzerautorisierung besteht in der Google-Anmeldung und einem einmaligen Datenpasswort; eine Dateiauswahl ist nur der Ersatzweg. Es werden **nur die Stammdaten des echten Objekts ARB5 (Objektname und Anschrift ausschließlich aus privatem Snapshot), seine 7 Wohnungen und 5 Mietverhältnisse, der Zählerstamm sowie die 5 historischen Archiv-Snapshots** migriert. Beide Fassungen für 2023 bleiben erhalten. **Die gesamte Abrechnung 2025 wird nicht migriert:** keine aktuellen Rechnungen, Kostenzuordnungen, Wasserstände, Vorauszahlungen, Techem-Einzelwerte oder Rechenergebnisse. 2025 wird in NK-Pro 2.0 neu angelegt.
 
 Die Echtdaten werden nur verschlüsselt im Browser und in einem getrennten privaten Google-Drive-Ordner gespeichert. GitHub hostet ausschließlich App-Code. Der neue 2.0-Echtdatenmodus ist derzeit eine **lesende Stammdaten-/Archivübersicht**, keine freigegebene produktive Abrechnungssoftware. Insbesondere für 2025 ist die vollständige Rechnungsfunktion noch zu entwickeln und fachlich abzunehmen. Die bisherige 1.0-Version bleibt unverändert funktionsfähig.
 
@@ -12,7 +12,7 @@ Die Echtdaten werden nur verschlüsselt im Browser und in einem getrennten priva
 
 Details: [Integrations- und Migrationsbericht](docs/INTEGRATED_DRIVE_MASTER_ARCHIVES_2026-11-22.md).
 
-Dies ist die **eigenständige Neugestaltung** von NK-Pro. Das ursprüngliche Projekt [cz100000/NK-Pro](https://github.com/cz100000/NK-Pro) bleibt unverändert. Alle Inhalte dieser Demo sind **synthetische Musterdaten**; der aktuelle Stand ist **kein für Nebenkostenabrechnungen zugelassenes Produkt**.
+Dies ist die **eigenständige Neugestaltung** von NK-Pro. Das ursprüngliche Projekt [cz100000/NK-Pro](https://github.com/cz100000/NK-Pro) bleibt unverändert. Die ohne Anmeldung sichtbare Fachtest-Demo enthält ausschließlich **synthetische Musterdaten**; die separate Echtdatenfunktion lädt echte Stammdaten und Archive erst nach autorisierter Google-Anmeldung; der aktuelle Stand ist **kein für Nebenkostenabrechnungen zugelassenes Produkt**.
 
 ## Demo
 
