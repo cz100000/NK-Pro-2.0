@@ -8,6 +8,18 @@ Interaktive, veröffentlichte Design-Demo: **https://cz100000.github.io/NK-Pro-2
 
 Die Anwendung ist ein interaktiver Entwurf für eine minimalistische Benutzerführung. Sie enthält eine **Startseite** mit hierarchisch aufklappbaren Immobilien, pro Objekt **Stammdaten** und **Jahresabrechnungen**, und darunter die getrennten objektübergreifenden Bereiche **Analysen** sowie **Dokumente & Archiv**. Die sechs Schritte einer Jahresabrechnung bleiben innerhalb der Arbeitsfläche.
 
+## Fachtest 0.11 – einheitliche Navigation und Bearbeiten-Aktionen (22.11.2026)
+
+Die Hierarchie links ist typografisch geklärt: **Startseite**, **OBJEKTBEZOGEN** und **OBJEKTÜBERGREIFEND** sind als Primärebene stärker gewichtet, Objektnamen und aufklappbare Gruppen erscheinen ruhiger und normal gewichtet; nur der aktive Eintrag ist betont.
+
+Die Startseite zeigt eine **kompakte Immobilienliste** statt einzelner Kacheln. In den Objektdaten wurden die Querverlinkungen zu Wohnungen, Mietverhältnissen und Abrechnungsjahren entfernt. Objektwechsel und Funktionsnavigation erfolgen über den linken Baum.
+
+Für Objekt-, Wohnungs-, Mietvertrags- und Zählerstammdaten gilt eine einzige wiederverwendbare **„Bearbeiten“-UI-Komponente** mit Stift und dezentem hellblauem Rahmen. In den Zählerlisten erscheint nur „Bearbeiten“. **Außer Betrieb setzen** und **Löschen** liegen ausschließlich im geöffneten Zählerbearbeitungsdialog, mit separater Bestätigung und unveränderten fachlichen Historien-/Löschsperren. Dieselbe UI- und Datenlogik ist für vorhandene und neu angelegte Immobilien gültig.
+
+**Nur Musterbetrieb.** NK-Pro 1.0 bleibt unangetastet. Google-Cloud-Synchronisierung und Produktivfreigabe sind weiterhin offen.
+
+Technische Notiz: [Fachtest 0.11](docs/STAGE_0_11_UI_CONSISTENCY_2026-11-22.md).
+
 ## Fachtest 0.10 – Konsistente Navigation und zentraler Zählerstamm (22.11.2026)
 
 Die Startseite ist eigenständig und durch eine Linie von der Objekt-Navigation getrennt. Die Überschriften heißen **OBJEKTBEZOGEN** und **OBJEKTÜBERGREIFEND**. Alle Icons und Texte unter „Stammdaten“ bzw. „Jahresabrechnungen“ haben auf derselben Hierarchieebene eine identische horizontale Ausrichtung.

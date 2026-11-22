@@ -1,5 +1,17 @@
 # Roadmap für NK-Pro 2.0
 
+## Fachtest 0.11 · Konsistentes Objekt-UI und sichere Zähleraktionen (22.11.2026)
+
+- [x] Startseite und Objekt-/Globalüberschriften typografisch stärker hervorgehoben; Objektnamen etwas größer und normal gewichtet, Stammdaten/Jahresabrechnungen ebenfalls normal.
+- [x] Startseite zu kompakter Immobilienliste umgebaut; aktive/archivierte Objekte und bestehende Verwaltungsaktionen bleiben erhalten.
+- [x] Querverlinkungen aus der Objektstammdaten-Ansicht entfernt; Navigation bleibt auf den linken Baum konzentriert.
+- [x] Einheitliche wiederverwendbare Bearbeiten-Komponente für Objektdaten, Wohnungen, Mietverhältnisse und Zähler: Stift, Text, dünner blauer Rahmen, Fokuszustand.
+- [x] Zählerliste zeigt ausschließlich Bearbeiten; Lebenszyklusaktionen sind nur im geöffneten Bearbeitungsdialog vorhanden, separat bestätigt.
+- [x] Bestehende Zähler-Historien-/Löschschutzregeln und Versionsmodell unverändert, auch für neue Immobilien.
+- [ ] Produktivparität, getrennte sichere Origin, Google-Sync-Adapter, produktive Abrechnung und fachliche Abnahme weiterhin offen.
+
+Mehr: [STAGE_0_11_UI_CONSISTENCY_2026-11-22.md](STAGE_0_11_UI_CONSISTENCY_2026-11-22.md).
+
 ## Fachtest 0.10 · Navigationskonsistenz und Single-Source-of-Truth-Zählerstamm (22.11.2026)
 
 - [x] Startseite eigener Bereich mit Trenner; „OBJEKTBEZOGEN“ und „OBJEKTÜBERGREIFEND“ in einheitlicher Typografie.
