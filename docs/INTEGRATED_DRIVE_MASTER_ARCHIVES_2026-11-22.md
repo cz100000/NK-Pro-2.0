@@ -44,13 +44,22 @@ Ein eigenes Datenpasswort von mindestens 14 Zeichen ist zur Verschlüsselung und
 - Synthetische Regressionstests prüfen Integrität, Archivduplikate, M000-Korrektur und das strikte Nicht-Übernehmen von 2025.
 - GitHub Actions prüft Unit-Tests, beide Demo-/Privat-Browserprüfungen und zusätzlich Klicktests mit der neuen Systemstatus-Integration einschließlich verschlüsseltem Import, einzelnen historischen Archivwerten und mobilem Offline-Restore. Die reale Google-Anmeldung mit Nutzerkonto und Safari/iPhone bleibt ein manueller Abnahmeschritt.
 
-## Erstmaliger Benutzerablauf
+## Direkte Übernahme aus dem bereits vorhandenen Google Drive (22.11.2026)
 
-1. In der normalen NK-Pro-2.0-Anwendung den Button **Google Drive · verbinden** unter Systemstatus öffnen.
-2. Ein persönliches Datenpasswort vergeben; den Original-Cloud-Snapshot aus NK-Pro 1.0 lokal auswählen und **Altdaten prüfen & übernehmen** anklicken.
-3. Die Hauptanwendung lädt im integrierten Echtdatenmodus neu. Zur Entschlüsselung den Systemstatus-Dialog öffnen und mit dem Datenpasswort auf **Lokale Daten öffnen** klicken. Die 7 Wohnungen, 5 Mietverhältnisse und fünf Archivstände erscheinen im normalen Navigationsbaum.
-4. **Google verbinden**, dann **Verschlüsselt in Drive sichern**. Der erste Upload erfolgt erst nach manuellem Auslösen. Danach Versionsanzeige prüfen.
-5. Am iPhone dieselbe Hauptadresse verwenden, Google verbinden, mit demselben Datenpasswort **Aus Google Drive laden**. Bei erstmaliger Anbindung folgt ggf. ein Neuladen und nochmaliges Entsperren.
-6. Original-Backup aus 1.0 unverändert aufbewahren; keine 2025-Daten aus 1.0 übernehmen. 2025 ist innerhalb 2.0 neu anzulegen und erst nach allen Fachprüfungen abzurechnen.
+Der Benutzer muss **keine Sicherungsdatei mehr herunterladen, auswählen oder hochladen**. Ich habe den tatsächlichen Quellordner `NK-Pro – Privatdaten` im Google Drive und darin die Originaldatei vom 21.11.2026, 19:34 Uhr UTC, nachgewiesen. Der bereits verwendete OAuth-Webclient von NK-Pro 1.0 und die neue 2.0-Anwendung nutzen denselben Client-ID-Wert und den eingeschränkten Scope `drive.file`.
+
+Unter **Systemstatus → Google verbinden** ruft NK-Pro 2.0 nun den bisherigen Ordner **ausschließlich lesend** ab. Der jeweils aktuellste Original-Snapshot wird anhand Zeitstempel gefunden. Ein neuer Button **Altdaten direkt aus Drive übernehmen** führt dann die folgenden Schritte in einem einzigen Vorgang aus:
+
+1. Original-Snapshot von NK-Pro 1.0 aus dessen bereits vorhandenen privaten Google-Drive-Ordner lesen; vollständige Schema-5-Integrität prüfen.
+2. Nur den einzelnen ARB5-Objektstamm, sieben Einheiten, fünf Mietverhältnisse, Zähleridentitäten und alle fünf individuellen Vorjahresarchive in ein neues **eigenständiges 2.0-Datenmodell** überführen. Die beiden 2023-Archive werden nicht zusammengeführt.
+3. **Alle 2025-Abrechnungswerte bleiben ausdrücklich ausgeschlossen**. Das neue 2025-Jahresobjekt enthält keine 1.0-Kosten, Vorauszahlungen, Umlagen, Zählerablesungen oder Ergebnisse.
+4. Datensatz zuerst verschlüsselt im Browser sichern, danach verschlüsselt als neue Datei im **eigenen Drive-Ordner `NK-Pro 2.0 – Privatdaten`** speichern. Die 1.0-Quelldatei, der alte Drive-Ordner und die 1.0-Anwendung bleiben vollständig unverändert.
+5. Nach dem Neuladen lokalen verschlüsselten Bestand einmal mit dem Datenpasswort entsperren. Der echte Bestand erscheint in der normalen NK-Pro-2.0-Navigation. Auf dem iPhone mit demselben Google-Konto anmelden und den bestehenden 2.0-Drive-Stand mit demselben Datenpasswort öffnen.
+
+**Verbleibende persönliche Mitwirkung:** Google-OAuth-Anmeldung und einmalige Vergabe eines sicheren Datenpassworts (mindestens 14 Zeichen). Beide Schritte können nicht stellvertretend aus der ChatGPT-Google-Drive-Verbindung autorisiert werden. Bei fehlendem Zugriff auf die alten Dateien über den Browser-OAuth-Client steht ein manueller Backupimport **nur als Ausweichweg** in einem eingeklappten Detailfeld bereit.
+
+**Schutz vor Überschreiben:** Wenn bereits ein lokaler oder entfernter 2.0-Bestand existiert, wird der Neuimport blockiert. Bei vorhandener 2.0-Clouddatei muss dieser Stand gezielt geladen werden. Es gibt kein automatisches Zurückschreiben in Version 1.0.
+
+**Abnahmestand:** Der Quellbestand ist technisch **in Google Drive vorhanden und für die neue Anwendung lesbar gemacht**. Die neue verschlüsselte 2.0-Datei wird erst nach der persönlichen OAuth-Berechtigung und Passphrase vergeben; sie wurde nicht unautorisiert angelegt. Automatisierte Tests prüfen simulierte Drive-Anbindung und Browser-Klickstrecke; produktive Google-OAuth-/iPhone-Tests folgen erst mit tatsächlichem Account-Zugriff.
 
 **Produktivfreigabe noch nicht erteilt.** Eine erfolgreiche Cloud-Verbindung bestätigt nicht die fachliche Abrechnungsfähigkeit.
