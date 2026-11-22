@@ -43,3 +43,15 @@ Die priorisierte, quellcodegestützte Tiefenanalyse ist in [LEGACY_FUNCTION_GAP_
 - [x] Sichtbare 0.5-UX innerhalb der fünf Hauptbereiche mit Objekt-Unteransichten und Detail-Drawern.
 - [ ] Stufe 1+2 fachlich abschließen: alle K-IDs/Kostenarten, historische Miet-/Zählerzuordnungen, kontrollierter Jahreswechsel und Bestandstransfer, sämtliche 2025-Rundungs-/Techem-/Einzelkosten-Sonderfälle mit vollständiger Originalparität.
 - [ ] Fachprüfungen, finale Briefe, Archiv, sicherer Echtdatenhost, Import/Backup/Restore und Betriebsfreigabe sind weiter offen.
+
+## Gemeinsame Entwicklung Stufe 3 + Stufe 4 · Fachtest 0.6 (22.11.2026)
+
+- [x] Einheitlicher synthetischer Erfassungs-/Prüfablauf mit den sieben Schritten „Mietverhältnisse → Vorauszahlungen → Gesamtkosten → Verbräuche → Prüfen → Ergebnis → Briefe“.
+- [x] Vor-/Nachname, Briefanrede, einzelne Stammdatenfelder; monatliche/jährliche vereinbarte vs. tatsächlich erhaltene Vorauszahlungen und fallbezogene Salden.
+- [x] K001–K035-Katalog, eigene Rechnungsdaten und Kostenarten, Aktivierung/Deaktivierung, Belegnotiz, sichere Löschung versehentlich angelegter unbenutzter Musterkosten.
+- [x] Techem-Euro-Einzelwerte mit optionalen Einheiten je Mietverhältnis ausschließlich unter Verbräuche; KW/WW mit Live-Summen und datierten Zwischenablesungen für belegbare Leerstandsmengen.
+- [x] 44 Originalqualitätsregeln inventarisiert, 25 unabhängige synthetische Teilchecks ausführbar; 19 ausdrücklich nicht ausgeführt; dynamische Fehlermeldungen, schreibgeschützte vorläufige Ergebnisse.
+- [x] Fallweise Mieterbrief-Entwürfe mit konfigurierbaren Grundtexten und Einzeldarstellungen; keine Druck-/Abschlussfreigabe.
+- [ ] **Noch nicht abgeschlossen:** vollständige 1.0-Rechen-/Katalog- und Techem-Sonderfallparität, 19 nicht portierte Regeln und volle Abnahme der Teilregeln, vollständiger Original-Briefgenerator samt A4-/Sammeldruckpreflight, Abschlussbedingung und fachlicher E2E-Freigabe.
+
+Siehe [STAGES_3_4_INTEGRATED_2026-11-22.md](STAGES_3_4_INTEGRATED_2026-11-22.md). Stufen 3+4 sind **gemeinsam bearbeitet, nicht vollständig fertiggestellt**.
