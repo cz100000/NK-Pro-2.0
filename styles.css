@@ -294,3 +294,53 @@
   .meter-unit-meta{font-size:10px;white-space:normal;text-align:right;max-width:102px}
   .meter-summary{gap:11px}
 }
+
+/* Fachtest 0.11 – hierarchy: headings and home first, objects secondary. */
+.entry-nav .nav-item{font-size:15px;font-weight:760;color:#2a475e}
+.entry-nav .nav-item.active{font-weight:770}
+.tree-heading,.global-nav-heading{font-size:11.5px;font-weight:790;letter-spacing:.9px;color:#647b89}
+.tree-property-button,.tree-property-label{font-size:14.5px;font-weight:475}
+.tree-property-button.is-current,.tree-property.expanded>.tree-property-button{font-weight:550}
+.tree-group-toggle,.tree-group-label{font-size:13.5px;font-weight:475}
+.tree-subitem,.tree-year{font-weight:455}
+.tree-subitem.selected,.tree-year.selected{font-weight:650}
+.tree-property-button .tree-units{font-weight:575}
+.tree-heading .tree-count{font-weight:650}
+.global-nav{border-top:1px solid var(--line)}
+/* Shared, reusable control for editing ANY object, tenancy, unit or meter. */
+.edit-action{background:#fff;border:1px solid #bad1e2;border-radius:7px;
+  font-size:12px;font-weight:600;color:#2d5b7c;min-height:34px;padding:7px 12px;gap:7px;
+  box-shadow:0 0 0 0 transparent;transition:background .13s ease,border-color .13s ease}
+.edit-action:hover:not(:disabled){background:#eef5fa;border-color:#8eb4d0;color:#1f5073}
+.edit-action svg{width:14px;height:14px;flex-shrink:0}
+.edit-action:focus-visible{outline:3px solid #9ec3dd;outline-offset:2px}
+.data-table td .edit-action{white-space:nowrap}
+.meter-actions .edit-action{margin-left:auto}
+.data-table td:last-child .edit-action{margin-left:auto}
+/* Compact real-estate list replaces oversized overview cards. */
+.estate-list{margin-bottom:19px}
+.estate-table{min-width:680px}
+.estate-table td{vertical-align:middle}
+.estate-table td:first-child{min-width:165px}
+.estate-table td:nth-child(2){min-width:160px}
+.estate-table .estate-postal{display:block;color:#8296a1;margin-top:3px;font-size:11px}
+.estate-table .estate-count{font-variant-numeric:tabular-nums;font-size:13px;font-weight:650;color:#3d5565}
+.estate-table .estate-row-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;min-width:155px}
+.estate-table .estate-open{border-color:#c8d9e6;background:#f9fbfc;font-size:12px;color:var(--blue);padding:7px 12px}
+.estate-table .estate-open svg{width:14px;height:14px}
+.estate-table .estate-menu{display:inline-block;position:relative}
+.estate-table .estate-menu>summary{width:32px;height:32px}
+.estate-table .estate-menu-items{z-index:15}
+.estate-archive-group>.table-wrap{border:1px solid var(--border);border-radius:9px;margin-top:12px;background:#fff}
+/* Dangerous meter lifecycle actions exist ONLY inside the open edit panel. */
+.meter-admin{border-top:1px solid #e7d3d3;margin-top:24px;padding:20px 0 6px}
+.meter-admin-heading{font-size:12px;font-weight:720;color:#805356;margin-bottom:6px}
+.meter-admin p{font-size:11.5px;color:#74858d;line-height:1.5;margin-bottom:15px}
+.meter-admin .button-danger{display:inline-flex;background:#fff;border:1px solid #dcaaaa;
+  color:#aa3f46;font-size:12px;font-weight:610;white-space:normal;text-align:center}
+.meter-admin .button-danger:hover{background:#fff2f2;border-color:#c98185;color:#982d36}
+.meter-admin-lock{display:block;font-size:11px;color:#8b6771}
+@media(max-width:720px){
+ .edit-action{min-height:38px;padding:9px 12px}
+ .tree-property-button,.tree-property-label{font-size:14.5px}
+}
