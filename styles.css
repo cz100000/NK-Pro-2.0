@@ -415,3 +415,112 @@
  .annual-status{margin-left:auto}
  .annual-link{width:100%;justify-content:flex-end}
 }
+
+/* 0.13 GLOBAL TABLE CONTRACT: Status always one cell LEFT of action, never glued. */
+.data-table .status-column,.data-table .action-column{white-space:nowrap;text-align:left}
+.data-table .action-column{text-align:right}
+.data-table td.action-cell{text-align:right;white-space:nowrap}
+.data-table td.action-cell>.button{min-width:92px;justify-content:center}
+.data-table td:nth-last-child(2):has(>.status){white-space:nowrap;padding-right:12px}
+.data-table td:last-child:has(>.button){text-align:right}
+.data-table th.status-column{width:112px}
+.data-table th.action-column{width:124px}
+.cost-master-table{width:min(100%,950px);max-width:950px;min-width:720px;table-layout:fixed}
+.cost-master-table th:nth-child(1){width:26%}
+.cost-master-table th:nth-child(2){width:19%}
+.cost-master-table th:nth-child(3){width:16%}
+.cost-master-table th:nth-child(4){width:16%}
+.cost-master-table th:nth-child(5){width:11%;min-width:98px}
+.cost-master-table th:nth-child(6){width:12%;min-width:110px}
+.cost-master-table td{height:65px;padding:9px 9px;vertical-align:middle;white-space:normal}
+.cost-master-table th{padding:10px 9px;white-space:normal}
+.cost-master-table td:nth-child(5){text-align:left;overflow:hidden}
+.cost-master-table td:nth-child(6){text-align:right;overflow:visible}
+.cost-master-table .status{font-size:10px;padding:5px 6px}
+.cost-master-table .edit-action{min-height:32px;padding:6px 9px}
+.cost-master-table .cost-id{padding:1px 5px}
+.table-wrap:has(.cost-master-table){max-width:100%;overflow-x:auto}
+.result-detail-table{width:min(100%,1070px);max-width:1070px;min-width:830px;table-layout:fixed;font-size:11px}
+.result-detail-table td,.result-detail-table th{padding:10px 7px}
+.result-detail-table td.money{font-variant-numeric:tabular-nums;white-space:nowrap}
+.result-detail-table .result-category{min-width:88px;max-width:136px;font-size:10px;overflow-wrap:break-word}
+.result-detail-table th:first-child,.result-detail-table td:first-child{width:18%;min-width:145px}
+.meter-unit-tools{display:flex;justify-content:flex-end;align-items:center}
+.meter-unit-tools .button-primary{display:inline-flex;align-items:center;gap:8px}
+.meter-unit-tools .button-primary svg{width:15px;height:15px}
+/* 0.13: standalone three-panel letter UI. AP13 A4 markup and its CSS are NOT edited. */
+.letter-workspace{display:grid;grid-template-columns:190px minmax(0,1fr) 300px;gap:14px;align-items:start}
+.letter-list-panel,.letter-settings-panel,.letter-preview-panel{
+  min-width:0;background:#fff;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.letter-list-panel,.letter-settings-panel{max-height:calc(100vh - 195px);overflow-y:auto;position:sticky;top:15px}
+.letter-panel-heading{display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;
+  padding:14px 14px 12px;border-bottom:1px solid var(--line)}
+.letter-panel-heading h2{font-size:14px;margin:0;color:#29485e}
+.letter-panel-heading small{font-size:10px;color:#81919e}
+.letter-recipient-scroll{display:flex;flex-direction:column;gap:2px;padding:6px}
+.letter-recipient{display:flex;flex-direction:column;align-items:flex-start;text-align:left;
+  border:1px solid transparent;border-radius:7px;background:transparent;padding:10px;cursor:pointer;color:#344c5a;gap:3px}
+.letter-recipient:hover{background:#f6f9fb}
+.letter-recipient.selected{background:#eaf3fa;border-color:#c8dce9}
+.letter-recipient strong{font-weight:630;font-size:12px}
+.letter-recipient small{font-size:10.5px;color:#8495a1}
+.letter-recipient-status{font-size:9.5px;font-weight:650;color:#5d8394}
+.letter-recipient-status.is-error{color:#b24d50}
+.letter-recipient-status.is-warn{color:#9c702b}
+.letter-recipient-status.is-ok{color:#277a5d}
+.letter-panel-note{font-size:10px;padding:13px;color:#7b8e9b;background:#f7fafc}
+.letter-preview-tools{display:flex;align-items:center;gap:5px;padding:10px;flex-wrap:wrap;
+  border-bottom:1px solid var(--line);background:#fbfcfd}
+.letter-tool{font-size:11px;padding:5px 9px;min-height:32px}
+.letter-zoom-label{font-size:11px;min-width:39px;text-align:center;color:#537080;font-weight:650}
+.letter-preview-viewport{background:#e9eef2;overflow:auto;min-height:570px;max-height:calc(100vh - 235px);padding:16px}
+.letter-preview-stage{width:calc(210mm * var(--letter-scale));
+  height:calc(303mm * var(--letter-pages) * var(--letter-scale));position:relative;margin:0 auto}
+.letter-preview-canvas{width:210mm;transform-origin:top left;transform:scale(var(--letter-scale));
+  position:absolute;top:0;left:0}
+.letter-preview-canvas .nk-letter-document .letter-sheet{box-shadow:0 3px 16px rgba(27,40,57,.13)}
+.letter-output-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;justify-content:flex-end;
+  border-top:1px solid var(--line);padding:10px;background:#fff}
+.letter-output-bar .button-primary{font-size:11px;min-height:34px}
+.letter-preflight{padding:13px 15px;border-top:1px solid var(--line);
+  background:#f9fbfc;color:#607588;font-size:10.5px}
+.letter-preflight-summary{margin-bottom:7px}
+.letter-preflight ul{margin:8px 0;padding-left:18px}
+.letter-preflight li{margin-bottom:4px}
+.letter-preflight li.is-error{color:#a13a3a}
+.letter-preflight li.is-warn{color:#97713a}
+.letter-preflight p{margin:10px 0 0}
+.letter-config-form{padding-bottom:20px}
+.letter-config-group{border-bottom:1px solid var(--line)}
+.letter-config-group>summary{list-style:none;padding:13px 15px;
+  font-size:12px;font-weight:700;color:#31566f;cursor:pointer}
+.letter-config-group>summary::-webkit-details-marker{display:none}
+.letter-config-group>summary:after{content:"▸";float:right;color:#8da1af}
+.letter-config-group[open]>summary:after{content:"▾"}
+.letter-config-body{padding:5px 13px 14px}
+.letter-config-body .form-row{margin-bottom:12px}
+.letter-config-body input,.letter-config-body textarea,.letter-config-body select{font-size:11px;min-height:35px}
+.letter-config-body textarea{min-height:70px}
+.letter-config-save{padding:15px}
+.letter-config-save .button{width:100%}
+.letter-config-save .form-help{font-size:10px;margin-top:8px}
+.letter-prepay-head{display:flex;justify-content:space-between;font-size:10px;color:#8a9caa;margin:12px 0 6px}
+.letter-prepay-row{display:grid;grid-template-columns:1fr 65px 65px;
+  align-items:center;gap:4px;border-top:1px solid var(--line);padding:8px 0}
+.letter-prepay-row>span{font-size:10px;color:#50687b;overflow-wrap:anywhere}
+.letter-prepay-row label{font-size:9px;display:flex;flex-direction:column}
+.letter-prepay-row input{padding:4px;font-size:10px;width:100%;min-width:0}
+@media(max-width:1280px){
+ .letter-workspace{grid-template-columns:175px minmax(0,1fr)}
+ .letter-settings-panel{grid-column:1/-1;position:static;max-height:none}
+ .letter-config-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+ .letter-config-save{grid-column:1/-1}
+}
+@media(max-width:800px){
+ .letter-workspace{display:flex;flex-direction:column}
+ .letter-list-panel,.letter-settings-panel,.letter-preview-panel{position:static;width:100%;max-height:none}
+ .letter-recipient-scroll{display:flex;flex-direction:row;overflow-x:auto}
+ .letter-recipient{min-width:154px}
+ .letter-preview-viewport{height:510px;min-height:510px;max-height:510px}
+ .letter-config-form{display:block}
+}
