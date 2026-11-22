@@ -154,6 +154,10 @@
   const button=(label,action,id,cls='')=>`<button class="button ${cls}" type="button" data-action="${action}"${id?` data-id="${safeText(id)}"`:''}>${label}</button>`;
   // Shared master-data editing control for EVERY object (existing or newly created).
   const editAction=(action,id,subject)=>`<button type="button" class="button edit-action" data-action="${safeText(action)}"${id?` data-id="${safeText(id)}"`:''} aria-label="${safeText(subject+' bearbeiten')}">${icon('pencil')}<span>Bearbeiten</span></button>`;
+  const viewAction=(action,id,subject)=>`<button type="button" class="button edit-action view-action" data-action="${safeText(action)}"${id?` data-id="${safeText(id)}"`:''} aria-label="${safeText(subject+' ansehen')}">${icon('file')}<span>Ansehen</span></button>`;
+  const statusFor=(complete,partial=false)=>'<span class="status '+(complete?'green':partial?'amber':'neutral')+'">'+
+    (complete?'Vollständig':partial?'Unvollständig':'Nicht erfasst')+'</span>';
+  const actionCell=(status,action)=>'<span class="table-action-pair">'+status+action+'</span>';
   const section=(title,inner,extra='',classes='')=>`<section class="section ${classes}"><div class="section-header"><div><h2>${title}</h2></div>${extra}</div>${inner}</section>`;
   const head=(kicker,title,description,action='')=>`<div class="page-heading"><div><div class="eyebrow">${safeText(kicker)}</div><h1>${title}</h1><p>${description}</p></div>${action?`<div class="heading-actions">${action}</div>`:''}</div>`;
   function progress(){const done=Math.min(6,qualityReport().counts.executed===44?6:4);let html='<div class="flow-track">';for(let i=0;i<7;i++)html+=`<div class="flow-segment ${i<done?'complete':i===done?'current':''}"></div>`;return html+`</div><div class="flow-labels">${['Mietverhältnisse','Vorauszahlungen','Gesamtkosten','Verbräuche','Prüfen','Ergebnis','Briefe'].map((x,i)=>`<span class="${i===Math.min(done,6)?'highlight':''}">${x}</span>`).join('')}</div>`}
@@ -217,8 +221,11 @@
           (count!=null?'<span class="tree-meta">'+count+'</span>':'')+'</button>';
         const group=(id,label,count,children)=>{
           const open=ui.treeSections[id];
-          return '<div class="tree-section"><button type="button" class="tree-group-toggle"'+
-            ' data-action="toggle-tree-section" data-id="'+id+'" aria-expanded="'+open+'">'+
+          const years=id==='years';
+          return '<div class="tree-section"><button type="button" class="tree-group-toggle'+
+            (years&&related&&ui.view==='billing'&&ui.billingHome?' selected':'')+'"'+
+            ' data-action="'+(years?'object-billings':'toggle-tree-section')+
+            '" data-id="'+(years?safeText(o.id):id)+'" aria-expanded="'+open+'">'+
             '<span class="tree-arrow'+(open?' open':'')+'" aria-hidden="true">'+icon('chevron')+'</span>'+
             '<span class="tree-icon">'+icon(id==='master'?'layers':'calendar')+'</span>'+
             '<span class="tree-group-label">'+label+'</span>'+
@@ -233,9 +240,7 @@
             related&&ui.view==='object'&&ui.objectTab==='tenancies','users')+
           item('Zähler','open-object-tab','meters',o.meterRegistry.length,
             related&&ui.view==='object'&&ui.objectTab==='meters','gauge');
-        const yearItems=item('Alle Jahre','object-billings',o.id,years.length,
-            related&&ui.view==='billing'&&ui.billingHome&&ui.objectListFilter===o.id,'layers')+
-          years.map(year=>{
+        const yearItems=years.map(year=>{
             const a=o.settlements[year];
             const selected=related&&ui.view==='billing'&&!ui.billingHome&&
               portfolio.selectedYear===year;
@@ -272,18 +277,21 @@
         '<div><small>Wohnungen</small><strong>'+o.units.length+'</strong></div>'+
         '<div><small>Jahresabrechnungen</small><strong>'+years.length+'</strong></div></div>'+
       '<section class="section annual-property">'+
-        '<div class="section-header"><div><h2>Alle Jahre</h2>'+
+        '<div class="section-header"><div><h2>Jahresübersicht</h2>'+
         '<p>'+safeText(o.street)+', '+safeText(o.postalCode)+' '+safeText(o.city)+'</p></div></div>'+
         (years.length?'<div class="annual-rows">'+years.map(y=>{
           const a=o.settlements[y],active=a.settlement?.status==='draft',
             stale=estates.rebasePreview(portfolio,o.id,y).stale;
-          return '<button type="button" class="annual-row" data-action="open-year" data-id="'+safeText(o.id)+'|'+y+'">'+
+          return '<div class="annual-row" data-year="'+y+'">'+
             '<span class="annual-icon">'+icon('calendar')+'</span>'+
             '<span class="annual-primary"><strong>Abrechnung '+y+'</strong><small>01.01.'+y+
               ' – 31.12.'+y+' · '+a.tenancies.length+' Abrechnungsfälle</small></span>'+
             '<span class="annual-status '+(active?'active':'')+'">'+safeText(estates.statusLabel(a.settlement?.status))+
               (stale?' · Stammdatenabweichung':'')+'</span>'+
-            '<span class="annual-link">'+(active?'Bearbeiten':'Ansehen')+' →</span></button>';
+            '<span class="annual-link">'+(active?
+               editAction('open-year',o.id+'|'+y,'Abrechnung '+y):
+               viewAction('open-year',o.id+'|'+y,'Abrechnung '+y))+
+            '</span></div>';
         }).join('')+'</div>':
         '<div class="empty"><h3>Noch keine Jahresabrechnungen</h3><p>Erfassen Sie zunächst Wohnungen und Mietverhältnisse unter Stammdaten. Danach können Sie ein Musterabrechnungsjahr anlegen.</p></div>')+
         '</section><div class="info-line">Jahresabrechnungen sind diesem Objekt fest zugeordnet. Objektwechsel erfolgen ausschließlich links im Immobilienbaum.</div>';
@@ -291,7 +299,7 @@
   function billing(){
     if(ui.billingHome)return billingList();
     if(!data)return head('JAHRESABRECHNUNGEN','Kein Jahresstand',
-      'Bitte zunächst unter Alle Jahre eine synthetische Jahresabrechnung anlegen.');
+      'Bitte zunächst unter Jahresabrechnungen eine synthetische Jahresabrechnung anlegen.');
     const ending=estates.statusLabel(data.settlement?.status);
     let content='';let action='';let title='Abrechnung '+activeYear();
     let description='Abrechnungsfälle werden automatisch aus den Objektstammdaten abgeleitet.';
@@ -302,7 +310,7 @@
     else if(ui.step==='allocation'){content=allocations();}
     else if(ui.step==='review'){content=review();}
     else if(ui.step==='letters'){if(!annualLocked())action=button(icon('print')+' Musterentwurf drucken','print-letter',null,'button-quiet');content=letters();}
-    return '<div class="context-return">'+button('← Alle Jahre dieses Objekts','back-billings',null,'button-quiet')+
+    return '<div class="context-return">'+button('← Jahresabrechnungen','back-billings',null,'button-quiet')+
       '<span>'+safeText(master().name)+' · '+safeText(ending)+'</span></div>'+
       (estates.rebasePreview(portfolio,master().id,activeYear()).stale?
         '<div class="warning-line"><strong>Stammdaten wurden geändert. Dieser Jahresstand bleibt zunächst unverändert.</strong> '+
@@ -321,7 +329,7 @@
         '<td class="money">'+(r?r.days:'–')+'</td><td class="money">'+safeText(t.persons)+'</td>'+
         '<td class="money">'+(r?fmt(r.costCents/100):'–')+'</td>'+
         '<td class="money">'+fmt(data.payments?.[t.id]?.paidActual??t.advance)+'</td><td>'+labelStatus(!errors.length,'Erfasst','Prüfen')+'</td>'+
-        '<td>'+iconButton('edit-tenancy',t.id,'Abrechnungsfall bearbeiten')+'</td></tr>';
+        '<td>'+editAction('edit-tenancy',t.id,'Abrechnungsfall')+'</td></tr>';
     }).join('');
     const gaps=model.vacancy.filter(v=>v.days>0);
     const info='<div class="case-summary"><div><small>Abrechnungsfälle</small><strong>'+data.tenancies.length+'</strong></div>'+
@@ -367,7 +375,7 @@
         return '<tr><td><strong>'+safeText(t.name)+'</strong><span class="water-unit-sub">'+safeText(unit)+' · '+safeText(t.id)+'</span></td>'+
          '<td class="money">'+(r?fmt(r.amount):'Nicht erfasst')+'</td>'+
          '<td class="money">'+(r?.units==null?'–':fmtVolume(r.units))+'</td>'+
-         '<td>'+iconButton('edit-external',cost.id+'|'+t.id,'Techem-Einzelwerte eingeben')+'</td></tr>';
+         '<td>'+editAction('edit-external',cost.id+'|'+t.id,'Techem-Einzelwerte')+'</td></tr>';
       }).join('');
       const bill=Number(cost.amount)-Number(cost.landlordShare||0);
       return '<section class="section" style="margin-bottom:18px"><div class="section-header"><div><h2>'+safeText(cost.name)+'</h2>'+
@@ -389,7 +397,7 @@
       costs.map(c=>'<tr><td><strong>'+safeText(c.name)+'</strong></td><td>'+safeText(c.consumptionUnit||'Einheiten')+'</td>'+
        '<td class="money">'+(c.consumptionTotal==null?'–':fmtVolume(c.consumptionTotal))+'</td>'+
        '<td>'+Object.keys(c.consumptionByTenant||{}).length+' / '+data.tenancies.length+'</td>'+
-       '<td>'+iconButton('edit-other-consumption',c.id,'Verbräuche je Mietverhältnis bearbeiten')+'</td></tr>').join('')+
+       '<td>'+editAction('edit-other-consumption',c.id,'Weitere Verbräuche')+'</td></tr>').join('')+
       '</tbody></table></div></section>';
   }
   function waterMeters(){
@@ -413,7 +421,7 @@
         half('cold')+half('hot')+'<td class="money"><strong>'+show(r.total)+'</strong></td>'+
         '<td class="money">'+(shares.length?fmt(shares.reduce((s,x)=>s+x.cents,0)/100):'–')+'</td><td>'+
         labelStatus(r.valid,'Vollständig','Prüfen')+'</td><td>'+
-        iconButton('edit-water',u.id,'Kalt- und Warmwasserzähler bearbeiten')+'</td></tr>';
+        editAction('edit-water',u.id,'Kalt- und Warmwasser')+'</td></tr>';
     }).join('');
     const KPIs='<div class="water-metric-grid">'+
       metric('Wasserwerksrechnung',show(report.invoice),'Rechnungsverbrauch')+
@@ -453,7 +461,7 @@
        '<td>'+safeText(t.start)+' bis '+safeText(t.end)+'</td>'+
        '<td class="money">'+(t.consumptionCold==null?'Automatisch bei Einzelbelegung':fmtVolume(t.consumptionCold)+' m³')+'</td>'+
        '<td class="money">'+(t.consumptionHot==null?'Automatisch bei Einzelbelegung':fmtVolume(t.consumptionHot)+' m³')+'</td>'+
-       '<td>'+iconButton('edit-case-water',t.id,'Verbrauch des Abrechnungsfalls erfassen')+'</td></tr>').join('')+
+       '<td>'+editAction('edit-case-water',t.id,'Wasserverbrauch')+'</td></tr>').join('')+
       '</tbody></table></div><div class="table-caption">Werte werden hier einmalig eingegeben. Im Mietverhältnis bleiben sie ausschließlich Ergebnisinformationen.</div></section>';
     return '<div class="inline-toolbar"><div><h2>Wasser · Kalt- und Warmwasser</h2>'+
       '<p class="small muted">Erfassung und Kontrolle · 2025 · nur synthetische Musterdaten</p></div>'+
@@ -470,7 +478,7 @@
         '<td class="money">'+(p.mode==='monthly'?fmt(p.agreedMonthly||0)+' / Mon.':p.agreedAnnual==null?'–':fmt(p.agreedAnnual)+' / Jahr')+'</td>'+
         '<td class="money">'+(expected===null?'Nicht erfasst':fmt(expected))+'</td>'+
         '<td class="money"><strong>'+fmt(p.paidActual??t.advance)+'</strong></td><td>'+
-        iconButton('edit-payment',t.id,'Vorauszahlungen bearbeiten')+'</td></tr>';
+        editAction('edit-payment',t.id,'Vorauszahlungen')+'</td></tr>';
     }).join('');
     return '<div class="inline-toolbar"><h2>Vorauszahlungen nach Abrechnungsfall</h2></div>'+
       '<section class="section"><div class="stat-inline"><div><small>Tatsächlich gezahlt</small><strong>'+
