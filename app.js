@@ -258,11 +258,22 @@
   function letters(){return `<div class="inline-toolbar"><h2>Briefvorschau</h2><span class="status ${letterResolved()?'green':'amber'}">${letterResolved()?'Layout geprüft (Demo)':'Layoutprüfung offen'}</span></div><p class="print-note">Diese Vorschau nutzt keine realen Mieterdaten. Der spätere Dokumentengenerator muss auf dem bestehenden geprüften Briefsystem aufbauen.</p><section class="section printable"><div class="section-header"><div><h2>Musterbrief – Wohnung A</h2></div><button type="button" class="link" data-action="mark-letter">${letterResolved()?'Prüfung zurücksetzen':'Musterlayout als geprüft markieren'}</button></div><div class="section-body">${docPaper()}</div></section>`;}
   function objectUnits(){return head('STAMMDATEN','Objekt','Wohnungen und Zähler sind einmalig gepflegt. Jahresbezogene Daten werden im Abrechnungsarbeitsplatz bearbeitet.')+
     `<div class="section"><div class="section-header"><div><h2>Musterobjekt</h2><p>7 Wohnungen · 1 Gebäude · ausschließlich synthetische Daten</p></div><span class="status green">Demo aktiv</span></div><div class="stat-inline"><div><small>Wohneinheiten</small><strong>${data.units.length}</strong></div><div><small>Gesamtfläche</small><strong>${int(data.units.reduce((s,u)=>s+u.area,0))} m²</strong></div><div><small>Zähler erfasst</small><strong>${data.units.length*2} Zählerkanäle</strong></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Wohnung</th><th>Kennung</th><th>Lage</th><th class="money">Fläche</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
-    data.units.map(u=>`<tr><td><strong>${safeText(u.label)}</strong></td><td>${safeText(u.id)}</td><td>${safeText(u.position)}</td><td class="money">${int(u.area)} m²</td><td>${iconButton('edit-unit',u.id,'Wohnung bearbeiten')}</td></tr>`).join('')+`</tbody></table></div><div class="table-caption">Im Wohnungs-Detailpanel können Personen, Miettage und Aktivstatus des synthetischen Fachtests geändert werden.</div></div>`;}
+    data.units.map(u=>`<tr><td><strong>${safeText(u.label)}</strong></td><td>${safeText(u.id)}</td><td>${safeText(u.position)}</td><td class="money">${int(u.area)} m²</td><td>${iconButton('edit-unit',u.id,'Wohnung bearbeiten')}</td></tr>`).join('')+`</tbody></table></div><div class="table-caption">Wohnfläche und Aktivstatus werden hier gepflegt. Personen und Miettage liegen ausschließlich bei den Mietverhältnissen.</div></div>`;}
   function object(){
-    const tabs=[['tenancies','Mietverhältnisse'],['units','Wohnungen'],['meters','Zähler']];
+    const tabs=[['overview','Objektdaten'],['units','Wohnungen'],['tenancies','Mietverhältnisse'],['meters','Zähler']];
     let content='';
-    if(ui.objectTab==='units')content=objectUnits();
+    if(ui.objectTab==='overview'){
+      const p=data.property||{},w=data.units;
+      content=head('STAMMDATEN · 2025','Objektdaten','Zentrale Stammdaten des synthetischen Mustergebäudes.')+
+        '<section class="section"><div class="section-header"><div><h2>'+safeText(p.name||'Musterobjekt')+'</h2>'+
+        '<p>'+safeText(p.street||'Noch keine Beispielstraße')+', '+safeText(p.postalCode||'')+' '+safeText(p.city||'')+'</p></div>'+
+        button('Objektdaten bearbeiten','edit-property',null,'button-quiet')+'</div>'+
+        '<div class="stat-inline"><div><small>Objekt-ID</small><strong>'+safeText(p.id||'–')+'</strong></div>'+
+        '<div><small>Gebäude-ID</small><strong>'+safeText(p.buildingId||'–')+'</strong></div>'+
+        '<div><small>Wohnungen</small><strong>'+w.length+'</strong></div>'+
+        '<div><small>Gesamtwohnfläche</small><strong>'+fmtVolume(w.reduce((s,u)=>s+Number(u.area||0),0))+' m²</strong></div></div>'+
+        '<div class="table-caption">Alle Adressen und IDs sind ausdrücklich synthetisch. Zentrale Stammdaten, Jahresfälle und Zählerperioden bleiben getrennt.</div></section>';
+    }else if(ui.objectTab==='units')content=objectUnits();
     else if(ui.objectTab==='meters'){
       const rows=data.units.flatMap(u=>['cold','hot'].map(key=>{
         const meter=u.waterMeters?.[key]||{},detail=waterDetails.meterResult(meter);
@@ -311,7 +322,19 @@
     return '<div class="drawer-breakdown"><div class="eyebrow">Kostenpositionen · Muster-Nachweis</div><div class="drawer-table-scroll"><table class="data-table"><thead><tr><th>Position</th><th class="money">Umlagefähig</th><th class="money">Wohnungsanteil</th></tr></thead><tbody>'+costRows+'</tbody></table></div><div class="drawer-note">Getestete Referenzformeln, Centverteilung mit Restcents. Nicht zugeordnete Beträge bleiben offen. Keine produktive Umlageabrechnung.</div></div>';
   }
   function openDrawer(type,id){const d={type,id};ui.drawer=d;ui.lastFocus=document.activeElement;let title='',eyebrow='',body='',actionLabel='Änderungen speichern';
-    if(type==='tenancy'||type==='new-tenancy'){
+    if(type==='property'){
+      const p=data.property||{};
+      title='Objektdaten';eyebrow='SYNTHETISCHER OBJEKTSTAMM';
+      body='<form id="editForm" data-type="property">'+
+        '<div class="form-row"><label>Objektname<input name="propertyName" maxlength="100" required value="'+safeText(p.name||'Musterobjekt')+'"></label></div>'+
+        '<div class="form-row"><label>Straße (nur Musteradresse)<input name="propertyStreet" maxlength="120" value="'+safeText(p.street||'')+'"></label></div>'+
+        '<div class="water-form-grid"><div class="form-row"><label>PLZ<input name="propertyPostalCode" maxlength="12" value="'+safeText(p.postalCode||'')+'"></label></div>'+
+        '<div class="form-row"><label>Ort<input name="propertyCity" maxlength="100" value="'+safeText(p.city||'')+'"></label></div></div>'+
+        '<div class="form-row"><label>Notiz<textarea name="propertyNote" maxlength="2000" rows="4">'+safeText(p.note||'')+'</textarea></label></div>'+
+        '<div class="drawer-note">Objekt-ID '+safeText(p.id||'SYN-OBJ-01')+
+        ', Gebäude-ID '+safeText(p.buildingId||'SYN-G01')+
+        '. IDs bleiben stabil; bitte hier keine reale Adresse eingeben.</div></form>';
+    }else if(type==='tenancy'||type==='new-tenancy'){
       const existing=data.tenancies.find(t=>t.id===id);
       const t=type==='new-tenancy'?{id:'SYN-T'+Date.now().toString(36).toUpperCase(),unitId:data.units[0]?.id,
        name:'Neue Musterperson',start:'2025-01-01',end:'2025-12-31',persons:1,role:'Mieter',
@@ -379,7 +402,7 @@
           '<div class="drawer-note">Die beiden Musterzähler werden getrennt erfasst; unvollständige oder ungültige Angaben bleiben prüfpflichtig. Noch keine echte Zählerhistorie oder Vorjahresübernahme.</div></form>';
       }
       else if(type==='advance')body=`<form id="editForm" data-type="advance"><div class="form-row"><label for="d-advance">Jahresvorauszahlung (€)</label><input id="d-advance" name="advance" type="number" step="0.01" min="0" value="${u.advance}" required></div><div class="drawer-note">Musterjahreswert. Keine tatsächlichen Zahlungseingänge hinterlegt.</div></form>`;
-      else body=`<form id="editForm" data-type="unit"><div class="form-row"><label for="d-label">Wohnungsbezeichnung</label><input id="d-label" name="label" required value="${safeText(u.label)}"></div><div class="form-row"><label for="d-position">Lage</label><input id="d-position" name="position" required value="${safeText(u.position)}"></div><div class="form-row"><label for="d-area">Wohnfläche (m²)</label><input id="d-area" name="area" type="number" min="1" step="0.01" required value="${u.area}"></div><div class="form-row"><label for="d-people">Personen (Muster)</label><input id="d-people" name="people" type="number" min="0" max="1000" step="1" required value="${u.people??1}"></div><div class="form-row"><label for="d-days">Miettage 2025 (Muster)</label><input id="d-days" name="days" type="number" min="0" max="365" step="1" required value="${u.days??365}"></div><div class="form-row"><label><input name="active" type="checkbox" style="width:auto;margin-right:8px" ${u.active!==false?'checked':''}>Aktive Musterwohnung</label></div><div class="drawer-note">Wohnfläche und Status gelten dauerhaft. Personen und Miettage werden aus den einzelnen Mietverhältnissen ermittelt; bitte dort bearbeiten.</div></form>`;
+      else body=`<form id="editForm" data-type="unit"><div class="form-row"><label for="d-label">Wohnungsbezeichnung</label><input id="d-label" name="label" required value="${safeText(u.label)}"></div><div class="form-row"><label for="d-position">Lage</label><input id="d-position" name="position" required value="${safeText(u.position)}"></div><div class="form-row"><label for="d-area">Wohnfläche (m²)</label><input id="d-area" name="area" type="number" min="1" step="0.01" required value="${u.area}"></div><div class="form-row"><label><input name="active" type="checkbox" style="width:auto;margin-right:8px" ${u.active!==false?'checked':''}>Aktive Musterwohnung</label></div><div class="drawer-note">Wohnfläche und Status gelten dauerhaft. Personen und Miettage werden aus den einzelnen Mietverhältnissen ermittelt; bitte dort bearbeiten.</div></form>`;
     }else if(type==='meter-replacement'){
       const parts=String(id||'').split('|'),channel=parts.pop(),unitId=parts.join('|');
       const u=data.units.find(x=>x.id===unitId),m=u?.waterMeters?.[channel];
@@ -421,7 +444,15 @@
     $('overlay').hidden=false;$('drawer').hidden=false;document.body.style.overflow='hidden';setTimeout(()=>{const input=$('drawerBody').querySelector('input,textarea,select');if(input)input.focus();else $('closeDrawer').focus()},10);
   }
   function saveDrawer(form){const {type,id}=ui.drawer||{};let good=true,msg='Musterwert gespeichert.';
-    if(type==='tenancy'||type==='new-tenancy'){
+    if(type==='property'){
+      const name=form.elements.propertyName.value.trim();
+      if(!name)return toast('Ein Objektname ist erforderlich.');
+      data.property={...data.property,name,
+        street:form.elements.propertyStreet.value.trim().slice(0,120),
+        postalCode:form.elements.propertyPostalCode.value.trim().slice(0,12),
+        city:form.elements.propertyCity.value.trim().slice(0,100),
+        note:form.elements.propertyNote.value.trim().slice(0,2000)};
+    }else if(type==='tenancy'||type==='new-tenancy'){
       const cold=String(form.elements.consumptionCold.value).trim(),hot=String(form.elements.consumptionHot.value).trim();
       const base={id:ui.draftTenancyId,unitId:form.elements.unitId.value,
         name:form.elements.tenantName.value.trim(),role:form.elements.role.value,
@@ -487,7 +518,7 @@
       delete u.waterSourceNotice;
     }
     else if(type==='advance'){const val=parseField(form.elements.advance);if(!Number.isFinite(val)||val<0)return toast('Ungültige Vorauszahlung.');const matches=data.tenancies.filter(t=>t.unitId===id);if(matches.length!==1)return toast('Bitte Vorauszahlungen je Abrechnungsfall bearbeiten.');matches[0].advance=round(val);data.units.find(x=>x.id===id).advance=round(val);}
-    else if(type==='unit'){const u=data.units.find(x=>x.id===id);const area=parseField(form.elements.area),people=parseField(form.elements.people),days=parseField(form.elements.days);if(!Number.isFinite(area)||area<1||area>1000000||!Number.isInteger(people)||people<0||people>1000||!Number.isInteger(days)||days<0||days>365)return toast('Bitte gültige Fläche, Personenzahl und Miettage eingeben.');const label=form.elements.label.value.trim(),position=form.elements.position.value.trim();if(!label||!position)return toast('Bezeichnung und Lage fehlen.');Object.assign(u,{label,position,area,active:form.elements.active.checked});}
+    else if(type==='unit'){const u=data.units.find(x=>x.id===id);const area=parseField(form.elements.area);if(!Number.isFinite(area)||area<1||area>1000000)return toast('Bitte gültige Fläche, Personenzahl und Miettage eingeben.');const label=form.elements.label.value.trim(),position=form.elements.position.value.trim();if(!label||!position)return toast('Bezeichnung und Lage fehlen.');Object.assign(u,{label,position,area,active:form.elements.active.checked});}
     else if(type==='meter-replacement'){
       const parts=String(id||'').split('|'),channel=parts.pop(),unitId=parts.join('|');
       try{
@@ -520,6 +551,7 @@
     if(good){closeDrawer();stateChange();toast(msg)}
   }
   function doAction(action,id){
+    if(action==='edit-property'){openDrawer('property');return}
     if(action==='replace-meter'){openDrawer('meter-replacement',id);return}
     if(action==='new-tenancy'){openDrawer('new-tenancy');return}
     if(action==='edit-tenancy'){openDrawer('tenancy',id);return}
