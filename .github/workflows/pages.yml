@@ -24,10 +24,12 @@ jobs:
       - name: Validate and stage demo (only synthetic data)
         shell: bash
         run: |
-          test -s index.html && test -s styles.css && test -s app.js && test -s demo-ledger.js && test -s synthetic-billing.js && test -s water-detail.js && test -s experimental/settlement-cost.js
+          test -s index.html && test -s styles.css && test -s app.js && test -s demo-ledger.js && test -s synthetic-billing.js && test -s synthetic-property.js && test -s synthetic-case-billing.js && test -s water-detail.js && test -s experimental/settlement-cost.js
           node --check app.js
           node --check demo-ledger.js
           node --check synthetic-billing.js
+          node --check synthetic-property.js
+          node --check synthetic-case-billing.js
           node --check water-detail.js
           node --check experimental/settlement-cost.js
           node --test --test-reporter=tap tests/*.test.cjs > /tmp/nkpro2-tests.tap
@@ -40,12 +42,12 @@ jobs:
           node --check scripts/build-status.cjs
           mkdir -p _site
           node scripts/build-status.cjs /tmp/nkpro2-tests.tap _site/status.json
-          cp index.html styles.css app.js demo-ledger.js synthetic-billing.js water-detail.js status.html status.js _site/
+          cp index.html styles.css app.js demo-ledger.js synthetic-billing.js synthetic-property.js synthetic-case-billing.js water-detail.js status.html status.js _site/
           mkdir -p _site/experimental
           cp experimental/settlement-cost.js _site/experimental/
           touch _site/.nojekyll
           # Allowlist publishes only the synthetic reference formula, never pinned originals or tenant fixtures.
-          test "$(find _site -type f | wc -l)" -eq 11
+          test "$(find _site -type f | wc -l)" -eq 13
           test ! -f _site/tests/reference/billing-calculation-v99.4.86.js
       - uses: actions/upload-pages-artifact@v3
         with:
