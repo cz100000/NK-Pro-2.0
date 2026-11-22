@@ -239,3 +239,47 @@ test("0.9 adding, archiving and restoring objects preserves annual history",()=>
  assert.equal(p.objects[0].lifecycle.status,"active");
  assert.match(x.tree(),/Musterobjekt A/);
 });
+
+test("0.9 end-to-end: new property + unit + tenancy + first draft year stays in object",()=>{
+ const x=browser();
+ x.act("new-object");
+ x.save({name:"Musterobjekt E",street:"Fiktivweg 5",postalCode:"00005",city:"Musterhausen"});
+ let o=x.portfolio().objects.find(v=>v.name==="Musterobjekt E");
+ assert.ok(o);
+ x.act("new-master-unit");
+ x.save({label:"Wohnung E1",position:"EG",area:"75"});
+ o=x.portfolio().objects.find(v=>v.name==="Musterobjekt E");
+ assert.equal(o.units.length,1);
+ x.act("new-master-tenancy");
+ assert.match(x.drawer(),/Muster-Mietverhältnis hinzufügen/);
+ x.save({firstName:"Julia",lastName:"Demo",unitId:o.units[0].id,role:"Mieter",
+   leaseStart:"2024-01-01",leaseEnd:"",persons:"1",salutation:"neutral",
+   customSalutation:"",postalStreet:"",postalCode:"",postalCity:"",note:"Nur Test"});
+ o=x.portfolio().objects.find(v=>v.name==="Musterobjekt E");
+ assert.equal(o.tenancies.length,1);
+ x.act("object-billings",o.id);
+ assert.match(x.html(),/Noch keine Jahresabrechnungen/);
+ x.act("new-year");
+ x.save({year:"2025"});
+ o=x.portfolio().objects.find(v=>v.name==="Musterobjekt E");
+ assert.ok(o.settlements["2025"]);
+ assert.equal(o.settlements["2025"].settlement.status,"draft");
+ assert.equal(x.portfolio().selectedYear,"2025");
+ assert.match(x.html(),/Abrechnung 2025/);
+ assert.match(x.tree(),/tree-year selected/);
+});
+test("0.9 local storage rejects stale second-tab writes without destroying first-tab data",()=>{
+ const store=new Map(),a=browser(store),b=browser(store);
+ a.act("new-object");
+ a.save({name:"Sicher A",street:"Demo 1",postalCode:"00001",city:"Musterort"});
+ const first=store.get("nkpro2_synthetic_portfolio_0_7_v1");
+ assert.ok(first);
+ b.act("new-object");
+ b.save({name:"Konflikt B",street:"Demo 2",postalCode:"00002",city:"Musterort"});
+ assert.match(b.toast(),/anderen Tab geändert/);
+ assert.equal(store.get("nkpro2_synthetic_portfolio_0_7_v1"),first);
+ const reload=browser(store);
+ assert.ok(reload.portfolio().objects.some(o=>o.name==="Sicher A"));
+ assert.ok(!reload.portfolio().objects.some(o=>o.name==="Konflikt B"));
+ assert.throws(()=>browser(new Map([["nkpro2_synthetic_portfolio_0_7_v1","{corrupt"]])),/Lokaler Fachtestbestand/);
+});
