@@ -1053,6 +1053,14 @@
     }else if(type==='heat-evidence'){title='Heizkostenbeleg';eyebrow='PRÜFENTSCHEIDUNG';body=`<form id="editForm" data-type="heat-evidence"><div class="key-value" style="margin-bottom:20px"><small>Externe Heizkosten (Muster)</small><strong>${fmt(data.costs.find(x=>x.id==='heat')?.amount||0)}</strong></div><div class="form-row"><label><input name="confirmed" type="checkbox" style="width:auto;margin-right:8px" ${heatResolved()?'checked':''} required> Musterbeleg ist geprüft</label><p class="form-help">Diese Checkbox simuliert nur die später einzubindende Belegprüfung.</p></div></form>`;actionLabel='Belegstatus speichern';
     }else if(type==='result'){const u=data.units.find(x=>x.id===id);if(!u)return;title=u.label;eyebrow='BERECHNUNGSNACHWEIS';let a=data.units.reduce((s,x)=>s+x.area,0),w=unitConsumption();body=`<div class="drawer-note">Ausschließlich vereinfachter Beispielnachweis. Die produktive Umlage besitzt zusätzliche Schlüssel, Nachweise und Sonderfälle.</div><div class="key-value" style="margin-bottom:17px"><small>Wohnflächenanteil</small><strong>${int(u.area)} / ${int(a)} m²</strong></div><div class="key-value" style="margin-bottom:17px"><small>Verbrauchsanteil</small><strong>${int(consumption(u))} / ${int(w)} m³</strong></div><div class="key-value" style="margin-bottom:17px"><small>Berechnete Kosten</small><strong>${fmt(allocation(u))}</strong></div><div class="key-value"><small>Saldo nach Vorauszahlungen</small><strong>${fmt(balance(u))}</strong></div>${demoBreakdown(u.id)}`;actionLabel='Schließen';
     }
+    if(type==='cost'){
+      const c=data.costs.find(v=>v.id===id);
+      if(c)body+='<div class="meter-admin cost-admin"><div class="meter-admin-heading">Kostenart verwalten</div>'+
+        '<p>Änderungen am Aktivstatus oder endgültiges Löschen werden ausschließlich hier vorgenommen und benötigen eine gesonderte Bestätigung.</p>'+
+        button(c.active===false?'Kostenart aktivieren':'Kostenart deaktivieren','toggle-cost',id,'button-danger')+
+        (c.id.startsWith('SYN-K-')?button('Eigene Kostenart löschen','delete-unused-cost',id,'button-danger'):'')+
+        '</div>';
+    }
     if(type==='master-meter'){
       const m=master().meterRegistry.find(v=>v.id===id);
       if(m){
@@ -1069,7 +1077,12 @@
       }
     }
     $('drawerTitle').textContent=title;$('drawerEyebrow').textContent=eyebrow;$('drawerBody').innerHTML=body;
-    $('drawerFooter').innerHTML=`<button class="button" type="button" data-action="close-drawer">Abbrechen</button>${type==='result'?'':`<button form="editForm" class="button button-primary" type="submit">${actionLabel}</button>`}`;
+    if(type==='cost-view')body+='<div class="drawer-note">Historische Jahresdaten sind schreibgeschützt.</div>';
+    $('drawerBody').innerHTML=body;
+    if(type==='cost-view'){
+      $('drawerBody').querySelectorAll('input,select,textarea').forEach(el=>el.disabled=true);
+    }
+    $('drawerFooter').innerHTML=`<button class="button" type="button" data-action="close-drawer">${type==='result'||type==='cost-view'?'Schließen':'Abbrechen'}</button>${type==='result'||type==='cost-view'?'':`<button form="editForm" class="button button-primary" type="submit">${actionLabel}</button>`}`;
     $('overlay').hidden=false;$('drawer').hidden=false;document.body.style.overflow='hidden';setTimeout(()=>{const input=$('drawerBody').querySelector('input,textarea,select');if(input)input.focus();else $('closeDrawer').focus()},10);
   }
   function saveDrawer(form){const {type,id}=ui.drawer||{};let good=true,msg='Musterwert gespeichert.';
@@ -1160,9 +1173,9 @@
     }else if(type==='payment'){
       try{data=workflow.setPayment(data,id,{mode:form.elements.mode.value,
          agreed:parseField(form.elements.agreed),paid:parseField(form.elements.paid),
-         paidMode:form.elements.paidMode.value,
-         paidMonthly:parseField(form.elements.paidMonthly),
-         paidMonths:form.elements.paidMonths.value});}
+         paidMode:form.elements.paidMode?.value||'annual',
+         paidMonthly:form.elements.paidMonthly?parseField(form.elements.paidMonthly):null,
+         paidMonths:form.elements.paidMonths?.value??null});}
       catch(e){return toast('Zahlungsdaten prüfen: '+e.message)}
       msg='Vorauszahlungen gespeichert.';
     }else if(type==='cost'||type==='new-cost'){
@@ -1178,8 +1191,11 @@
         Math.abs(unitPrice*10000-Math.round(unitPrice*10000))>1e-6))
         return toast('Einheitspreis: positiv, höchstens vier Nachkommastellen.');
       // Checked = included. Empty exclusion list means every case is included by default.
-      const included=new Set([...form.querySelectorAll('[data-case-include]')]
-        .filter(el=>el.checked).map(el=>el.dataset.caseInclude));
+      const includedInputs=[...form.querySelectorAll('[data-case-include]')];
+      // Test DOM adapters may not expose checkbox nodes; an actual browser always does.
+      const included=new Set(includedInputs.length?
+        includedInputs.filter(el=>el.checked).map(el=>el.dataset.caseInclude):
+        data.tenancies.map(t=>t.id));
       const exclusions=data.tenancies.filter(t=>!included.has(t.id)).map(t=>t.id);
       const invoiceQty=method==='Verbrauch'?parseField(form.elements.invoiceConsumption):null;
       if(method==='Verbrauch'&&(!Number.isFinite(invoiceQty)||invoiceQty<=0||
@@ -1187,7 +1203,9 @@
         return toast('Rechnungsverbrauch: positive Menge mit maximal drei Nachkommastellen erforderlich.');
       const existingCost=data.costs.find(x=>x.id===id)||{};
       const sourceId=form.elements.sourceId.value,canonical=workflow.invoiceCatalog(sourceId);
-      const value={name:canonical?.name||name,sourceId,category:canonical?.category||existingCost.category||'Betriebskosten',amount:round(amt),landlordShare:round(landlordShare),method,
+      if(sourceId&&data.costs.some(c=>c.id!==id&&costCatalogId(c)===sourceId))
+        return toast('Diese Original-Kostenart ist bereits vorhanden. Bitte den vorhandenen Eintrag bearbeiten.');
+      const value={name,sourceId,category:canonical?.category||existingCost.category||'Betriebskosten',amount:round(amt),landlordShare:round(landlordShare),method,
         exclusionMode:form.elements.exclusionMode.value,excludedTenantIds:exclusions,
         consumptionTotal:method==='Verbrauch'?invoiceQty:null,
         consumptionUnit:existingCost.consumptionUnit||'m³',consumptionByTenant:existingCost.consumptionByTenant||{},
@@ -1374,15 +1392,21 @@
       toast('Dieser historische Musterstand ist schreibgeschützt.');return;
     }
     if(action==='delete-unused-cost'){
+      if(ui.drawer?.type!=='cost'||ui.drawer?.id!==id)
+        return toast('Kostenverwaltung nur über Bearbeiten öffnen.');
       if(!window.confirm('Diese nur in der synthetischen Jahresdemo angelegte Kostenart endgültig löschen?'))return;
-      try{data=workflow.removeUnused(data,id);stateChange();toast('Unbenutzte Demo-Kostenart gelöscht.');}
+      try{data=workflow.removeUnused(data,id);closeDrawer();stateChange();toast('Unbenutzte Demo-Kostenart gelöscht.');}
       catch(e){toast('Löschen gesperrt: '+e.message)}
       return
     }
     if(action==='toggle-cost'){
+      if(ui.drawer?.type!=='cost'||ui.drawer?.id!==id)
+        return toast('Kostenverwaltung nur über Bearbeiten öffnen.');
       const c=data.costs.find(x=>x.id===id);if(!c)return;
+      if(!window.confirm('Kostenart "'+c.name+'" '+(c.active===false?'aktivieren':'deaktivieren')+
+        '? Die Jahresumlage wird neu berechnet.'))return;
       if(c.active===false)c.active=true;else data=workflow.deactivate(data,id);
-      stateChange();toast('Kostenstatus geändert.');return
+      closeDrawer();stateChange();toast('Kostenstatus geändert.');return;
     }
     if(action==='edit-master-property'){openDrawer('master-property');return}
     if(action==='edit-master-unit'){openDrawer('master-unit',id);return}
@@ -1416,7 +1440,9 @@
     if(action==='new-tenancy'||action==='edit-tenancy'){toast('Mietverhältnisse nur unter Objekt → Mietverhältnisse bearbeiten.');ui.objectTab='tenancies';navigate('object');return}
     if(action==='edit-payment'){openDrawer('payment',id);return}
     if(action==='go-tenancies'){ui.objectTab='tenancies';navigate('object');return}
-    if(action==='new-cost'){openDrawer('new-cost');return}if(action==='edit-cost'){openDrawer('cost',id);return}if(action==='edit-water'){openDrawer('water',id);return}if(action==='edit-house'){openDrawer('house');return}
+    if(action==='new-cost'){openDrawer('new-cost');return}if(action==='edit-cost'){openDrawer('cost',id);return}
+    if(action==='view-cost'){openDrawer('cost-view',id);return}
+    if(action==='edit-water'){openDrawer('water',id);return}if(action==='edit-house'){openDrawer('house');return}
     if(action==='edit-advance'){openDrawer('payment',id);return}if(action==='edit-unit'){openDrawer('master-unit',id);return}if(action==='show-unit-result'){openDrawer('result',id);return}
     if(action==='check-water'){const r=waterReport();if(!r.canReview){navigate('billing','water');toast('Bitte fehlende Zählerstände und Ablesedaten ergänzen.');return}if(r.exactMatch){toast('Beide Wasserabgleiche stimmen überein.');return}openDrawer('water-decision');return}
     if(action==='edit-water-price'){openDrawer('cost','water');return}
@@ -1443,6 +1469,20 @@
     e.preventDefault();
     try{saveDrawer(e.target)}catch(error){rollbackLocal();render();toast('Änderung nicht gespeichert: '+error.message)}
   }});
+  function costLivePreview(form){
+    if(!form||!['cost','new-cost'].includes(form.dataset.type))return;
+    const el=form.querySelector('#costPricePreview');if(!el)return;
+    const amount=parseField(form.elements.amount),landlord=parseField(form.elements.landlordShare),
+      total=parseField(form.elements.invoiceConsumption);
+    if(form.elements.method.value!=='Verbrauch'||!Number.isFinite(total)||total<=0||
+      !Number.isFinite(amount)||amount<=0||!Number.isFinite(landlord)||landlord<0||landlord>amount){
+      el.textContent='–';return;
+    }
+    const manual=form.elements.priceMode.value==='manual';
+    const unitPrice=manual?parseField(form.elements.unitPrice):null;
+    el.textContent=manual&&(!Number.isFinite(unitPrice)||unitPrice<=0)?'–':
+      fmtPrice(manual?unitPrice:(amount-landlord)/total);
+  }
   function paymentLivePreview(form){
     if(!form||form.dataset.type!=='payment')return;
     const t=data?.tenancies.find(x=>x.id===form.dataset.paymentCase);
@@ -1484,13 +1524,15 @@
       const f=$('editForm');if(!f)return;
       const consume=f.elements.method.value==='Verbrauch';
       f.querySelectorAll('[data-price-group]').forEach(el=>el.hidden=!consume);
-      f.querySelectorAll('[data-consumption-context]').forEach(el=>el.hidden=!consume||f.dataset.costId==='water');
+      f.querySelectorAll('[data-consumption-context]').forEach(el=>el.hidden=!consume);
       f.querySelectorAll('[data-manual-price]').forEach(el=>el.hidden=!consume||f.elements.priceMode.value!=='manual');
     }
+    const cf=e.target.closest?.('#editForm');if(cf&&['cost','new-cost'].includes(cf.dataset.type))costLivePreview(cf);
   });
   document.addEventListener('input',e=>{
     const paymentForm=e.target.closest?.('#editForm');
     if(paymentForm?.dataset.type==='payment')paymentLivePreview(paymentForm);
+    if(paymentForm&&['cost','new-cost'].includes(paymentForm.dataset.type))costLivePreview(paymentForm);
     if(['coldStart','coldEnd','hotStart','hotEnd'].includes(e.target.name)){
       const f=$('editForm'),el=$('water-live-sum');
       if(f&&el&&f.dataset.type==='water'){
