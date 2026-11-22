@@ -433,7 +433,11 @@
       costs.map(c=>'<tr><td><strong>'+safeText(c.name)+'</strong></td><td>'+safeText(c.consumptionUnit||'Einheiten')+'</td>'+
        '<td class="money">'+(c.consumptionTotal==null?'–':fmtVolume(c.consumptionTotal))+'</td>'+
        '<td>'+Object.keys(c.consumptionByTenant||{}).length+' / '+data.tenancies.length+'</td>'+
-       '<td>'+editAction('edit-other-consumption',c.id,'Weitere Verbräuche')+'</td></tr>').join('')+
+       '<td>'+actionCell(statusFor(Number.isFinite(Number(c.consumptionTotal))&&
+          Number(c.consumptionTotal)>0&&data.tenancies.every(t=>c.consumptionByTenant?.[t.id]!=null),
+          Number.isFinite(Number(c.consumptionTotal))&&Number(c.consumptionTotal)>0),
+          annualLocked()?viewAction('view-other-consumption',c.id,'Weitere Verbräuche'):
+            editAction('edit-other-consumption',c.id,'Weitere Verbräuche'))+'</td></tr>').join('')+
       '</tbody></table></div></section>';
   }
   function waterMeters(){
@@ -448,16 +452,18 @@
       const m=u.waterMeters||{},r=report.rows[i];
       const half=key=>{
         const meter=m[key]||{},part=r[key],first=meter.segments?.[0]||meter,last=meter.segments?.at(-1)||meter;
-        return '<td class="money">'+(waterDetails.volume(first.start)?fmtVolume(first.start):'–')+'</td>'+
-          '<td class="money">'+(waterDetails.volume(last.end)?fmtVolume(last.end):'–')+'</td>'+
-          '<td class="money"><strong>'+(part.valid?show(part.consumption):'–')+'</strong></td>';
+        const band=key==='cold'?'water-cold':'water-hot';
+        return '<td class="money '+band+'">'+(waterDetails.volume(first.start)?fmtVolume(first.start):'–')+'</td>'+
+          '<td class="money '+band+'">'+(waterDetails.volume(last.end)?fmtVolume(last.end):'–')+'</td>'+
+          '<td class="money '+band+'"><strong>'+(part.valid?show(part.consumption):'–')+'</strong></td>';
       };
       const shares=waterAllocation?.rows.filter(x=>x.unitId===u.id)||[];
       return '<tr><td><strong>'+safeText(u.label)+'</strong><span class="water-unit-sub">'+safeText(u.id)+'</span></td>'+
-        half('cold')+half('hot')+'<td class="money"><strong>'+show(r.total)+'</strong></td>'+
-        '<td class="money">'+(shares.length?fmt(shares.reduce((s,x)=>s+x.cents,0)/100):'–')+'</td><td>'+
-        labelStatus(r.valid,'Vollständig','Prüfen')+'</td><td>'+
-        editAction('edit-water',u.id,'Kalt- und Warmwasser')+'</td></tr>';
+        half('cold')+half('hot')+'<td class="money"><strong class="water-total-value">'+show(r.total)+'</strong></td>'+
+        '<td class="money">'+(shares.length?fmt(shares.reduce((sum,x)=>sum+x.cents,0)/100):'–')+'</td><td>'+
+        actionCell(statusFor(r.valid,r.cold.valid||r.hot.valid),
+           annualLocked()?viewAction('view-water',u.id,'Wasserverbräuche'):
+             editAction('edit-water',u.id,'Kalt- und Warmwasser'))+'</td></tr>';
     }).join('');
     const KPIs='<div class="water-metric-grid">'+
       metric('Wasserwerksrechnung',show(report.invoice),'Rechnungsverbrauch')+
@@ -480,15 +486,15 @@
     const table='<section class="section" style="margin-top:18px"><div class="section-header"><div><h2>Wohnungszähler</h2>'+
       '<p>Jahresablesungen und Ablesedaten werden hier erfasst. Die physische Zählernummer stammt unveränderbar aus den Stammdaten.</p></div></div>'+
       '<div class="table-wrap"><table class="data-table water-table"><thead><tr><th rowspan="2">Wohnung</th>'+
-      '<th colspan="3">Kaltwasser (m³)</th><th colspan="3">Warmwasser (m³)</th>'+
+      '<th colspan="3" class="water-cold">Kaltwasser (m³)</th><th colspan="3" class="water-hot">Warmwasser (m³)</th>'+
       '<th rowspan="2" class="money">Gesamt</th><th rowspan="2" class="money">Kostenanteil</th>'+
-      '<th rowspan="2">Status</th><th rowspan="2">Aktion</th></tr><tr>'+
-      '<th class="money">Anfang</th><th class="money">Ende</th><th class="money">Verbrauch</th>'+
-      '<th class="money">Anfang</th><th class="money">Ende</th><th class="money">Verbrauch</th>'+
+      '<th rowspan="2">Status / Aktion</th></tr><tr>'+
+      '<th class="money water-cold">Anfang</th><th class="money water-cold">Ende</th><th class="money water-cold">Verbrauch</th>'+
+      '<th class="money water-hot">Anfang</th><th class="money water-hot">Ende</th><th class="money water-hot">Verbrauch</th>'+
       '</tr></thead><tbody>'+rows+'</tbody><tfoot><tr><td><strong>Summe</strong></td>'+
-      '<td colspan="2"></td><td class="money"><strong>'+show(report.totals.cold)+'</strong></td>'+
-      '<td colspan="2"></td><td class="money"><strong>'+show(report.totals.hot)+'</strong></td>'+
-      '<td class="money"><strong>'+show(units)+'</strong></td><td colspan="3"></td></tr></tfoot></table></div>'+
+      '<td colspan="2" class="water-cold"></td><td class="money water-cold"><strong>'+show(report.totals.cold)+'</strong></td>'+
+      '<td colspan="2" class="water-hot"></td><td class="money water-hot"><strong>'+show(report.totals.hot)+'</strong></td>'+
+      '<td class="money"><strong class="water-total-value">'+show(units)+'</strong></td><td colspan="2"></td></tr></tfoot></table></div>'+
       '<div class="table-caption">Zwei getrennte Musterzähler je Wohnung, insgesamt 14. Die Originalversion hat weitere Funktionen wie Zählerwechsel, historischen Ableseverlauf und kontrollierte Vorjahresübernahme; diese sind noch nicht migriert.</div></section>';
     const split='<section class="section" style="margin-top:18px"><div class="section-header"><div><h2>Wasserverbräuche je Mietverhältnis</h2>'+
       '<p>Insbesondere bei Mieterwechseln und Leerständen: dokumentierte Einzelmengen, keine geschätzte Verteilung.</p></div></div>'+
@@ -497,7 +503,10 @@
        '<td>'+safeText(t.start)+' bis '+safeText(t.end)+'</td>'+
        '<td class="money">'+(t.consumptionCold==null?'Automatisch bei Einzelbelegung':fmtVolume(t.consumptionCold)+' m³')+'</td>'+
        '<td class="money">'+(t.consumptionHot==null?'Automatisch bei Einzelbelegung':fmtVolume(t.consumptionHot)+' m³')+'</td>'+
-       '<td>'+editAction('edit-case-water',t.id,'Wasserverbrauch')+'</td></tr>').join('')+
+       '<td>'+actionCell(statusFor(t.consumptionCold!=null&&t.consumptionHot!=null,
+         t.consumptionCold!=null||t.consumptionHot!=null),
+         annualLocked()?viewAction('view-case-water',t.id,'Wasserverbrauch'):
+           editAction('edit-case-water',t.id,'Wasserverbrauch'))+'</td></tr>').join('')+
       '</tbody></table></div><div class="table-caption">Werte werden hier einmalig eingegeben. Im Mietverhältnis bleiben sie ausschließlich Ergebnisinformationen.</div></section>';
     return '<div class="inline-toolbar"><div><h2>Wasser · Kalt- und Warmwasser</h2>'+
       '<p class="small muted">Erfassung und Kontrolle · 2025 · nur synthetische Musterdaten</p></div>'+
@@ -1467,7 +1476,17 @@
     if(action==='edit-payment'){openDrawer('payment',id);return}
     if(action==='go-tenancies'){ui.objectTab='tenancies';navigate('object');return}
     if(action==='new-cost'){openDrawer('new-cost');return}if(action==='edit-cost'){openDrawer('cost',id);return}
-    if(action==='view-cost'){openDrawer('cost-view',id);return}
+    if(action.startsWith('view-')){
+      const types={cost:'cost-view',payment:'payment',water:'water',external:'external',
+        'case-water':'case-water','other-consumption':'other-consumption'};
+      const type=types[action.slice(5)];if(!type)return;
+      openDrawer(type,id);
+      const node=$('drawerBody');
+      node.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=true);
+      node.querySelectorAll('[data-action]').forEach(el=>el.hidden=true);
+      $('drawerFooter').innerHTML=button('Schließen','close-drawer',null,'button-quiet');
+      return;
+    }
     if(action==='edit-water'){openDrawer('water',id);return}if(action==='edit-house'){openDrawer('house');return}
     if(action==='edit-advance'){openDrawer('payment',id);return}if(action==='edit-unit'){openDrawer('master-unit',id);return}if(action==='show-unit-result'){openDrawer('result',id);return}
     if(action==='check-water'){const r=waterReport();if(!r.canReview){navigate('billing','water');toast('Bitte fehlende Zählerstände und Ablesedaten ergänzen.');return}if(r.exactMatch){toast('Beide Wasserabgleiche stimmen überein.');return}openDrawer('water-decision');return}
