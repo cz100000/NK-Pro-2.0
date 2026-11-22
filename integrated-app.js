@@ -34,11 +34,46 @@
   $("nkPush").disabled=busy||!state||!drive.isConnected();
   $("nkPull").disabled=busy||!drive.isConnected();
   $("nkBackup").disabled=busy||!localStorage.getItem(KEY);
-  $("nkImportDrive").disabled=busy||!drive.isConnected()||!!revision||!!state||
+  const existingLocal=!!revision;
+  const localLocked=existingLocal&&!state;
+  $("nkImportDrive").disabled=busy||!drive.isConnected()||existingLocal||!!state||
    !legacyCandidate||remoteExisting;
-  $("nkLocalMessage").textContent=state?"Echtdaten geöffnet"+(dirty?" · Cloud-Sicherung ausstehend":" · Cloud-Stand bekannt"):
-   revision?"Verschlüsselter Datenbestand vorhanden; zum Öffnen Datenpasswort eingeben.":
-   "Noch kein privater Datenbestand auf diesem Gerät.";
+  $("nkImportDrive").title=existingLocal||state?
+   "Ein verschlüsselter 2.0-Datenbestand liegt bereits vor. Erst öffnen, nicht erneut importieren.":
+   remoteExisting?"Ein 2.0-Cloudbestand existiert bereits. Bitte aus Google Drive laden.":
+   !drive.isConnected()?"Bitte zuerst Google verbinden.":
+   !legacyCandidate?"Kein alter NK-Pro-1.0-Snapshot gefunden.":"Altbestand übernehmen.";
+  $("nkUnlock").classList.toggle("secondary",!localLocked);
+  $("nkLocalMessage").textContent=state?
+   "NK-Pro-2.0-Datenbestand geöffnet."+(dirty?" Noch nicht in Google Drive gesichert.":""):
+   existingLocal?"Ein verschlüsselter NK-Pro-2.0-Datenbestand ist bereits auf diesem Gerät vorhanden.":
+   "Noch kein privater NK-Pro-2.0-Datenbestand auf diesem Gerät.";
+  const callout=$("nkSyncCallout");
+  if(callout){
+   let advice="";
+   if(localLocked)
+    advice="Die Altdatenübernahme ist auf diesem Gerät offenbar bereits erfolgt. "+
+     "Deshalb ist ein zweiter Import zum Schutz deiner Daten gesperrt. "+
+     "Bitte mit dem bei der ersten Übernahme festgelegten Passwort auf „Lokale Daten öffnen“ klicken. "+
+     "Danach die historischen Daten prüfen und gegebenenfalls „Verschlüsselt in Drive sichern“ wählen.";
+   else if(state&&dirty&&drive.isConnected())
+    advice="Der Datenbestand ist geöffnet und wurde noch nicht in Google Drive gesichert. "+
+     "Nächster Schritt: „Verschlüsselt in Drive sichern“. Kein erneuter Import erforderlich.";
+   else if(state&&dirty)
+    advice="Der Datenbestand ist lokal geöffnet. Bitte „Google verbinden“ wählen, "+
+     "anschließend „Verschlüsselt in Drive sichern“. Kein erneuter Import erforderlich.";
+   else if(state&&remote)
+    advice="Der bestehende 2.0-Datenbestand wurde entsperrt. "+
+     "Eine erneute Übernahme aus NK-Pro 1.0 ist nicht erforderlich.";
+   else if(!existingLocal&&remoteExisting)
+    advice="Google Drive enthält bereits einen NK-Pro-2.0-Datenbestand. "+
+     "Bitte „Aus Google Drive laden“ wählen statt die Altdaten nochmals zu importieren.";
+   else if(!existingLocal&&drive.isConnected()&&legacyCandidate)
+    advice="Die alten Daten sind verfügbar. Datenpasswort eingeben und "+
+     "„Altdaten direkt aus Drive übernehmen“ wählen. 2025 wird nicht übertragen.";
+   callout.textContent=advice;
+   callout.hidden=!advice;
+  }
  }
  const action=fn=>async()=>{if(busy)return;busy=true;setStatus();try{await fn();}
   catch(e){status("Aktion fehlgeschlagen: "+String(e?.message||e),true);}
@@ -74,7 +109,12 @@
   model.validate(item.portfolio);
   state=item.portfolio;remote=item.remoteId||null;dirty=item.dirty===true;secret=pass;
   $("nkSyncPassword").value="";if(live)render();
-  status("Verschlüsselter Echtdatenbestand geöffnet.");
+  const counts=model.summary(state);
+  status("Datenbestand geöffnet: "+counts.apartments+" Wohnungen, "+
+   counts.tenancies+" Mietverhältnisse und "+counts.archiveCount+
+   " historische Archive. "+(dirty?
+    (drive.isConnected()?"Bitte jetzt „Verschlüsselt in Drive sichern“.":"Bitte Google verbinden und danach in Drive sichern."):
+    "Ein erneuter Import ist nicht erforderlich."));
  }
  async function connect(){
   await drive.signIn(CLIENT);
@@ -82,14 +122,19 @@
   remoteExisting=!!h.head;legacyCandidate=null;
   if(h.head){
    status("Google Drive verbunden. Ein NK-Pro-2.0-Datenbestand ist bereits vorhanden. "+
-    "Bitte „Aus Google Drive laden“ benutzen; vorhandene Daten werden nicht überschrieben.");
+    (revision?"Bitte zuerst den vorhandenen lokalen Stand entsperren und vergleichen.":
+     "Bitte „Aus Google Drive laden“ verwenden. Keine vorhandenen Daten werden überschrieben."));
+  }else if(revision||state){
+   status("Google Drive verbunden. Auf diesem Gerät ist bereits ein verschlüsselter "+
+    "NK-Pro-2.0-Datenbestand vorhanden. Bitte erst „Lokale Daten öffnen“ und danach "+
+    "„Verschlüsselt in Drive sichern“. Kein erneuter Altimport nötig.");
   }else{
    const sources=await drive.legacySnapshots();
    legacyCandidate=sources[0]||null;
    status(legacyCandidate?
-    "Google verbunden: vorhandene Originaldaten aus NK-Pro 1.0 gefunden. "+
-    "Bitte ein Datenpasswort festlegen und „Altdaten direkt aus Drive übernehmen“ wählen. "+
-    "Die Abrechnung 2025 wird ausdrücklich nicht kopiert.":
+    "Google verbunden: Originaldaten aus NK-Pro 1.0 gefunden. "+
+    "Bitte Datenpasswort festlegen und „Altdaten direkt aus Drive übernehmen“ wählen. "+
+    "Die Abrechnung 2025 bleibt neu und leer.":
     "Google verbunden, aber keine mit diesem OAuth-Client sichtbaren NK-Pro-1.0-Snapshots. "+
     "Der manuelle Import ist als Ersatzweg verfügbar.");
   }
@@ -184,6 +229,7 @@
   "<button type='button' id='nkUnlock' class='secondary'>Lokale Daten öffnen</button>",
   "<button type='button' id='nkConnect'>Google verbinden</button>",
   "<button type='button' id='nkPull' class='secondary'>Aus Google Drive laden</button></div>",
+  "<div id='nkSyncCallout' class='nk-cloud-callout' role='status' aria-live='polite' hidden></div>",
   "<div class='nk-cloud-divider'></div><h3>Altdaten direkt aus Google Drive übernehmen</h3>",
   "<p>NK-Pro 2.0 findet deine vorhandenen NK-Pro-1.0-Daten selbst. Es werden nur das Objekt, Wohnungen, Mietverhältnisse, der Zählerstamm und die historischen Archive übernommen. 2025 bleibt vollständig leer.</p>",
   "<div class='nk-live-actions'><button id='nkImportDrive' type='button'>Altdaten direkt aus Drive übernehmen</button></div>",
