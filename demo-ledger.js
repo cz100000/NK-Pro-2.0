@@ -131,15 +131,16 @@
   function fingerprintWater(state) {
     return JSON.stringify([
       state.houseWater,
-      (Array.isArray(state.units) ? state.units : []).map(u => [u.id, u.waterStart, u.waterEnd])
+      state.waterSettings??null,
+      (Array.isArray(state.units) ? state.units : []).map(u => [u.id, u.waterStart, u.waterEnd,u.waterMeters??null])
     ]);
   }
   function fingerprintLetter(state) {
     return JSON.stringify([
       state.period,
-      (Array.isArray(state.costs) ? state.costs : []).map(c => [c.id, c.name, c.amount, c.landlordShare ?? 0, c.method]),
-      (Array.isArray(state.units) ? state.units : []).map(u => [u.id, u.label, u.position, u.area, u.waterStart, u.waterEnd, u.advance]),
-      state.houseWater
+      (Array.isArray(state.costs) ? state.costs : []).map(c => [c.id, c.name, c.amount, c.landlordShare ?? 0, c.method,c.note??"",c.priceMode??"auto",c.unitPrice??null]),
+      (Array.isArray(state.units) ? state.units : []).map(u => [u.id, u.label, u.position, u.area, u.waterStart, u.waterEnd, u.waterMeters??null,u.waterNote??"", u.advance]),
+      state.houseWater,state.waterSettings??null
     ]);
   }
   return { calculate, allocateCents, amountToCents, fingerprintWater, fingerprintLetter, version: "demo-ledger-1" };

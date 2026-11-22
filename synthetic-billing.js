@@ -5,11 +5,12 @@
   const node=typeof module!=="undefined"&&!!module.exports;
   const ref=node?require("./experimental/settlement-cost.js"):root.NKPRO2_EXPERIMENTAL_ALLOCATION;
   const demo=node?require("./demo-ledger.js"):root.NKPRO2_DEMO_LEDGER;
-  const api=Object.freeze(factory(ref,demo));
+  const water=node?require("./water-detail.js"):root.NKPRO2_WATER_DETAIL;
+  const api=Object.freeze(factory(ref,demo,water));
   if(node)module.exports=api;else root.NKPRO2_SYNTHETIC_BILLING=api;
-})(typeof globalThis!=="undefined"?globalThis:this,function(ref,demo){
+})(typeof globalThis!=="undefined"?globalThis:this,function(ref,demo,water){
   "use strict";
-  if(!ref||!demo)throw new Error("Missing synthetic billing dependencies");
+  if(!ref||!demo||!water)throw new Error("Missing synthetic billing dependencies");
   const METHODS=Object.freeze(["Fläche","Wohnfläche","Personen","Miettage","Verbrauch",
     "Verteilung auf alle Wohneinheiten","Verteilung nur auf aktive Wohneinheiten"]);
   const sum=xs=>xs.reduce((s,v)=>s+v,0);
@@ -30,8 +31,12 @@
     if(!data||data.fixture!==true||data.period!=="2025"||
       !Array.isArray(data.units)||!Array.isArray(data.costs))
       throw new TypeError("Synthetic 2025 demo only: actual datasets are rejected");
+    const waterReport=water.diagnostics(data);
+    const unitsForLedger=data.units.map((u,i)=>({
+      ...u,waterStart:0,waterEnd:waterReport.rows[i].total??-1
+    }));
     const fake=data.costs.map(c=>({...c,method:c.method==="Verbrauch"?"Verbrauch":"Fläche"}));
-    const preliminary=demo.calculate({...data,costs:fake});
+    const preliminary=demo.calculate({...data,units:unitsForLedger,costs:fake});
     const issues=preliminary.issues.filter(x=>x.code!=="RECONCILIATION");
     const resultUnits=preliminary.units.map(u=>({...u,costCents:0,balanceCents:0,entries:[]}));
     const unitModel=data.units.map(u=>({
@@ -40,11 +45,13 @@
     const tenants=data.units.map(u=>({
       id:"T-"+u.id,unitId:u.id,area:Number(u.area),days:Number(u.days??365),
       persons:Number(u.people??1),personDays:Number(u.days??365)*Number(u.people??1),
-      consumption:Math.max(0,Number(u.waterEnd)-Number(u.waterStart))
+      consumption:waterReport.rows.find(r=>r.id===u.id)?.total??0
     }));
     const house=Number(data.houseWater);
-    if(!Number.isSafeInteger(house)||house<0)
-      issues.push({code:"INVALID_HOUSE",message:"Ungültiger Hauswasserverbrauch.",action:"go-water"});
+    if(!Number.isSafeInteger(house)||house<=0)
+      issues.push({code:"INVALID_HOUSE",message:"Ungültiger Rechnungsverbrauch.",action:"go-water"});
+    for(const x of waterReport.issues)
+      issues.push({code:x.code,message:"Wasser: "+(x.unitId?x.unitId+" · ":"")+(x.reason||x.code),action:"go-water"});
     for(const u of data.units){
       const people=Number(u.people??1),days=Number(u.days??365);
       if(!Number.isSafeInteger(people)||people<0||people>1000)
@@ -68,10 +75,16 @@
         x.code!=="INVALID_DAYS"&&x.code!=="INVALID_LANDLORD"&&x.code!=="INVALID_COST"&&x.code!=="INVALID_ADVANCE"&&
         x.code!=="DUPLICATE_UNIT"&&x.code!=="DUPLICATE_COST");
       let reference=null,parts=null;
-      if(valid){
+      const price=c.method==="Verbrauch"?water.priceFor(c,house):null;
+      if(price&&!price.valid)issues.push({code:"INVALID_UNIT_PRICE",
+        message:"Preis je Verbrauchseinheit bei "+c.name+" ist ungültig.",action:"go-costs"});
+      if(valid&&(!price||price.valid)){
         try{
           reference=ref.calculateCost({cost:{id:c.id,amount:original.eligibleCents/100,
-            method:canon(c.method),houseConsumption:house},units:unitModel,tenants});
+            method:canon(c.method),houseConsumption:house,
+            manualPrice:price?.mode==="manual",
+            pricePerUnit:price?.mode==="manual"?price.effective:undefined},
+            units:unitModel,tenants});
           parts=proportionalCents(tenants.map(t=>Number(reference.allocations[t.id])),original.eligibleCents);
         }catch(_){/* errors must remain visible and blocking */}
       }
@@ -83,6 +96,7 @@
         c.method==="Verteilung nur auf aktive Wohneinheiten"?(unitModel[j].active?1:0):1);
       const totalWeight=c.method==="Verbrauch"?house:sum(weights);
       row.referenceStatus=reference?.status||"Nicht berechnet";
+      row.price=price;
       row.allocated=!!parts;
       row.rows=tenants.map((t,j)=>{
         const cents=parts?parts[j]:0;
