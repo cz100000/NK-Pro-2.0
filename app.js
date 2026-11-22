@@ -794,6 +794,13 @@
     const target=$('appMain');
     target.innerHTML=({overview,billing,object,analytics,documents}[ui.view]||overview)();
     target.querySelectorAll('[data-icon]').forEach(n=>n.innerHTML=icon(n.dataset.icon));
+    if(selectedReal){
+      target.querySelectorAll('[data-action]').forEach(el=>{
+        if(/^(edit-|new-|archive-object|delete-empty-object|restore-object|rebase-year)/.test(el.dataset.action||'')){
+          el.disabled=true;el.title='Echtdaten-Bearbeitung noch nicht fachlich freigegeben';
+        }
+      });
+    }
     if(ui.view==='billing'&&!ui.billingHome&&annualLocked()){
       const forbidden=new Set(['new-cost','toggle-cost','delete-unused-cost','edit-cost','edit-water',
        'edit-house','edit-payment','edit-external','edit-case-water','edit-other-consumption',
@@ -1385,6 +1392,12 @@
     if(good){closeDrawer();stateChange();toast(msg)}
   }
   function doAction(action,id){
+    if(selectedReal&&!new Set(['select-property','toggle-tree-section',
+       'open-object-tab','object-billings','all-billings','back-billings',
+       'open-year']).has(action)){
+      toast('Echtdaten sind nur lesbar; die Musterobjekte B und C bleiben bearbeitbar.');
+      return;
+    }
     if(action==='new-object'){openDrawer('new-object');return;}
     if(action==='new-master-unit'){openDrawer('new-master-unit');return;}
     if(action==='new-year'){openDrawer('new-year');return;}
@@ -1409,7 +1422,12 @@
     }
     if(action==='select-property'){
       const collapse=ui.treeOpenObjectId===id&&ui.view==='object';
-      if(portfolio.selectedObjectId!==id)switchPortfolio(estates.selectObject(portfolio,id));
+      if(realObject&&id===realObject.id){
+        selectedReal=true;realYear='2025';
+      }else{
+        selectedReal=false;
+        if(portfolio.selectedObjectId!==id)switchPortfolio(estates.selectObject(portfolio,id));
+      }
       ui.treeOpenObjectId=collapse?null:id;
       ui.view='object';ui.objectTab='overview';ui.billingHome=true;render();
       document.body.classList.remove('menu-open');return;
@@ -1424,7 +1442,11 @@
       ui.treeOpenObjectId=master().id;ui.treeSections.master=true;
       ui.billingHome=true;render();document.body.classList.remove('menu-open');return;}
     if(action==='object-billings'){ui.objectListFilter=id;ui.billingHome=true;ui.view='billing';
-      if(portfolio.selectedObjectId!==id)switchPortfolio(estates.selectObject(portfolio,id));
+      if(realObject&&id===realObject.id)selectedReal=true;
+      else{
+        selectedReal=false;
+        if(portfolio.selectedObjectId!==id)switchPortfolio(estates.selectObject(portfolio,id));
+      }
       ui.treeOpenObjectId=id;ui.treeSections.years=true;
       render();document.body.classList.remove('menu-open');return;}
     if(action==='all-billings'||action==='back-billings'){ui.objectListFilter=master().id;ui.billingHome=true;
@@ -1433,6 +1455,16 @@
     if(action==='open-year'){
       const pos=id.lastIndexOf('|'),oid=id.slice(0,pos),year=id.slice(pos+1);
       if(pos<0)return;
+      if(realObject&&oid===realObject.id){
+        if(!Object.prototype.hasOwnProperty.call(realObject.settlements,year))
+          return toast('Dieses historische Jahr existiert nicht.');
+        selectedReal=true;realYear=year;
+        ui.billingHome=false;ui.objectListFilter=null;ui.step='advance';
+        ui.view='billing';ui.treeOpenObjectId=oid;ui.treeSections.years=true;
+        render();document.body.classList.remove('menu-open');
+        window.scrollTo({top:0,behavior:'instant'});return;
+      }
+      selectedReal=false;
       try{portfolio=estates.selectYear(portfolio,oid,year);
         data=estates.current(portfolio);savePortfolio();
         ui.billingHome=false;ui.objectListFilter=null;ui.step='advance';ui.view='billing';
@@ -1744,14 +1776,27 @@
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('drawer').hidden)closeDrawer();document.body.classList.remove('menu-open')}if(e.key==='Tab'&&!$('drawer').hidden){const nodes=[...$('drawer').querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled)')].filter(x=>x.offsetParent!==null);if(!nodes.length)return;const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});
   $('openMenu').addEventListener('click',()=>document.body.classList.toggle('menu-open'));
   $('resetDemo').addEventListener('click',()=>{
-    if(!window.confirm('Gesamten lokalen Fachtestbestand einschließlich neu angelegter Objekte zurücksetzen? Alle lokalen Änderungen an Musterdaten gehen verloren. NK-Pro 1.0 wird nicht verändert.'))return;
+    if(!window.confirm('Nur Musterobjekte zurücksetzen? Private Echtdaten und Google Drive bleiben unverändert.'))return;
     portfolio=estates.create(initial());data=estates.current(portfolio);
     try{savePortfolio()}catch(error){rollbackLocal();render();toast('Zurücksetzen nicht gespeichert: '+error.message);return;}
     ui.objectTab='overview';ui.unitDetailId=null;ui.billingHome=true;
     ui.treeOpenObjectId=null;ui.treeSections={master:false,years:true};
-    navigate('overview');toast('Drei Musterobjekte zurückgesetzt.');
+    navigate('overview');toast(realObject?
+      'Musterobjekte B und C zurückgesetzt, Echtdaten unverändert.':
+      'Drei Musterobjekte zurückgesetzt.');
+  });
+  window.addEventListener('nkpro2-private-data-change',()=>{
+    realState=window.NKPRO2_INTEGRATED_APP?.getData()||null;
+    realObject=realState?viewModel.genuineObject(realState):null;
+    if(realObject){
+      selectedReal=true;realYear='2025';ui.view='object';ui.objectTab='overview';
+      ui.treeOpenObjectId=realObject.id;ui.treeSections={master:false,years:true};
+      ui.billingHome=true;ui.unitDetailId=null;ui.letterId=null;
+    }else selectedReal=false;
+    render();
   });
   document.querySelectorAll('[data-icon]').forEach(node=>node.innerHTML=icon(node.dataset.icon));
+  if(realObject){ui.treeOpenObjectId=realObject.id;ui.view='object';}
   render();
   // API only for automated prototype smoke testing; never expose data from any real NK-Pro system.
   window.NKPRO2_DEMO_TEST=Object.freeze({getPortfolio:()=>clone(portfolio),getState:()=>clone(data),checks,ledger:()=>JSON.parse(JSON.stringify(ledger())),allocate:()=>data.units.map(u=>({id:u.id,amount:allocation(u),balance:balance(u)})),storageKey:STORAGE_KEY});
