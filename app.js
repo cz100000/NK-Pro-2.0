@@ -13,9 +13,10 @@
   const letterModule = window.NKPRO2_LETTERS;
   const legacyLetterEngine = window.NKPRO2_LEGACY_LETTER_ENGINE;
   const letterWorkspace = window.NKPRO2_LETTER_WORKSPACE;
+  const legacyLandlordDocs = window.NKPRO2_LEGACY_LANDLORD_DOCS;
   const estates = window.NKPRO2_ESTATES;
   const masterUi = window.NKPRO2_MASTER_UI;
-  if (!demoLedger || !functionalBilling || !waterDetails || !propertyModel || !caseBilling || !workflow || !qualityModule || !letterModule || !legacyLetterEngine || !letterWorkspace || !estates || !masterUi || typeof caseBilling.calculate !== 'function') throw new Error('Synthetic billing modules missing.');
+  if (!demoLedger || !functionalBilling || !waterDetails || !propertyModel || !caseBilling || !workflow || !qualityModule || !letterModule || !legacyLetterEngine || !letterWorkspace || !legacyLandlordDocs || !estates || !masterUi || typeof caseBilling.calculate !== 'function') throw new Error('Synthetic billing modules missing.');
   const icons = {
     overview:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
     bill:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
@@ -1495,6 +1496,16 @@
     if(action==='check-water'){const r=waterReport();if(!r.canReview){navigate('billing','water');toast('Bitte fehlende Zählerstände und Ablesedaten ergänzen.');return}if(r.exactMatch){toast('Beide Wasserabgleiche stimmen überein.');return}openDrawer('water-decision');return}
     if(action==='edit-water-price'){openDrawer('cost','water');return}
     if(action==='go-water'){navigate('billing','water');return}if(action==='go-advance'){navigate('billing','advance');return}if(action==='check-heat'){openDrawer('heat-evidence');return}if(action==='go-costs'){navigate('billing','costs');return}if(action==='go-review'){navigate('billing','review');return}if(action==='go-letter'){navigate('billing','letters');return}
+    if(action==='letter-internal-overview'||action==='letter-internal-unit'||action==='letter-internal-all'){
+      const kind=action==='letter-internal-overview'?'overview':
+        action==='letter-internal-unit'?'unit':'all';
+      const packet=legacyLandlordDocs.render(data,ledger(),kind,ui.letterId);
+      const win=window.open?.('','_blank');
+      if(!win){toast('Druckfenster blockiert. Bitte Pop-ups erlauben.');return;}
+      win.document.open();win.document.write(packet.html);win.document.close();win.focus();
+      toast('Originalnahe interne Vermieterunterlagen geöffnet – nur synthetische Musterdaten.');
+      return;
+    }
     if(action==='letter-zoom-in'||action==='letter-zoom-out'){
       ui.letterZoom=Math.min(1.4,Math.max(.3,ui.letterZoom+(action==='letter-zoom-in'?.1:-.1)));
       render();return;
