@@ -131,7 +131,7 @@
         '<td>'+safeText(t.start)+'<br><span class="soft">bis</span> '+safeText(t.end)+'</td>'+
         '<td class="money">'+(r?r.days:'–')+'</td><td class="money">'+safeText(t.persons)+'</td>'+
         '<td class="money">'+(r?fmt(r.costCents/100):'–')+'</td>'+
-        '<td class="money">'+fmt(t.advance)+'</td><td>'+labelStatus(!errors.length,'Erfasst','Prüfen')+'</td>'+
+        '<td class="money">'+fmt(data.payments?.[t.id]?.paidActual??t.advance)+'</td><td>'+labelStatus(!errors.length,'Erfasst','Prüfen')+'</td>'+
         '<td>'+iconButton('edit-tenancy',t.id,'Abrechnungsfall bearbeiten')+'</td></tr>';
     }).join('');
     const gaps=model.vacancy.filter(v=>v.days>0);
@@ -220,16 +220,24 @@
       (data.units.some(u=>u.waterSourceNotice)?'<p class="footnote"><strong>Ältere Demowerte:</strong> Die früheren Ein-Zähler-Daten bleiben als KW-Entwurf erhalten. Warmwasser wurde nicht erfunden. Bitte vervollständigen oder die Demo zurücksetzen.</p>':'');
   }
   function advances(){
-    return '<div class="inline-toolbar"><div><h2>Vorauszahlungen nach Abrechnungsfall</h2>'+
-      '<p class="small muted">Jahresbezogene Werte gehören zum Mietverhältnis, nicht pauschal zur Wohnung.</p></div></div>'+
-      '<section class="section"><div class="stat-inline"><div><small>Gesamtsumme</small><strong>'+fmt(allAdvance())+'</strong></div>'+
-      '<div><small>Abrechnungsfälle</small><strong>'+data.tenancies.length+'</strong></div></div>'+
-      '<div class="table-wrap"><table class="data-table"><thead><tr><th>Teilnehmer</th><th>Wohnung</th>'+
-      '<th class="money">Vorauszahlung</th><th>Status</th><th>Aktion</th></tr></thead><tbody>'+
-      data.tenancies.map(t=>'<tr><td><strong>'+safeText(t.name)+'</strong><span class="small soft water-unit-sub">'+safeText(t.id)+'</span></td>'+
-        '<td>'+safeText(data.units.find(u=>u.id===t.unitId)?.label||t.unitId)+'</td><td class="money">'+fmt(t.advance)+'</td>'+
-        '<td>'+labelStatus(Number.isFinite(Number(t.advance)))+'</td><td>'+iconButton('edit-tenancy',t.id,'Vorauszahlung des Mietverhältnisses bearbeiten')+'</td></tr>').join('')+
-      '</tbody></table></div><div class="table-caption">Synthetische Jahreswerte: noch keine vollständige Kostenartenmatrix, echten Zahlungen oder Korrekturen.</div></section>';
+    const rows=data.tenancies.map(t=>{
+      const p=data.payments?.[t.id]||{},expected=workflow.expected(t,p);
+      const u=data.units.find(x=>x.id===t.unitId)?.label||t.unitId;
+      return '<tr><td><strong>'+safeText(t.name)+'</strong><span class="water-unit-sub">'+safeText(t.id)+' · '+safeText(u)+'</span></td>'+
+        '<td>'+safeText(t.start)+' bis '+safeText(t.end)+'</td>'+
+        '<td class="money">'+(p.mode==='monthly'?fmt(p.agreedMonthly||0)+' / Mon.':p.agreedAnnual==null?'–':fmt(p.agreedAnnual)+' / Jahr')+'</td>'+
+        '<td class="money">'+(expected===null?'Nicht erfasst':fmt(expected))+'</td>'+
+        '<td class="money"><strong>'+fmt(p.paidActual??t.advance)+'</strong></td><td>'+
+        iconButton('edit-payment',t.id,'Vorauszahlungen bearbeiten')+'</td></tr>';
+    }).join('');
+    return '<div class="inline-toolbar"><h2>Vorauszahlungen nach Abrechnungsfall</h2></div>'+
+      '<section class="section"><div class="stat-inline"><div><small>Tatsächlich gezahlt</small><strong>'+
+      fmt(allAdvance())+'</strong></div><div><small>Abrechnungsfälle</small><strong>'+data.tenancies.length+'</strong></div></div>'+
+      '<div class="table-wrap"><table class="data-table"><thead><tr><th>Mieter · Wohnung</th>'+
+      '<th>Zeitraum (nur Anzeige)</th><th class="money">Vereinbarung</th>'+
+      '<th class="money">Soll Zeitraum</th><th class="money">Ist gezahlt</th><th>Aktion</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
+      '<div class="table-caption">Mieter, Wohnung, Rolle und Mietzeitraum können hier nicht geändert werden. Nur die Vorauszahlungen werden an dieser Stelle gepflegt. Der Abrechnungssaldo verwendet Ist-Zahlungen.</div></section>';
   }
   function allocations(){
     const r=ledger(),sum=r.tenants.reduce((s,t)=>s+t.balanceCents,0);
@@ -350,7 +358,14 @@
       eyebrow='ABRECHNUNGSFALL · 2025';
       const opts=(values,selected)=>values.map(([value,label])=>'<option value="'+safeText(value)+'" '+(value===selected?'selected':'')+'>'+safeText(label)+'</option>').join('');
       body='<form id="editForm" data-type="'+type+'">'+
-        '<div class="form-row"><label>Name (nur fiktiv)<input name="tenantName" maxlength="80" required value="'+safeText(t.name)+'"></label></div>'+
+        '<div class="water-form-grid"><div class="form-row"><label>Vorname<input name="firstName" maxlength="80" value="'+safeText(t.firstName||'')+'"></label></div>'+
+        '<div class="form-row"><label>Nachname<input name="lastName" maxlength="80" required value="'+safeText(t.lastName||'')+'"></label></div></div>'+
+        '<div class="form-row"><label>Briefanrede<select name="salutation">'+opts([['neutral','Neutral'],['Herr','Herr'],['Frau','Frau'],['individuell','Individuell']],t.salutation||'neutral')+'</select></label></div>'+
+        '<div class="form-row"><label>Individuelle Anrede<input name="customSalutation" maxlength="160" value="'+safeText(t.customSalutation||'')+'"></label></div>'+
+        '<details class="cost-exceptions"><summary>Briefanschrift</summary>'+
+        '<div class="form-row"><label>Straße (nur Muster)<input name="recipientStreet" maxlength="120" value="'+safeText(t.recipientStreet||'')+'"></label></div>'+
+        '<div class="water-form-grid"><div class="form-row"><label>PLZ<input name="recipientPostalCode" maxlength="12" value="'+safeText(t.recipientPostalCode||'')+'"></label></div>'+
+        '<div class="form-row"><label>Ort<input name="recipientCity" maxlength="80" value="'+safeText(t.recipientCity||'')+'"></label></div></div></details>'+
         '<div class="form-row"><label>Wohnung<select name="unitId">'+
           opts(data.units.map(u=>[u.id,u.label+' · '+u.id]),t.unitId)+'</select></label></div>'+
         '<div class="form-row"><label>Nutzungsart<select name="role">'+
@@ -359,13 +374,24 @@
           '<div class="form-row"><label>Einzug / Beginn<input type="date" name="start" value="'+safeText(t.start)+'" required></label></div>'+
           '<div class="form-row"><label>Auszug / Ende<input type="date" name="end" value="'+safeText(t.end)+'" required></label></div>'+
           '<div class="form-row"><label>Personen<input type="number" name="persons" min="0" max="1000" step="1" value="'+safeText(t.persons)+'" required></label></div>'+
-          '<div class="form-row"><label>Jahresvorauszahlung (€)<input type="number" name="advance" min="0" step="0.01" value="'+safeText(t.advance)+'" required></label></div></div>'+
+          '<div class="form-row"><label>Vorauszahlung (nur Anzeige)<input readonly value="'+safeText(data.payments?.[t.id]?.paidActual??t.advance)+' € – unter Vorauszahlungen ändern"></label></div></div>'+
         '<fieldset class="water-fieldset"><legend>Verbrauch bei Mieterwechsel</legend>'+
           '<div class="water-form-grid"><div class="form-row"><label>Kaltwasser (m³)<input type="number" name="consumptionCold" min="0" step="0.001" value="'+safeText(t.consumptionCold??'')+'"></label></div>'+
           '<div class="form-row"><label>Warmwasser (m³)<input type="number" name="consumptionHot" min="0" step="0.001" value="'+safeText(t.consumptionHot??'')+'"></label></div></div>'+
           '<p class="form-help">Bei mehreren Fällen pro Wohnung alle KW-/WW-Mengen eingeben. Die Summe muss exakt mit den Wohnungszählern übereinstimmen. Keine automatische Schätzung.</p></fieldset>'+
         '<div class="form-row"><label>Notizen<textarea name="tenantNote" maxlength="2000" rows="3">'+safeText(t.note||'')+'</textarea></label></div>'+
         '<div class="drawer-note">Nur fiktive Musterpersonen erfassen – keine echten Mieterdaten. Überlappungen oder fehlende Verbrauchsaufteilungen verhindern die Musterabrechnung.</div></form>';
+    }else if(type==='payment'){
+      const t=data.tenancies.find(x=>x.id===id);if(!t)return;
+      const p=data.payments?.[id]||{},mode=p.mode||'annual';
+      title='Vorauszahlungen · '+t.name;eyebrow='ZAHLUNGEN · 2025';
+      body='<form id="editForm" data-type="payment">'+
+        '<div class="drawer-note">'+safeText(t.name)+' · '+safeText(data.units.find(u=>u.id===t.unitId)?.label||t.unitId)+
+        ' · '+safeText(t.start)+' bis '+safeText(t.end)+' (nicht editierbar)</div>'+
+        '<div class="form-row"><label>Vereinbarte Vorauszahlung<select name="mode"><option value="monthly" '+(mode==='monthly'?'selected':'')+'>Monatsbetrag</option><option value="annual" '+(mode==='annual'?'selected':'')+'>Jahresbetrag</option></select></label></div>'+
+        '<div class="form-row"><label>Vereinbarter Betrag (€)<input name="agreed" type="number" step="0.01" min="0" required value="'+safeText(mode==='monthly'?p.agreedMonthly??'':p.agreedAnnual??'')+'"></label><p class="form-help">Der Sollbetrag wird bei Monatsangaben für den Mietzeitraum berechnet.</p></div>'+
+        '<div class="form-row"><label>Tatsächlich gezahlt im Jahr (€)<input name="paid" type="number" min="0" step="0.01" required value="'+safeText(p.paidActual??t.advance)+'"></label></div>'+
+        '<div class="drawer-note">Nur Zahlungsbeträge editieren. Die Stammdaten stammen ausschließlich aus Mietverhältnisse.</div></form>';
     }else if(type==='cost'||type==='new-cost'){
       const c=type==='new-cost'?{name:'',amount:'',landlordShare:0,category:'Betriebskosten',method:'Fläche'}:data.costs.find(x=>x.id===id);if(!c)return;
       const specificConsumption=!!(c.id&&c.id==='water');
@@ -463,10 +489,11 @@
         note:form.elements.propertyNote.value.trim().slice(0,2000)};
     }else if(type==='tenancy'||type==='new-tenancy'){
       const cold=String(form.elements.consumptionCold.value).trim(),hot=String(form.elements.consumptionHot.value).trim();
+      const prior=data.tenancies.find(t=>t.id===ui.draftTenancyId);
       const base={id:ui.draftTenancyId,unitId:form.elements.unitId.value,
-        name:form.elements.tenantName.value.trim(),role:form.elements.role.value,
+        name:[form.elements.firstName.value.trim(),form.elements.lastName.value.trim()].filter(Boolean).join(' '),role:form.elements.role.value,
         start:form.elements.start.value,end:form.elements.end.value,
-        persons:Number(form.elements.persons.value),advance:parseField(form.elements.advance),
+        persons:Number(form.elements.persons.value),advance:Number(prior?.advance??0),
         consumptionCold:cold===''?null:Number(cold),consumptionHot:hot===''?null:Number(hot),
         note:form.elements.tenantNote.value.trim().slice(0,2000)};
       if(!base.name||!propertyModel.date(base.start)||!propertyModel.date(base.end)||
@@ -475,9 +502,22 @@
         (cold!==''&&(!Number.isFinite(base.consumptionCold)||base.consumptionCold<0))||
         (hot!==''&&(!Number.isFinite(base.consumptionHot)||base.consumptionHot<0)))
         return toast('Bitte Mietzeitraum, Personenzahl, Beträge und KW/WW prüfen.');
-      try{data=propertyModel.updateTenancy(data,base);}
+      try{
+        data=propertyModel.updateTenancy(data,base);
+        data=workflow.renameTenant(data,base.id,{firstName:form.elements.firstName.value,
+         lastName:form.elements.lastName.value,salutation:form.elements.salutation.value,
+         customSalutation:form.elements.customSalutation.value,
+         recipientStreet:form.elements.recipientStreet.value,
+         recipientPostalCode:form.elements.recipientPostalCode.value,
+         recipientCity:form.elements.recipientCity.value});
+      }
       catch(e){return toast('Abrechnungsfall kann nicht gespeichert werden: '+e.message)}
       msg='Muster-Abrechnungsfall gespeichert; Kontrollregeln erneut berechnet.';
+    }else if(type==='payment'){
+      try{data=workflow.setPayment(data,id,{mode:form.elements.mode.value,
+         agreed:parseField(form.elements.agreed),paid:parseField(form.elements.paid)});}
+      catch(e){return toast('Zahlungsdaten prüfen: '+e.message)}
+      msg='Vorauszahlungen gespeichert.';
     }else if(type==='cost'||type==='new-cost'){
       const name=form.elements.name.value.trim(),amt=parseField(form.elements.amount),
         method=form.elements.method.value,landlordShare=parseField(form.elements.landlordShare);
@@ -570,6 +610,7 @@
     if(action==='replace-meter'){openDrawer('meter-replacement',id);return}
     if(action==='new-tenancy'){openDrawer('new-tenancy');return}
     if(action==='edit-tenancy'){openDrawer('tenancy',id);return}
+    if(action==='edit-payment'){openDrawer('payment',id);return}
     if(action==='go-tenancies'){ui.objectTab='tenancies';navigate('object');return}
     if(action==='new-cost'){openDrawer('new-cost');return}if(action==='edit-cost'){openDrawer('cost',id);return}if(action==='edit-water'){openDrawer('water',id);return}if(action==='edit-house'){openDrawer('house');return}
     if(action==='edit-advance'){openDrawer('advance',id);return}if(action==='edit-unit'){openDrawer('unit',id);return}if(action==='show-unit-result'){openDrawer('result',id);return}
