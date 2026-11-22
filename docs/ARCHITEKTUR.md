@@ -12,7 +12,7 @@ Fünf UI-Hauptbereiche. Die neue produktive Anwendung soll Darstellung, Domain-/
 
 GitHub-Pages-Projekte mit URLs /NK-Pro/ und /NK-Pro-2.0/ teilen auf `https://cz100000.github.io` die **gleiche Browser-Origin**, insbesondere `localStorage` und `IndexedDB`. Die Demo verwendet ausschließlich den isolierten Key `nkpro2_design_demo_20261121_v1`; das genügt für den gefahrlosen reinen Musterbetrieb, ersetzt aber keine strenge Origin-Isolierung für spätere Echtdaten.
 
-Für produktive Echtdaten: eigener Hosting-Origin, versionierte Migration, Export/Restore-Gate, sichere Sync-Konfliktprüfung.
+Architekturentscheidung 22.11.2026: bestehendes GitHub Pages und Google Cloud/Drive verwenden, ohne weiteren Anbieter. Der private, verschlüsselte Tresor wird auf dem bestehenden Pages-Pfad /NK-Pro-2.0/private/ bereitgestellt; während NK-Pro 1.0 parallel verfügbar ist, bleibt die gemeinsame Origin ein bewusst dokumentiertes Übergangsrisiko. Die 1.0-Pages-Veröffentlichung wird erst nach voller fachlicher Abnahme und letzten Backups deaktiviert; dadurch endet das aktive alte Frontend, nicht technisch die gemeinsame Origin. Die endgültige fachliche Freigabe und sichere Synchronisierung bleiben eigenständige Gates. Siehe docs/EXISTING_GITHUB_GOOGLE_HOSTING_2026-11-22.md.
 
 ## UX-Regeln
 
@@ -20,7 +20,7 @@ Eine Hauptaktion je View, progressive Offenlegung statt Karten-/Buttonflut, ein 
 
 ## Nicht umgesetzt
 
-Echte Fachlogik, rechtsverbindliche Abrechnung, vollwertige 2025-Datenmigration, A4-Abnahme, mehrjährige Finance-/Steuerbuchhaltung und Google Drive. Die Demo verwendet nur vereinfachte Musterrechnungen.
+Echte Fachlogik, rechtsverbindliche Abrechnung, vollwertige 2025-Datenmigration, A4-Abnahme, mehrjährige Finance-/Steuerbuchhaltung und Google Drive. Die öffentliche Fachtest-Hauptseite verwendet nur vereinfachte Musterrechnungen. Ein zusätzlicher verschlüsselter privater Tresor unter /private/ kann echte Schema-5-Daten lesend importieren und mit Google Drive synchronisieren; dies bedeutet ausdrücklich keine Freigabe echter Abrechnungsfunktionen.
 
 ## Integrierter Browser-Fachtest (0.3)
 
