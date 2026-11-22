@@ -777,6 +777,12 @@
     `<section class="section"><div class="section-header"><div><h2>Archiv</h2></div><span class="status neutral">Leer</span></div><div class="empty"><div class="empty-icon">${icon('folder')}</div><h3>Keine fachlich archivierten Abrechnungen</h3><p>Das echte Archiv wird später vollständig separat und schreibgeschützt migriert. Die bisherige NK-Pro-App bleibt unverändert.</p></div></section>`;}
   const objectTitles={overview:'Objektdaten',units:'Wohnungen',tenancies:'Mietverhältnisse',meters:'Zähler'};
   function render(){
+    // Preserve v0.13 layout; only contextual labels distinguish real A and demo B/C.
+    const badge=document.querySelector('.demo-badge');
+    if(badge)badge.textContent=selectedReal?'ECHTDATEN · 2025 OFFEN':'NUR MUSTERDATEN';
+    const subtitle=document.querySelector('.brand-subtitle');
+    if(subtitle)subtitle.textContent=realObject?
+      'NK-PRO 2.0 · 1 ECHTOBJEKT + 2 MUSTEROBJEKTE':'SYNTHETISCHER FACHTEST';
     document.querySelectorAll('.nav-item').forEach(el=>{
       const active=el.dataset.view===ui.view;
       el.classList.toggle('active',active);
