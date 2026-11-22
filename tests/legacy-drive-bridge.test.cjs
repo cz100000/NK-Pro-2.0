@@ -60,7 +60,7 @@ test("Read original 1.0 Drive backup and store only old archives plus master as 
  assert.equal(created.count,1);
  assert.equal(fake.uploads[0].meta.parents[0],"1-new");
  assert.equal(JSON.stringify(encrypted).includes("Synthetic Tenant"),false);
- assert.deepEqual(await cipher.decrypt(await fake.drive.read(created.fileId),pass),migrated);
+ assert.deepEqual(await cipher.decrypt(await fake.drive.read(created.fileId),pass),JSON.parse(JSON.stringify(migrated)));
  assert.ok(fake.calls.filter(x=>x.method!=="GET").every(x=>!x.url.includes("1-old")));
  assert.deepEqual(fake.original,original);
 });
