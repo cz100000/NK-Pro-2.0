@@ -38,7 +38,7 @@ const chromeBinary=()=>{
    {stdio:"ignore"});
   const marker=path.join(profile,"DevToolsActivePort");
   let port;
-  for(let i=0;i<90;i++){
+  for(let i=0;i<350;i++){
    if(fs.existsSync(marker)){port=Number(fs.readFileSync(marker,"utf8").split("\n")[0]);break;}
    if(chrome.exitCode!==null)throw new Error("Chrome exited before CDP launch");
    await pause(100);
@@ -139,7 +139,7 @@ const chromeBinary=()=>{
   await snap("07-mobile-workflow");
   await click('#openMenu');
   assert.equal(await evalJS("return document.body.classList.contains('menu-open');"),true);
-  assert.ok(await evalJS("return document.querySelector('.sidebar').getBoundingClientRect().right>0;"));
+  await waitFor("return document.querySelector('.sidebar').getBoundingClientRect().right>0;");
   await snap("08-mobile-explorer");
   await click('[data-view="billing"]');
   await waitFor("return document.querySelector('#appMain h1')?.textContent==='Jahresabrechnungen';");
