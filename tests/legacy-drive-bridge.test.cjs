@@ -62,7 +62,7 @@ test("Read original 1.0 Drive backup and store only old archives plus master as 
  assert.equal(JSON.stringify(encrypted).includes("Synthetic Tenant"),false);
  assert.deepEqual(await cipher.decrypt(await fake.drive.read(created.fileId),pass),migrated);
  assert.ok(fake.calls.filter(x=>x.method!=="GET").every(x=>!x.url.includes("1-old")));
- assert.equal(fake.original,original);
+ assert.deepEqual(fake.original,original);
 });
 test("Reject files not in the original folder and mismatched legacy ids",async()=>{
  const fake=mock();
