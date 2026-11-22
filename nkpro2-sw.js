@@ -1,6 +1,6 @@
 "use strict";
 /* NK-Pro 2.0 offline shell only: no personal data or Google API response caching. */
-const NAME="nkpro2-integrated-shell-2026-11-22-v3";
+const NAME="nkpro2-canonical-v013-2026-11-22-v1";
 const ASSETS=["./","./index.html","./styles.css","./integrated-ui.css",
  "./demo-ledger.js","./experimental/settlement-cost.js","./water-detail.js",
  "./synthetic-billing.js","./synthetic-property.js","./synthetic-workflow.js",
@@ -8,7 +8,7 @@ const ASSETS=["./","./index.html","./styles.css","./integrated-ui.css",
  "./letter-workspace-ui.js","./legacy-landlord-documents.js","./synthetic-review.js",
  "./synthetic-estate.js","./synthetic-master-ui.js","./private/private-model.js",
  "./private/vault-crypto.js","./private/drive-adapter.js","./integrated-data.js",
- "./integrated-app.js","./app.js","./nkpro2.webmanifest","./nkpro2-sw.js"];
+ "./navigation-tree.js","./portfolio-view-model.js","./integrated-app.js","./app.js","./nkpro2.webmanifest","./nkpro2-sw.js"];
 self.addEventListener("install",event=>event.waitUntil(
  caches.open(NAME).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())
 ));
