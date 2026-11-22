@@ -349,12 +349,46 @@
         model.issues.map(x=>'<li>'+safeText(x.message)+'</li>').join('')+'</ul></div>':'')+
       '</section><p class="footnote">Ausschließlich fiktive Personen verwenden. Bei Mieterwechsel KW/WW-Verbrauch pro Fall ergänzen; die Summe muss zur Messung der Wohnung passen. Keine echten Mieterdaten in diese Demo eingeben.</p>';
   }
+  const costCatalogId=c=>c.sourceId||({water:'K002',waste:'K009',heat:'K006',
+    insurance:'K015',power:'K013'}[c.id]||'');
+  const costQuantity=c=>c.id==='water'?Number(data.houseWater):Number(c.consumptionTotal);
+  const costReadiness=c=>{
+    if(c.active===false)return'<span class="status neutral">Inaktiv</span>';
+    const amount=Number(c.amount),quantity=costQuantity(c);
+    const hasAmount=Number.isFinite(amount)&&amount>0;
+    const hasQuantity=c.method!=='Verbrauch'||(Number.isFinite(quantity)&&quantity>0);
+    return statusFor(hasAmount&&hasQuantity,hasAmount||hasQuantity);
+  };
   function costs(){
-    let q=ui.filter.toLowerCase();const c=data.costs.filter(x=>(x.name+' '+x.category+' '+(x.note||'')).toLowerCase().includes(q));
-    return `<div class="inline-toolbar"><h2>Gesamtkosten</h2><div class="filterbar"><input class="search" id="tableSearch" aria-label="Kosten durchsuchen" placeholder="Kostenarten suchen …" value="${safeText(ui.filter)}"></div></div>`+
-      `<section class="section"><div class="stat-inline"><div><small>Gesamtkosten</small><strong>${fmt(allCost())}</strong></div><div><small>Kostenarten</small><strong>${data.costs.length}</strong></div><div><small>Vermieteranteile</small><strong>${fmt(ledger().totals.landlordCostsCents/100)}</strong></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Kostenart</th><th>Bereich</th><th>Rechnungsdatum</th><th>Umlageschlüssel</th><th class="money">Preis je Einheit</th><th class="money">Gesamtbetrag</th><th>Notiz</th><th>Status</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
-      (c.length?c.map(x=>`<tr><td><strong>${safeText(x.name)}</strong></td><td>${safeText(x.category)}</td><td>${safeText(x.invoiceDate||'–')}</td><td>${safeText(x.method)}</td><td class="money">${x.method==='Verbrauch'?(waterDetails.priceFor(x,x.id==='water'?data.houseWater:x.consumptionTotal).valid?fmtPrice(waterDetails.priceFor(x,x.id==='water'?data.houseWater:x.consumptionTotal).effective,x.consumptionUnit||'m³'):'Preis fehlt'):'–'}</td><td class="money">${fmt(x.amount)}</td><td class="cost-note-cell">${x.note?safeText(x.note):'<span class="soft">–</span>'}</td><td>${x.active===false?labelStatus(false,'Aktiv','Inaktiv'):labelStatus(x.amount>0,'Betrag erfasst','Betrag fehlt')}</td><td><button class="link" type="button" data-action="toggle-cost" data-id="${safeText(x.id)}">${x.active===false?'Aktivieren':'Deaktivieren'}</button> ${x.id.startsWith('SYN-K-')?'<button class="link" type="button" data-action="delete-unused-cost" data-id="'+safeText(x.id)+'">Löschen</button>':''} ${iconButton('edit-cost',x.id,'Kostenart bearbeiten')}</td></tr>`).join(''):`<tr><td colspan="9" class="muted">Keine Treffer.</td></tr>`)+
-      `</tbody></table></div><div class="table-caption">Klicken Sie auf eine Kostenart. Alle Einstellungen öffnen rechts – die Übersicht bleibt bestehen.</div></section><p class="footnote">Funktionsmuster: Ausgewählte Originalverfahren und externe Teilwerte sind implementiert. Vollständige fachliche Parität, Briefprüfung und Abschlussfreigabe fehlen.</p>`;
+    const filter=ui.filter.toLowerCase(),items=data.costs.filter(c=>
+      (c.name+' '+c.category+' '+costCatalogId(c)).toLowerCase().includes(filter));
+    return '<div class="inline-toolbar"><div><h2>Gesamtkosten</h2>'+
+      '<p class="small muted">Original-Kostenartenkatalog und Rechnungsangaben · ausschließlich Testdaten</p></div>'+
+      '<div class="filterbar"><input class="search" id="tableSearch" aria-label="Kosten durchsuchen" '+
+      'placeholder="Kostenarten suchen …" value="'+safeText(ui.filter)+'"></div></div>'+
+      '<section class="section"><div class="stat-inline">'+
+      '<div><small>Gesamtkosten</small><strong>'+fmt(allCost())+'</strong></div>'+
+      '<div><small>Kostenarten</small><strong>'+data.costs.length+'</strong></div>'+
+      '<div><small>Vermieteranteile</small><strong>'+fmt(ledger().totals.landlordCostsCents/100)+'</strong></div></div>'+
+      '<div class="table-wrap"><table class="data-table cost-master-table"><thead><tr>'+
+      '<th>Kostenart</th><th>Umlageschlüssel</th><th class="money">Rechnungsbetrag</th>'+
+      '<th class="money">Preis je Einheit</th><th>Status / Aktion</th></tr></thead><tbody>'+
+      (items.length?items.map(c=>{
+        const source=costCatalogId(c),price=c.method==='Verbrauch'?
+          waterDetails.priceFor(c,costQuantity(c)):null;
+        return '<tr><td><span class="cost-id">'+safeText(source||'EIGEN')+'</span>'+
+          '<strong>'+safeText(c.name)+'</strong>'+
+          '<span class="cost-sub">'+safeText(c.category||'–')+'</span></td>'+
+          '<td>'+safeText(c.method==='Fläche'?'Wohnfläche':c.method)+'</td>'+
+          '<td class="money">'+fmt(c.amount)+'</td>'+
+          '<td class="money">'+(price?(price.valid?
+            fmtPrice(price.effective,c.consumptionUnit||'m³'):'Nicht erfasst'):'–')+'</td>'+
+          '<td>'+actionCell(costReadiness(c),
+            annualLocked()?viewAction('view-cost',c.id,c.name):
+              editAction('edit-cost',c.id,c.name))+'</td></tr>';
+      }).join(''):'<tr><td colspan="5" class="muted">Keine Treffer.</td></tr>')+
+      '</tbody></table></div><div class="table-caption">Beträge, Belege, Zuordnung und Kostenstatus werden ausschließlich über Bearbeiten gepflegt. Aktivieren, Deaktivieren und Löschen sind dort gesondert geschützt.</div></section>'+
+      '<p class="footnote">K002 Wasserversorgung und K003 Entwässerung sind im Originalkatalog getrennt. Die synthetische Kombination „Wasser & Abwasser“ ist bisher K002 zugeordnet und wird bei einer späteren fachlichen Migration gesondert geprüft. K006 bezeichnet kombinierte Heiz- und Warmwasserkosten.</p>';
   }
   function water(){
     const tabs=[['water','Wasser · KW / WW'],['techem','Heizung & Warmwasser · Techem'],['other','Weitere Verbräuche']];
@@ -887,17 +921,20 @@
        '<div class="payment-actual-total">Tatsächlich gezahlt im Abrechnungszeitraum: <strong id="paidPreview">'+
          fmt(p.paidActual??t.advance)+'</strong></div>'+
        '<div class="drawer-note">Soll ist eine Berechnung aus der Vereinbarung. Ist wird ausschließlich aus tatsächlich erfassten Zahlungseingängen übernommen; keine Zahlung wird allein aufgrund des Mietvertrags als geleistet unterstellt.</div></form>';
-    }else if(type==='cost'||type==='new-cost'){
+    }else if(type==='cost'||type==='new-cost'||type==='cost-view'){
+      const viewing=type==='cost-view';
       const c=type==='new-cost'?{name:'',amount:'',landlordShare:0,category:'Betriebskosten',method:'Fläche'}:data.costs.find(x=>x.id===id);if(!c)return;
       const costBasisFields='<div class="drawer-note">Einzelverbräuche und Techem-Einzelwerte werden ausschließlich unter Verbräuche gepflegt.</div>';
       const costAllocationFields='<details class="cost-exceptions"><summary>Zuordnung und Ausnahmen</summary>'+
         '<div class="form-row"><label>Bei ausgeschlossenen Fällen<select name="exclusionMode">'+
           '<option value="full" '+(c.exclusionMode!=='owner'?'selected':'')+'>Auf berechtigte Teilnehmer verteilen</option>'+
           '<option value="owner" '+(c.exclusionMode==='owner'?'selected':'')+'>Anteil nicht berechtigter Fälle ausweisen</option></select></label></div>'+
-        data.tenancies.map(t=>'<label class="case-checkbox"><input type="checkbox" data-case-exclude="'+safeText(t.id)+'" '+
-          ((c.excludedTenantIds||[]).includes(t.id)?'checked':'')+'> '+safeText(t.name)+' · '+safeText(data.units.find(u=>u.id===t.unitId)?.label||t.unitId)+' ('+safeText(t.id)+') ausschließen</label>').join('')+
-        '<p class="form-help">Ausschlüsse werden je Kostenart geführt; sie gelten auch für die Privatrolle nicht automatisch.</p></details>';
-      title=type==='new-cost'?'Kostenart hinzufügen':c.name;eyebrow='GESAMTKOSTEN';body=`<form id="editForm" data-type="${type}" data-cost-id="${safeText(c.id||'')}"><div class="form-row"><label for="d-catalog">Kostenartenkatalog NK-Pro 1.0</label><select name="sourceId" id="d-catalog"><option value="">Eigene Kostenart</option>${workflow.catalog.filter(x=>!x.placeholder).map(x=>'<option value="'+safeText(x.id)+'" '+(c.sourceId===x.id?'selected':'')+'>'+safeText(x.id)+' · '+safeText(x.name)+'</option>').join('')}</select><p class="form-help">Original-Kostenkennungen als Auswahl, eigene Kostenarten bleiben möglich. Die Umlagefähigkeit ist pro Fall zu prüfen.</p></div><div class="form-row"><label for="d-name">Kostenart</label><input id="d-name" name="name" required maxlength="60" value="${safeText(c.name)}"></div><details class="cost-exceptions" open><summary>Rechnung & Beleg</summary><div class="form-row"><label>Rechnungsdatum<input name="invoiceDate" type="date" value="${safeText(c.invoiceDate||'')}"></label></div><div class="form-row"><label>Belegdatum<input name="documentDate" type="date" value="${safeText(c.documentDate||'')}"></label></div><div class="form-row"><label>Rechnungsnummer<input name="invoiceNumber" maxlength="100" value="${safeText(c.invoiceNumber||'')}"></label></div><div class="form-row"><label>Rechnungsaussteller<input name="issuer" maxlength="150" value="${safeText(c.issuer||'')}"></label></div><div class="form-row"><label>Belegverweis<input name="invoiceReference" maxlength="150" value="${safeText(c.invoiceReference||'')}"></label></div></details><div class="form-row"><label for="d-amount">Gesamtbetrag (€)</label><input id="d-amount" name="amount" type="number" required step="0.01" min="0.01" value="${c.amount}"></div><div class="form-row"><label for="d-landlord">Belegter nicht umlagefähiger Rechnungsanteil (€)</label><input id="d-landlord" name="landlordShare" type="number" step="0.01" min="0" value="${c.landlordShare??0}"><p class="form-help">Nur explizit auf dem Beleg ausgewiesene Eigentümerkosten hier erfassen. Leerstand und ungeklärte Differenzen werden separat berechnet.</p></div><div class="form-row"><label for="d-method">Umlageschlüssel · synthetischer Fachtest</label><select id="d-method" name="method">${functionalBilling.METHODS.filter(m=>m!=='Wohnfläche').concat(['Externe Einzelabrechnung']).map(m=>'<option value="'+safeText(m)+'" '+(c.method===m?'selected':'')+'>'+safeText(m==='Fläche'?'Wohnfläche':m)+'</option>').join('')}</select><p class="form-help">Sechs portierte Originalverfahren. Berechnung nach individuellen Mietverhältnissen und Zeiträumen; weiterhin nur synthetische Daten.</p></div><div class="form-row" data-price-group ${c.method==='Verbrauch'?'':'hidden'}><label for="d-price-mode">Preis je Verbrauchseinheit</label><select id="d-price-mode" name="priceMode"><option value="auto" ${c.priceMode!=='manual'?'selected':''}>Automatisch aus umlagefähigen Kosten / Rechnungsmenge</option><option value="manual" ${c.priceMode==='manual'?'selected':''}>Manuelle Preisvorgabe</option></select><p class="form-help">Bei Wasser gilt €/m³. Der automatische Preis wird mit vier Nachkommastellen angezeigt.</p></div>${costBasisFields}${costAllocationFields}<div class="form-row" data-manual-price ${c.method==='Verbrauch'&&c.priceMode==='manual'?'':'hidden'}><label for="d-unit-price">Manueller Preis je Einheit (€)</label><input id="d-unit-price" name="unitPrice" type="number" step="0.0001" min="0.0001" max="100000" value="${safeText(c.unitPrice??'')}"><p class="form-help">Abweichende Einheitspreise können nicht zugeordnete Restkosten ergeben; diese bleiben prüfpflichtig.</p></div><div class="form-row"><label for="d-cost-note">Notiz / Bemerkung (optional)</label><textarea id="d-cost-note" name="note" rows="5" maxlength="2000" placeholder="Belegnummer, Hinweise oder interne Erläuterungen …">${safeText(c.note||'')}</textarea><p class="form-help">Interne Notiz, nicht automatisch Teil der Mieterbriefe.</p></div><div class="drawer-note">Veränderte Musterwerte werden nur im isolierten Demo-Speicher abgelegt. Es erfolgt kein Zugriff auf die bestehende NK-Pro-App.</div></form>`;
+        data.tenancies.map(t=>'<label class="case-checkbox"><input type="checkbox" data-case-include="'+safeText(t.id)+'" '+
+          (!(c.excludedTenantIds||[]).includes(t.id)?'checked':'')+'> '+safeText(t.name)+' · '+
+          safeText(data.units.find(u=>u.id===t.unitId)?.label||t.unitId)+' ('+
+          safeText(t.id)+') einbeziehen</label>').join('')+
+        '<p class="form-help">Standard: alle Abrechnungsfälle sind einbezogen. Deaktivierte Häkchen bedeuten einen ausdrücklich gespeicherten Ausschluss. Privatanteile sind standardmäßig gleichberechtigt.</p></details>';
+      title=type==='new-cost'?'Kostenart hinzufügen':c.name;eyebrow='GESAMTKOSTEN';body=`<form id="editForm" data-type="${type}" data-cost-id="${safeText(c.id||'')}"><div class="form-row"><label for="d-catalog">Kostenartenkatalog NK-Pro 1.0</label><select name="sourceId" id="d-catalog"><option value="">Eigene Kostenart</option>${workflow.catalog.filter(x=>!x.placeholder).map(x=>'<option value="'+safeText(x.id)+'" '+(costCatalogId(c)===x.id?'selected':'')+'>'+safeText(x.id)+' · '+safeText(x.name)+'</option>').join('')}</select><p class="form-help">Original-Kostenkennungen als Auswahl, eigene Kostenarten bleiben möglich. Die Umlagefähigkeit ist pro Fall zu prüfen.</p></div><div class="form-row"><label for="d-name">Kostenart</label><input id="d-name" name="name" required maxlength="60" value="${safeText(c.name)}"></div><details class="cost-exceptions" open><summary>Rechnung & Beleg</summary><div class="form-row"><label>Rechnungsdatum<input name="invoiceDate" type="date" value="${safeText(c.invoiceDate||'')}"></label></div><div class="form-row"><label>Belegdatum<input name="documentDate" type="date" value="${safeText(c.documentDate||'')}"></label></div><div class="form-row"><label>Rechnungsnummer<input name="invoiceNumber" maxlength="100" value="${safeText(c.invoiceNumber||'')}"></label></div><div class="form-row"><label>Rechnungsaussteller<input name="issuer" maxlength="150" value="${safeText(c.issuer||'')}"></label></div><div class="form-row"><label>Belegverweis<input name="invoiceReference" maxlength="150" value="${safeText(c.invoiceReference||'')}"></label></div></details><div class="form-row"><label for="d-amount">Gesamtbetrag (€)</label><input id="d-amount" name="amount" type="number" required step="0.01" min="0.01" value="${c.amount}"></div><div class="form-row"><label for="d-landlord">Belegter nicht umlagefähiger Rechnungsanteil (€)</label><input id="d-landlord" name="landlordShare" type="number" step="0.01" min="0" value="${c.landlordShare??0}"><p class="form-help">Nur explizit auf dem Beleg ausgewiesene Eigentümerkosten hier erfassen. Leerstand und ungeklärte Differenzen werden separat berechnet.</p></div><div class="form-row"><label for="d-method">Umlageschlüssel · synthetischer Fachtest</label><select id="d-method" name="method">${functionalBilling.METHODS.filter(m=>m!=='Wohnfläche').concat(['Externe Einzelabrechnung']).map(m=>'<option value="'+safeText(m)+'" '+(c.method===m?'selected':'')+'>'+safeText(m==='Fläche'?'Wohnfläche':m)+'</option>').join('')}</select><p class="form-help">Sechs portierte Originalverfahren. Berechnung nach individuellen Mietverhältnissen und Zeiträumen; weiterhin nur synthetische Daten.</p></div><div class="form-row" data-price-group ${c.method==='Verbrauch'?'':'hidden'}><label for="d-price-mode">Preis je Verbrauchseinheit</label><select id="d-price-mode" name="priceMode"><option value="auto" ${c.priceMode!=='manual'?'selected':''}>Automatisch aus umlagefähigen Kosten / Rechnungsmenge</option><option value="manual" ${c.priceMode==='manual'?'selected':''}>Manuelle Preisvorgabe</option></select><p class="form-help">Bei Wasser gilt €/m³. Der automatische Preis wird mit vier Nachkommastellen angezeigt.</p></div><div class="form-row" data-consumption-context ${c.method==='Verbrauch'?'':'hidden'}><label for="d-invoice-quantity">Verbrauch laut Rechnung (${safeText(c.consumptionUnit||'m³')})</label><input id="d-invoice-quantity" name="invoiceConsumption" type="number" step="0.001" min="0.001" value="${safeText(c.id==='water'?data.houseWater:c.consumptionTotal??'')}"><p class="form-help">Bei Wasser ist dies der Original-Rechnungsverbrauch, unabhängig vom Hauszählerstand. Ohne Rechnungsmenge ist kein automatischer Einheitspreis möglich.</p><div class="cost-price-preview">Berechneter Preis: <strong id="costPricePreview">${c.method==='Verbrauch'&&waterDetails.priceFor(c,costQuantity(c)).valid?fmtPrice(waterDetails.priceFor(c,costQuantity(c)).effective,c.consumptionUnit||'m³'):'–'}</strong></div></div>${costBasisFields}${costAllocationFields}<div class="form-row" data-manual-price ${c.method==='Verbrauch'&&c.priceMode==='manual'?'':'hidden'}><label for="d-unit-price">Manueller Preis je Einheit (€)</label><input id="d-unit-price" name="unitPrice" type="number" step="0.0001" min="0.0001" max="100000" value="${safeText(c.unitPrice??'')}"><p class="form-help">Abweichende Einheitspreise können nicht zugeordnete Restkosten ergeben; diese bleiben prüfpflichtig.</p></div><div class="form-row"><label for="d-cost-note">Notiz / Bemerkung (optional)</label><textarea id="d-cost-note" name="note" rows="5" maxlength="2000" placeholder="Belegnummer, Hinweise oder interne Erläuterungen …">${safeText(c.note||'')}</textarea><p class="form-help">Interne Notiz, nicht automatisch Teil der Mieterbriefe.</p></div><div class="drawer-note">Veränderte Musterwerte werden nur im isolierten Demo-Speicher abgelegt. Es erfolgt kein Zugriff auf die bestehende NK-Pro-App.</div></form>`;
     } else if(type==='water'||type==='advance'||type==='unit'){
       const u=data.units.find(x=>x.id===id);if(!u)return;title=u.label;eyebrow=type==='water'?'VERBRAUCHSDATEN':type==='advance'?'VORAUSZAHLUNGEN':'WOHNUNGSSTAMM';
       if(type==='water'){
@@ -1140,17 +1177,24 @@
       if(mode==='manual'&&(!rawPrice||!Number.isFinite(unitPrice)||unitPrice<=0||unitPrice>100000||
         Math.abs(unitPrice*10000-Math.round(unitPrice*10000))>1e-6))
         return toast('Einheitspreis: positiv, höchstens vier Nachkommastellen.');
-      // Individual consumption values are only editable in the Verbräuche step.
-      const exclusions=[...form.querySelectorAll('[data-case-exclude]')].filter(el=>el.checked).map(el=>el.dataset.caseExclude);
+      // Checked = included. Empty exclusion list means every case is included by default.
+      const included=new Set([...form.querySelectorAll('[data-case-include]')]
+        .filter(el=>el.checked).map(el=>el.dataset.caseInclude));
+      const exclusions=data.tenancies.filter(t=>!included.has(t.id)).map(t=>t.id);
+      const invoiceQty=method==='Verbrauch'?parseField(form.elements.invoiceConsumption):null;
+      if(method==='Verbrauch'&&(!Number.isFinite(invoiceQty)||invoiceQty<=0||
+        Math.abs(invoiceQty*1000-Math.round(invoiceQty*1000))>1e-6))
+        return toast('Rechnungsverbrauch: positive Menge mit maximal drei Nachkommastellen erforderlich.');
       const existingCost=data.costs.find(x=>x.id===id)||{};
       const sourceId=form.elements.sourceId.value,canonical=workflow.invoiceCatalog(sourceId);
       const value={name:canonical?.name||name,sourceId,category:canonical?.category||existingCost.category||'Betriebskosten',amount:round(amt),landlordShare:round(landlordShare),method,
         exclusionMode:form.elements.exclusionMode.value,excludedTenantIds:exclusions,
-        consumptionTotal:method==='Verbrauch'?(id==='water'?data.houseWater:existingCost.consumptionTotal):null,
+        consumptionTotal:method==='Verbrauch'?invoiceQty:null,
         consumptionUnit:existingCost.consumptionUnit||'m³',consumptionByTenant:existingCost.consumptionByTenant||{},
         priceMode:mode,unitPrice:mode==='manual'?unitPrice:null,
         note:form.elements.note.value.trim().slice(0,2000)};
       if(type==='cost')Object.assign(data.costs.find(x=>x.id===id),value);
+      if(type==='cost'&&id==='water'&&method==='Verbrauch')data.houseWater=invoiceQty;
       else data.costs.push({id:'SYN-K-'+Date.now().toString(36).toUpperCase(),active:true,label:'Musterdaten',...value});
       try{data=workflow.setInvoice(data,type==='cost'?id:data.costs.at(-1).id,{
         invoiceDate:form.elements.invoiceDate.value,documentDate:form.elements.documentDate.value,
