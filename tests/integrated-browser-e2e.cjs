@@ -97,7 +97,7 @@ const chromeBinary=()=>{
   await evalJS("document.querySelector('#nkSyncButton').click();"+
    "document.querySelector('#nkSyncPassword').value='Synthetic Long Passphrase 2026';"+
    "document.querySelector('#nkUnlock').click();");
-  await until("return document.querySelector('#appMain h1')?.textContent.includes('Objekt Am Rauhen Biehl 5');");
+  await until("return document.querySelector('#appMain h1')?.textContent.includes('Synthetisches Haus');");
   assert.equal(await evalJS("return document.querySelectorAll('#portfolioTree button[data-nk-view]').length;"),6);
   assert.equal(await evalJS("return document.querySelectorAll('#appMain .nk-live-archive').length;"),5);
   await evalJS("document.querySelector('#nkSyncClose').click();");
@@ -142,7 +142,7 @@ const chromeBinary=()=>{
   await evalJS("document.querySelector('#nkSyncButton').click();"+
    "document.querySelector('#nkSyncPassword').value='Synthetic Long Passphrase 2026';"+
    "document.querySelector('#nkUnlock').click();");
-  await until("return document.querySelector('#appMain h1')?.textContent.includes('Objekt Am Rauhen Biehl 5');");
+  await until("return document.querySelector('#appMain h1')?.textContent.includes('Synthetisches Haus');");
   console.log("INTEGRATED_CHROMIUM_PASS: Systemstatus, 5 archives, one object, no legacy 2025 costs, AES cache, mobile and offline restore");
  }finally{
   if(ws&&ws.readyState===WebSocket.OPEN)ws.close();
