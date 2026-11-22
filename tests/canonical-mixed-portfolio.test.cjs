@@ -41,7 +41,7 @@ test("Historical 2023 retains both immutable separate snapshots; only one 2023 c
   treeOpenObjectId:o.id,treeSections:{master:true,years:true}};
  projection.selectedObjectId=o.id;projection.selectedYear="2023";
  const html=tree.render(projection,ui,{mode:"real"});
- assert.equal((html.match(/class="tree-year[^"]*"/g)||[]).length,5,
+ assert.equal((html.match(/<button type="button" class="tree-year[^"]*"/g)||[]).length,5,
   "Five ARB5 calendar years; B/C collapsed in the original tree");
  assert.equal((html.match(/<span class="tree-year-name">/g)||[]).length,5);
  assert.equal((html.match(/<span class="tree-group-label">Jahresabrechnungen/g)||[]).length,1);
@@ -79,7 +79,8 @@ test("New 2025 annual is a read-only blank v2 draft, no legacy amounts or fake s
  assert.ok(!JSON.stringify(o.settlements["2025"]).includes("K006"));
 });
 test("Both original and genuine object models remain intact when view adapter called repeatedly",()=>{
- const {fake,live}=combo(),a=clone(fake),b=clone(live);
+ const {fake,live}=combo(),a=JSON.stringify(fake),b=JSON.stringify(live);
  for(let i=0;i<4;i++)adapter.compose(fake,live);
- assert.deepEqual(fake,a);assert.deepEqual(live,b);
+ assert.equal(JSON.stringify(fake),a);
+ assert.equal(JSON.stringify(live),b);
 });
