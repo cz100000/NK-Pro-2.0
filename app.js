@@ -1,7 +1,8 @@
 /* NK-Pro 2.0 – isolated UX prototype. NO production calculation or data integration. */
 (() => {
   'use strict';
-  const STORAGE_KEY = 'nkpro2_design_demo_20261121_v1'; // Never use NK-Pro 1.x keys.
+  const LEGACY_DEMO_KEY = 'nkpro2_design_demo_20261121_v1'; // old 0.6 untouched.
+  const STORAGE_KEY = 'nkpro2_synthetic_portfolio_0_7_v1'; // no NK-Pro 1.x keys.
   const demoLedger = window.NKPRO2_DEMO_LEDGER;
   const functionalBilling = window.NKPRO2_SYNTHETIC_BILLING;
   const waterDetails = window.NKPRO2_WATER_DETAIL;
@@ -10,7 +11,8 @@
   const workflow = window.NKPRO2_WORKFLOW;
   const qualityModule = window.NKPRO2_REVIEW;
   const letterModule = window.NKPRO2_LETTERS;
-  if (!demoLedger || !functionalBilling || !waterDetails || !propertyModel || !caseBilling || !workflow || !qualityModule || !letterModule || typeof caseBilling.calculate !== 'function') throw new Error('Synthetic billing modules missing.');
+  const estates = window.NKPRO2_ESTATES;
+  if (!demoLedger || !functionalBilling || !waterDetails || !propertyModel || !caseBilling || !workflow || !qualityModule || !letterModule || !estates || typeof caseBilling.calculate !== 'function') throw new Error('Synthetic billing modules missing.');
   const icons = {
     overview:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
     bill:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
@@ -62,9 +64,35 @@
   const fmtPrice=(n,unit='m³')=>Number.isFinite(n)?n.toLocaleString('de-DE',{minimumFractionDigits:4,maximumFractionDigits:4})+' €/'+unit:'–';
   const fmtVolume=v=>Number(v).toLocaleString('de-DE',{maximumFractionDigits:3});
   const parseField=(field)=>{const raw=String(field.value||'').trim().replace(/\s/g,'').replace(',','.');const val=Number(raw);return Number.isFinite(val)?val:NaN};
-  function load(){try{const v=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(v&&v.fixture===true&&v.period==='2025'&&Array.isArray(v.units)&&v.units.length===7&&Array.isArray(v.costs))return workflow.upgrade(propertyModel.upgrade(waterDetails.upgrade(v)));}catch(_){/* standalone file localStorage might be blocked */}return initial()}
-  let data=load();const ui={view:'overview',step:'tenancies',analytics:'nk',objectTab:'overview',consumptionTab:'water',letterId:null,showAllLetters:false,filter:'',drawer:null,lastFocus:null};
-  function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch(_){/* safe in-memory fallback; never touch real NK-Pro keys */}}
+  const clone=x=>JSON.parse(JSON.stringify(x));
+  function load(){
+    try{
+      const prev=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
+      if(prev)return estates.validate(prev);
+    }catch(error){console.warn("Portfolio wird aus sicheren Demomustern neu aufgebaut:",error.message);}
+    return estates.create(initial());
+  }
+  let portfolio=load(),data=estates.current(portfolio);
+  const ui={view:'overview',step:'advance',billingHome:true,objectListFilter:null,
+    analytics:'nk',objectTab:'overview',unitDetailId:null,consumptionTab:'water',
+    letterId:null,showAllLetters:false,filter:'',drawer:null,lastFocus:null};
+  const master=()=>estates.object(portfolio);
+  const activeYear=()=>portfolio.selectedYear;
+  const annualLocked=()=>estates.readonly(data);
+  function savePortfolio(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(portfolio));}
+    catch(e){console.warn("Portfolio nicht dauerhaft gespeichert:",e.message);}}
+  function persist(){
+    if(annualLocked())throw new Error("Historical synthetic annual cannot be edited");
+    const o=master();o.settlements[activeYear()]=clone(data);
+    savePortfolio();
+  }
+  function switchPortfolio(next){
+    portfolio=estates.validate(next);
+    data=estates.current(portfolio);
+    ui.unitDetailId=null;ui.letterId=null;ui.filter='';
+    savePortfolio();
+    render();
+  }
   function stateChange(){data.demoFinalized=false;persist();render()}
   const ledger=()=>caseBilling.calculate(data);
   const letterBundle=()=>letterModule.make(data,ledger());
@@ -113,19 +141,25 @@
       `</div><div class="section"><div class="section-header"><div><h2>Bearbeitungsstand</h2><p>${done} von ${checks().length} Kontrollen erledigt</p></div>${labelStatus(false,'Bereit','Nicht freigegeben')}</div><div class="section-body">${progress()}<p class="note" style="margin:24px 0 0">34 Originalregeln sind noch nicht ausgeführt. Das Prüfcockpit zeigt sämtliche Regeln und dynamischen Fehler ausdrücklich an.</p></div><div class="progress-foot">${button('Prüfcockpit öffnen','go-review',null,'button-quiet')}</div></div></div>`+
       `<div class="divider-title">FINANZIELLE MOMENTAUFNAHME</div><div class="section"><div class="stat-inline"><div><small>Umlagefähige Musterkosten</small><strong>${fmt(ledger().totals.allocableCostsCents/100)}</strong></div><div><small>Vorauszahlungen</small><strong>${fmt(allAdvance())}</strong></div><div><small>Saldo Gesamt (Muster)</small><strong>${fmt(ledger().totals.balanceCents/100)}</strong></div></div><p class="section-note">Illustrative Werte. Bruttokosten: ${fmt(ledger().totals.grossCostsCents/100)}; davon Muster-Vermieteranteil: ${fmt(ledger().totals.landlordCostsCents/100)}. Kein produktiver Abrechnungsstand.</p></div>`;
   }
-  const steps=[['tenancies','Mietverhältnisse'],['advance','Vorauszahlungen'],['costs','Gesamtkosten'],['water','Verbräuche'],['review','Prüfen'],['allocation','Ergebnis'],['letters','Briefe']];
+  const steps=[['advance','Vorauszahlungen'],['costs','Gesamtkosten'],['water','Verbräuche'],['review','Prüfen'],['allocation','Ergebnis'],['letters','Briefe']];
   const renderSteps=()=>`<div class="tab-bar" role="tablist" aria-label="Abrechnungsprozess">${steps.map(([id,label])=>`<button class="tab-button ${ui.step===id?'active':''}" role="tab" aria-selected="${ui.step===id}" type="button" data-step="${id}">${label}</button>`).join('')}</div>`;
   function billing(){
-    const ending='Entwurf · nicht abschließbar';
-    let content='';let action='';let title='Abrechnung 2025';let description='Alle Arbeitsschritte in einem gemeinsamen Arbeitsplatz. Details bearbeiten, ohne den Kontext zu verlieren.';
-    if(ui.step==='tenancies'){content=tenancies();}
-    else if(ui.step==='costs'){action=button('Kostenart hinzufügen','new-cost',null,'button-primary');content=costs();}
-    else if(ui.step==='water'){action=button('Hauszähler prüfen','edit-house',null,'button-primary');content=water();}
+    const ending=estates.statusLabel(data.settlement?.status);
+    let content='';let action='';let title='Abrechnung '+activeYear();
+    let description='Abrechnungsfälle werden automatisch aus den Objektstammdaten abgeleitet.';
+    if(ui.billingHome)return billingList();
+    if(ui.step==='costs'){if(!annualLocked())action=button('Kostenart hinzufügen','new-cost',null,'button-primary');content=costs();}
+    else if(ui.step==='water'){if(!annualLocked())action=button('Hauszähler prüfen','edit-house',null,'button-primary');content=water();}
     else if(ui.step==='advance'){content=advances();}
     else if(ui.step==='allocation'){content=allocations();}
     else if(ui.step==='review'){content=review();}
-    else if(ui.step==='letters'){action=button(icon('print')+' Musterentwurf drucken','print-letter',null,'button-quiet');content=letters();}
-    return head(`ABRECHNUNG 2025 · ${ending}`,title,description,action)+renderSteps()+content;
+    else if(ui.step==='letters'){if(!annualLocked())action=button(icon('print')+' Musterentwurf drucken','print-letter',null,'button-quiet');content=letters();}
+    return '<div class="context-return">'+button('← Alle Jahresabrechnungen','back-billings',null,'button-quiet')+
+      '<span>'+safeText(master().name)+' · '+safeText(ending)+'</span></div>'+
+      (estates.rebasePreview(portfolio,master().id,activeYear()).stale?
+        '<div class="warning-line"><strong>Stammdaten wurden geändert. Dieser Jahresstand bleibt zunächst unverändert.</strong> '+
+        (!annualLocked()?button('Stammdatenabgleich prüfen','rebase-year',null,'button-quiet'):'Historischer Musterstand: keine automatische Überschreibung.')+'</div>':'')+
+      head('ABRECHNUNG '+activeYear()+' · '+safeText(ending),title,description,action)+renderSteps()+content;
   }
   function tenancies(){
     const model=propertyModel.inspect(data,waterReport()),state=ledger();
@@ -420,7 +454,14 @@
     `<section class="section"><div class="section-header"><div><h2>Archiv</h2></div><span class="status neutral">Leer</span></div><div class="empty"><div class="empty-icon">${icon('folder')}</div><h3>Keine historischen Abrechnungen in der Demo</h3><p>Das echte Archiv wird später vollständig separat und schreibgeschützt migriert. Die bisherige NK-Pro-App bleibt unverändert.</p></div></section>`;}
   const viewTitles={overview:'Übersicht',billing:'Abrechnungen',object:'Objekt',analytics:'Analysen',documents:'Dokumente & Archiv'};
   function render(){document.querySelectorAll('.nav-item').forEach(el=>{const active=el.dataset.view===ui.view;el.classList.toggle('active',active);if(active)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current')});$('breadcrumbView').textContent=viewTitles[ui.view];const target=$('appMain');target.innerHTML=({overview, billing,object,analytics,documents}[ui.view]||overview)();$('appMain').querySelectorAll('[data-icon]').forEach(n=>n.innerHTML=icon(n.dataset.icon));}
-  function navigate(view,step){ui.view=view;if(step)ui.step=step;ui.filter='';render();window.scrollTo({top:0,behavior:'instant'});document.body.classList.remove('menu-open');}
+  function navigate(view,step){
+    ui.view=view;
+    if(view==='billing'&&!step){ui.billingHome=true;ui.objectListFilter=null;}
+    if(step){ui.step=step;ui.billingHome=false;}
+    ui.filter='';render();
+    window.scrollTo({top:0,behavior:'instant'});
+    document.body.classList.remove('menu-open');
+  }
   function toast(message){const el=$('toast');el.textContent=message;el.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.hidden=true,3200)}
   function closeDrawer(){ui.drawer=null;$('drawer').hidden=true;$('overlay').hidden=true;document.body.style.overflow='';if(ui.lastFocus&&ui.lastFocus.isConnected)ui.lastFocus.focus()}
   // Cents-exact synthetic reference trace; complete production domain engine remains out of scope.
@@ -839,7 +880,8 @@
     if(action==='go-water'){navigate('billing','water');return}if(action==='go-advance'){navigate('billing','advance');return}if(action==='check-heat'){openDrawer('heat-evidence');return}if(action==='go-costs'){navigate('billing','costs');return}if(action==='go-review'){navigate('billing','review');return}if(action==='go-letter'){navigate('billing','letters');return}
     if(action==='all-letters'){ui.showAllLetters=!ui.showAllLetters;render();return}
     if(action==='select-letter'){ui.letterId=id;ui.showAllLetters=false;render();return}
-    if(action==='print-letter'){ui.showAllLetters=true;render();window.print();return}
+    if(action==='print-letter'){if(annualLocked())return toast('Historischer Musterstand: Druck gesperrt.');
+      ui.showAllLetters=true;render();window.print();return}
     if(action==='demo-finish'){toast('Abschluss gesperrt: 19 Originalregeln, Briefdruck und Archiv sind nicht freigegeben.');return}
     if(action==='close-drawer'){closeDrawer();return}
   }
@@ -884,9 +926,14 @@
   $('closeDrawer').addEventListener('click',closeDrawer);$('overlay').addEventListener('click',closeDrawer);
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('drawer').hidden)closeDrawer();document.body.classList.remove('menu-open')}if(e.key==='Tab'&&!$('drawer').hidden){const nodes=[...$('drawer').querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled)')].filter(x=>x.offsetParent!==null);if(!nodes.length)return;const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});
   $('openMenu').addEventListener('click',()=>document.body.classList.toggle('menu-open'));
-  $('resetDemo').addEventListener('click',()=>{if(!window.confirm('Alle Änderungen an den synthetischen Demodaten zurücksetzen? Die bestehende NK-Pro-App bleibt unberührt.'))return;data=initial();persist();navigate('overview');toast('Demo zurückgesetzt.');});
+  $('resetDemo').addEventListener('click',()=>{
+    if(!window.confirm('Nur Portfolio 0.7 mit allen drei synthetischen Musterobjekten zurücksetzen? Ältere Fachtestdaten und NK-Pro 1.0 werden nicht verändert.'))return;
+    portfolio=estates.create(initial());data=estates.current(portfolio);
+    savePortfolio();ui.objectTab='overview';ui.unitDetailId=null;ui.billingHome=true;
+    navigate('overview');toast('Drei Musterobjekte zurückgesetzt.');
+  });
   document.querySelectorAll('[data-icon]').forEach(node=>node.innerHTML=icon(node.dataset.icon));
   render();
   // API only for automated prototype smoke testing; never expose data from any real NK-Pro system.
-  window.NKPRO2_DEMO_TEST=Object.freeze({getState:()=>JSON.parse(JSON.stringify(data)),checks,ledger:()=>JSON.parse(JSON.stringify(ledger())),allocate:()=>data.units.map(u=>({id:u.id,amount:allocation(u),balance:balance(u)})),storageKey:STORAGE_KEY});
+  window.NKPRO2_DEMO_TEST=Object.freeze({getPortfolio:()=>clone(portfolio),getState:()=>clone(data),checks,ledger:()=>JSON.parse(JSON.stringify(ledger())),allocate:()=>data.units.map(u=>({id:u.id,amount:allocation(u),balance:balance(u)})),storageKey:STORAGE_KEY});
 })();
