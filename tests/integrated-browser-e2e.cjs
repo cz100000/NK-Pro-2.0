@@ -126,6 +126,13 @@ const chromeBinary=()=>{
   const mobile=await evalJS("return {v:innerWidth,s:document.documentElement.scrollWidth};");
   assert.ok(mobile.s<=mobile.v+2,"Unexpected mobile viewport overflow: "+JSON.stringify(mobile));
   await shot("integrated-06-mobile-2025");
+  await evalJS("document.querySelector('#openMenu').click();");
+  assert.equal(await evalJS("return document.body.classList.contains('menu-open');"),true,
+   "Mobile navigation must open using existing layout class");
+  await evalJS("document.querySelector('#portfolioTree button[data-nk-view=archives]').click();");
+  await until("return document.querySelector('#appMain h1')?.textContent==='Historische Abrechnungen';");
+  assert.equal(await evalJS("return document.body.classList.contains('menu-open');"),false);
+  await shot("integrated-07-mobile-historical-archive");
   await until("return !!navigator.serviceWorker.controller;");
   await cmd("Network.enable");
   await cmd("Network.emulateNetworkConditions",{
