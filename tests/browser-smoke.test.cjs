@@ -197,9 +197,10 @@ test("0.8 navigation has one route per task, grouped property branches and clear
  assert.equal(x.portfolio().selectedObjectId,"SYN-B");
 });
 
-test("0.9 homepage shows estate cards and object-scoped years without property filter",()=>{
+test("0.11 homepage uses one property list and object-scoped years without property filter",()=>{
  const x=browser();
- assert.match(x.html(),/estate-grid/);
+ assert.match(x.html(),/estate-table/);
+ assert.doesNotMatch(x.html(),/estate-card|estate-grid/);
  assert.match(x.html(),/Neues Objekt/);
  x.act("object-billings","SYN-A");
  assert.match(x.html(),/Jahresabrechnungen/);
