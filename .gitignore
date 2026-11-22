@@ -8,3 +8,10 @@
 *.nkpro-source.json
 _site/
 _visual-test-artifacts/
+
+# Never commit original cloud snapshots or generated private exports.
+nkpro-cloud-snapshot-*.json
+nk-pro-gesamtbestand-*.json
+nkpro2-private-export-*.json
+*Privatdaten-migriert*.json
+/dist-private/
