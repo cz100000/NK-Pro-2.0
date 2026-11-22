@@ -157,7 +157,9 @@
   const viewAction=(action,id,subject)=>`<button type="button" class="button edit-action view-action" data-action="${safeText(action)}"${id?` data-id="${safeText(id)}"`:''} aria-label="${safeText(subject+' ansehen')}">${icon('file')}<span>Ansehen</span></button>`;
   const statusFor=(complete,partial=false)=>'<span class="status '+(complete?'green':partial?'amber':'neutral')+'">'+
     (complete?'Vollständig':partial?'Unvollständig':'Nicht erfasst')+'</span>';
-  const actionCell=(status,action)=>'<span class="table-action-pair">'+status+action+'</span>';
+  // Central table contract: status in its own cell immediately before action.
+  const actionCell=(status,action)=>status+'</td><td class="action-cell">'+action;
+  const statusHeading=()=>'<th class="status-column">Status</th><th class="action-column">Aktion</th>';
   const section=(title,inner,extra='',classes='')=>`<section class="section ${classes}"><div class="section-header"><div><h2>${title}</h2></div>${extra}</div>${inner}</section>`;
   const head=(kicker,title,description,action='')=>`<div class="page-heading"><div><div class="eyebrow">${safeText(kicker)}</div><h1>${title}</h1><p>${description}</p></div>${action?`<div class="heading-actions">${action}</div>`:''}</div>`;
   function progress(){const done=Math.min(6,qualityReport().counts.executed===44?6:4);let html='<div class="flow-track">';for(let i=0;i<7;i++)html+=`<div class="flow-segment ${i<done?'complete':i===done?'current':''}"></div>`;return html+`</div><div class="flow-labels">${['Mietverhältnisse','Vorauszahlungen','Gesamtkosten','Verbräuche','Prüfen','Ergebnis','Briefe'].map((x,i)=>`<span class="${i===Math.min(done,6)?'highlight':''}">${x}</span>`).join('')}</div>`}
@@ -305,7 +307,7 @@
     let description='Abrechnungsfälle werden automatisch aus den Objektstammdaten abgeleitet.';
     if(ui.billingHome)return billingList();
     if(ui.step==='costs'){if(!annualLocked())action=button('Kostenart hinzufügen','new-cost',null,'button-primary');content=costs();}
-    else if(ui.step==='water'){if(!annualLocked())action=button('Hauszähler prüfen','edit-house',null,'button-primary');content=water();}
+    else if(ui.step==='water'){content=water();}
     else if(ui.step==='advance'){content=advances();}
     else if(ui.step==='allocation'){content=allocations();}
     else if(ui.step==='review'){content=review();}
@@ -351,6 +353,7 @@
   }
   const costCatalogId=c=>c.sourceId||({water:'K002',waste:'K009',heat:'K006',
     insurance:'K015',power:'K013'}[c.id]||'');
+  const catalogName=c=>workflow.invoiceCatalog(costCatalogId(c))?.name||c.name;
   const costQuantity=c=>c.id==='water'?Number(data.houseWater):Number(c.consumptionTotal);
   const costReadiness=c=>{
     if(c.active===false)return'<span class="status neutral">Inaktiv</span>';
@@ -361,7 +364,7 @@
   };
   function costs(){
     const filter=ui.filter.toLowerCase(),items=data.costs.filter(c=>
-      (c.name+' '+c.category+' '+costCatalogId(c)).toLowerCase().includes(filter));
+      (c.name+' '+catalogName(c)+' '+c.category+' '+costCatalogId(c)).toLowerCase().includes(filter));
     return '<div class="inline-toolbar"><div><h2>Gesamtkosten</h2>'+
       '<p class="small muted">Original-Kostenartenkatalog und Rechnungsangaben · ausschließlich Testdaten</p></div>'+
       '<div class="filterbar"><input class="search" id="tableSearch" aria-label="Kosten durchsuchen" '+
@@ -372,12 +375,12 @@
       '<div><small>Vermieteranteile</small><strong>'+fmt(ledger().totals.landlordCostsCents/100)+'</strong></div></div>'+
       '<div class="table-wrap"><table class="data-table cost-master-table"><thead><tr>'+
       '<th>Kostenart</th><th>Umlageschlüssel</th><th class="money">Rechnungsbetrag</th>'+
-      '<th class="money">Preis je Einheit</th><th>Status / Aktion</th></tr></thead><tbody>'+
+      '<th class="money">Preis je Einheit</th>'+statusHeading()+'</tr></thead><tbody>'+
       (items.length?items.map(c=>{
         const source=costCatalogId(c),price=c.method==='Verbrauch'?
           waterDetails.priceFor(c,costQuantity(c)):null;
         return '<tr><td><span class="cost-id">'+safeText(source||'EIGEN')+'</span>'+
-          '<strong>'+safeText(c.name)+'</strong>'+
+          '<strong>'+safeText(catalogName(c))+'</strong>'+
           '<span class="cost-sub">'+safeText(c.category||'–')+'</span></td>'+
           '<td>'+safeText(c.method==='Fläche'?'Wohnfläche':c.method)+'</td>'+
           '<td class="money">'+fmt(c.amount)+'</td>'+
@@ -421,7 +424,7 @@
        '<div><small>Belegter Vermieterposten</small><strong>'+fmt(cost.landlordShare||0)+'</strong></div>'+
        '<div><small>Summe Einzelwerte</small><strong>'+fmt(sum)+'</strong></div>'+
        '<div><small>Ungeklärte Differenz</small><strong>'+fmt(bill-sum)+'</strong></div></div>'+
-       '<div class="table-wrap"><table class="data-table"><thead><tr><th>Abrechnungsfall · Wohnung</th><th class="money">Kosten laut Techem</th><th class="money">Einheiten (optional)</th><th>Aktion</th></tr></thead><tbody>'+
+       '<div class="table-wrap"><table class="data-table"><thead><tr><th>Abrechnungsfall · Wohnung</th><th class="money">Kosten laut Techem</th><th class="money">Einheiten (optional)</th>'+statusHeading()+'</tr></thead><tbody>'+
        items+'</tbody></table></div><div class="table-caption">Die extern ausgewiesenen Eurobeträge werden exakt übernommen – nicht aus Verbrauchseinheiten erneut berechnet. Fehlende Fälle oder Summendifferenzen bleiben kritisch.</div></section>';
     }).join('');
   }
@@ -430,7 +433,7 @@
     if(!costs.length)return '<div class="empty"><h3>Keine weiteren Verbrauchskostenarten</h3>'+
       '<p>Hier erscheinen zusätzliche verbrauchsabhängige Kostenarten, z. B. gesondert abgerechneter, einzeln gemessener Strom. Voraussetzung ist eine Kostenart mit Umlageschlüssel „Verbrauch“ und separaten Mengen je Mietverhältnis. Bereits in Wasser, Techem oder Allgemeinstrom enthaltene Kosten dürfen nicht doppelt berechnet werden.</p></div>';
     return '<section class="section"><div class="section-header"><h2>Weitere Verbrauchseinheiten</h2></div>'+
-      '<div class="table-wrap"><table class="data-table"><thead><tr><th>Kostenart</th><th>Einheit</th><th class="money">Gesamtmenge</th><th>Einzelwerte</th><th>Aktion</th></tr></thead><tbody>'+
+      '<div class="table-wrap"><table class="data-table"><thead><tr><th>Kostenart</th><th>Einheit</th><th class="money">Gesamtmenge</th><th>Einzelwerte</th>'+statusHeading()+'</tr></thead><tbody>'+
       costs.map(c=>'<tr><td><strong>'+safeText(c.name)+'</strong></td><td>'+safeText(c.consumptionUnit||'Einheiten')+'</td>'+
        '<td class="money">'+(c.consumptionTotal==null?'–':fmtVolume(c.consumptionTotal))+'</td>'+
        '<td>'+Object.keys(c.consumptionByTenant||{}).length+' / '+data.tenancies.length+'</td>'+
@@ -489,17 +492,17 @@
       '<div class="table-wrap"><table class="data-table water-table"><thead><tr><th rowspan="2">Wohnung</th>'+
       '<th colspan="3" class="water-cold">Kaltwasser (m³)</th><th colspan="3" class="water-hot">Warmwasser (m³)</th>'+
       '<th rowspan="2" class="money">Gesamt</th><th rowspan="2" class="money">Kostenanteil</th>'+
-      '<th rowspan="2">Status / Aktion</th></tr><tr>'+
+      '<th rowspan="2" class="status-column">Status</th><th rowspan="2" class="action-column">Aktion</th></tr><tr>'+
       '<th class="money water-cold">Anfang</th><th class="money water-cold">Ende</th><th class="money water-cold">Verbrauch</th>'+
       '<th class="money water-hot">Anfang</th><th class="money water-hot">Ende</th><th class="money water-hot">Verbrauch</th>'+
       '</tr></thead><tbody>'+rows+'</tbody><tfoot><tr><td><strong>Summe</strong></td>'+
       '<td colspan="2" class="water-cold"></td><td class="money water-cold"><strong>'+show(report.totals.cold)+'</strong></td>'+
       '<td colspan="2" class="water-hot"></td><td class="money water-hot"><strong>'+show(report.totals.hot)+'</strong></td>'+
-      '<td class="money"><strong class="water-total-value">'+show(units)+'</strong></td><td colspan="2"></td></tr></tfoot></table></div>'+
+      '<td class="money"><strong class="water-total-value">'+show(units)+'</strong></td><td colspan="3"></td></tr></tfoot></table></div>'+
       '<div class="table-caption">Zwei getrennte Musterzähler je Wohnung, insgesamt 14. Die Originalversion hat weitere Funktionen wie Zählerwechsel, historischen Ableseverlauf und kontrollierte Vorjahresübernahme; diese sind noch nicht migriert.</div></section>';
     const split='<section class="section" style="margin-top:18px"><div class="section-header"><div><h2>Wasserverbräuche je Mietverhältnis</h2>'+
       '<p>Insbesondere bei Mieterwechseln und Leerständen: dokumentierte Einzelmengen, keine geschätzte Verteilung.</p></div></div>'+
-      '<div class="table-wrap"><table class="data-table"><thead><tr><th>Teilnehmer · Wohnung</th><th>Zeitraum</th><th class="money">Kaltwasser</th><th class="money">Warmwasser</th><th>Aktion</th></tr></thead><tbody>'+
+      '<div class="table-wrap"><table class="data-table"><thead><tr><th>Teilnehmer · Wohnung</th><th>Zeitraum</th><th class="money">Kaltwasser</th><th class="money">Warmwasser</th>'+statusHeading()+'</tr></thead><tbody>'+
       data.tenancies.map(t=>'<tr><td>'+safeText(t.name)+' · '+safeText(data.units.find(u=>u.id===t.unitId)?.label||t.unitId)+'</td>'+
        '<td>'+safeText(t.start)+' bis '+safeText(t.end)+'</td>'+
        '<td class="money">'+(t.consumptionCold==null?'Automatisch bei Einzelbelegung':fmtVolume(t.consumptionCold)+' m³')+'</td>'+
@@ -539,10 +542,10 @@
       '<section class="section"><div class="stat-inline"><div><small>Tatsächlich gezahlt</small><strong>'+
       fmt(allAdvance())+'</strong></div><div><small>Abrechnungsfälle</small><strong>'+data.tenancies.length+'</strong></div></div>'+
       '<div class="table-wrap"><table class="data-table"><thead><tr><th>Mieter · Wohnung</th>'+
-      '<th>Zeitraum (nur Anzeige)</th><th class="money">Vereinbarung</th>'+
-      '<th class="money">Soll Zeitraum</th><th class="money">Ist gezahlt</th><th>Status / Aktion</th>'+
+      '<th>Zeitraum (nur Anzeige)</th><th class="money">Vereinbart</th>'+
+      '<th class="money">Vorauszahlung Soll</th><th class="money">Tatsächlich gezahlt</th>'+statusHeading()+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
-      '<div class="table-caption">Mieter, Wohnung, Rolle und Mietzeitraum können hier nicht geändert werden. Nur die Vorauszahlungen werden an dieser Stelle gepflegt. Der Abrechnungssaldo verwendet Ist-Zahlungen.</div></section>';
+      '<div class="table-caption"><strong>Vereinbart</strong> = Monats-/Jahresrate laut Vertrag. <strong>Vorauszahlung Soll</strong> = rechnerische Summe für die Mietdauer. <strong>Tatsächlich gezahlt</strong> = erfasste Zahlungseingänge. Der Saldo verwendet Ist-Zahlungen.</div></section>';
   }
   function allocations(){
     const r=ledger(),costs=r.costs.filter(c=>c&&c.id),tenants=r.tenants,totals=r.totals;
@@ -574,7 +577,7 @@
       '<th>Wohnung · Abrechnungsfall</th>'+
       costs.map(c=>'<th class="money result-category"><small>'+
         safeText(costCatalogId(data.costs.find(x=>x.id===c.id)||c))+'</small>'+
-        safeText(c.name)+'</th>').join('')+
+        safeText(catalogName(data.costs.find(x=>x.id===c.id)||c))+'</th>').join('')+
       '<th class="money">Umlagekosten gesamt</th>'+
       '<th class="money">Tatsächlich gezahlt</th><th class="money">Saldo</th>'+
       '</tr></thead><tbody>'+rows+'</tbody><tfoot>'+totalsRow+'</tfoot></table></div>'+
@@ -713,16 +716,15 @@
             (placeholders?' · '+placeholders+' Muster':'')+'</span>'+
             '<span class="meter-disclosure">'+icon('chevron')+'</span></summary>'+
           '<div class="meter-unit-body">'+
-            '<div class="meter-unit-tools">'+button(icon('plus')+' Zähler für diese Wohnung',
-              'new-master-meter',u.id,'button-quiet')+'</div>'+
+            '<div class="meter-unit-tools">'+button(icon('plus')+' Zähler hinzufügen',
+              'new-master-meter',u.id,'button-primary')+'</div>'+
             '<div class="table-wrap"><table class="data-table meter-table"><thead><tr>'+
             '<th>Zählertyp / ID</th><th>Zählernummer</th><th>Raum / Heizkörper</th>'+
             '<th>Status</th><th>Aktionen</th></tr></thead><tbody>'+
             rows.map(row).join('')+'</tbody></table></div></div></details>';
       }).join('');
       content=head('ZÄHLERSTAMMDATEN',o.name+' · Zähler',
-        'Wasser-, Strom- und Techem-Zähler werden hier wohnungsweise erfasst und gepflegt. Jahresablesungen gehören ausschließlich in die Jahresabrechnung.',
-        o.units.length?button(icon('plus')+' Zähler hinzufügen','new-master-meter',null,'button-primary'):'')+
+        'Wasser-, Strom- und Techem-Zähler werden hier wohnungsweise erfasst und gepflegt. Neue Zähler direkt bei der betroffenen Wohnung anlegen.','')+
         '<div class="meter-summary">'+
           '<span><strong>'+o.units.length+'</strong> Wohnungen</span>'+
           '<span><strong>'+o.meterRegistry.length+'</strong> Zählerdatensätze</span>'+
@@ -982,7 +984,7 @@
           safeText(data.units.find(u=>u.id===t.unitId)?.label||t.unitId)+' ('+
           safeText(t.id)+') einbeziehen</label>').join('')+
         '<p class="form-help">Standard: alle Abrechnungsfälle sind einbezogen. Deaktivierte Häkchen bedeuten einen ausdrücklich gespeicherten Ausschluss. Privatanteile sind standardmäßig gleichberechtigt.</p></details>';
-      title=type==='new-cost'?'Kostenart hinzufügen':c.name;eyebrow='GESAMTKOSTEN';body=`<form id="editForm" data-type="${type}" data-cost-id="${safeText(c.id||'')}"><div class="form-row"><label for="d-catalog">Kostenartenkatalog NK-Pro 1.0</label><select name="sourceId" id="d-catalog"><option value="">Eigene Kostenart</option>${workflow.catalog.filter(x=>!x.placeholder).map(x=>'<option value="'+safeText(x.id)+'" '+(costCatalogId(c)===x.id?'selected':'')+'>'+safeText(x.id)+' · '+safeText(x.name)+'</option>').join('')}</select><p class="form-help">Original-Kostenkennungen als Auswahl, eigene Kostenarten bleiben möglich. Die Umlagefähigkeit ist pro Fall zu prüfen.</p></div><div class="form-row"><label for="d-name">Kostenart</label><input id="d-name" name="name" required maxlength="60" value="${safeText(c.name)}"></div><details class="cost-exceptions" open><summary>Rechnung & Beleg</summary><div class="form-row"><label>Rechnungsdatum<input name="invoiceDate" type="date" value="${safeText(c.invoiceDate||'')}"></label></div><div class="form-row"><label>Belegdatum<input name="documentDate" type="date" value="${safeText(c.documentDate||'')}"></label></div><div class="form-row"><label>Rechnungsnummer<input name="invoiceNumber" maxlength="100" value="${safeText(c.invoiceNumber||'')}"></label></div><div class="form-row"><label>Rechnungsaussteller<input name="issuer" maxlength="150" value="${safeText(c.issuer||'')}"></label></div><div class="form-row"><label>Belegverweis<input name="invoiceReference" maxlength="150" value="${safeText(c.invoiceReference||'')}"></label></div></details><div class="form-row"><label for="d-amount">Gesamtbetrag (€)</label><input id="d-amount" name="amount" type="number" required step="0.01" min="0.01" value="${c.amount}"></div><div class="form-row"><label for="d-landlord">Belegter nicht umlagefähiger Rechnungsanteil (€)</label><input id="d-landlord" name="landlordShare" type="number" step="0.01" min="0" value="${c.landlordShare??0}"><p class="form-help">Nur explizit auf dem Beleg ausgewiesene Eigentümerkosten hier erfassen. Leerstand und ungeklärte Differenzen werden separat berechnet.</p></div><div class="form-row"><label for="d-method">Umlageschlüssel · synthetischer Fachtest</label><select id="d-method" name="method">${functionalBilling.METHODS.filter(m=>m!=='Wohnfläche').concat(['Externe Einzelabrechnung']).map(m=>'<option value="'+safeText(m)+'" '+(c.method===m?'selected':'')+'>'+safeText(m==='Fläche'?'Wohnfläche':m)+'</option>').join('')}</select><p class="form-help">Sechs portierte Originalverfahren. Berechnung nach individuellen Mietverhältnissen und Zeiträumen; weiterhin nur synthetische Daten.</p></div><div class="form-row" data-price-group ${c.method==='Verbrauch'?'':'hidden'}><label for="d-price-mode">Preis je Verbrauchseinheit</label><select id="d-price-mode" name="priceMode"><option value="auto" ${c.priceMode!=='manual'?'selected':''}>Automatisch aus umlagefähigen Kosten / Rechnungsmenge</option><option value="manual" ${c.priceMode==='manual'?'selected':''}>Manuelle Preisvorgabe</option></select><p class="form-help">Bei Wasser gilt €/m³. Der automatische Preis wird mit vier Nachkommastellen angezeigt.</p></div><div class="form-row" data-consumption-context ${c.method==='Verbrauch'?'':'hidden'}><label for="d-invoice-quantity">Verbrauch laut Rechnung (${safeText(c.consumptionUnit||'m³')})</label><input id="d-invoice-quantity" name="invoiceConsumption" type="number" step="0.001" min="0.001" value="${safeText(c.id==='water'?data.houseWater:c.consumptionTotal??'')}"><p class="form-help">Bei Wasser ist dies der Original-Rechnungsverbrauch, unabhängig vom Hauszählerstand. Ohne Rechnungsmenge ist kein automatischer Einheitspreis möglich.</p><div class="cost-price-preview">Berechneter Preis: <strong id="costPricePreview">${c.method==='Verbrauch'&&waterDetails.priceFor(c,costQuantity(c)).valid?fmtPrice(waterDetails.priceFor(c,costQuantity(c)).effective,c.consumptionUnit||'m³'):'–'}</strong></div></div>${costBasisFields}${costAllocationFields}<div class="form-row" data-manual-price ${c.method==='Verbrauch'&&c.priceMode==='manual'?'':'hidden'}><label for="d-unit-price">Manueller Preis je Einheit (€)</label><input id="d-unit-price" name="unitPrice" type="number" step="0.0001" min="0.0001" max="100000" value="${safeText(c.unitPrice??'')}"><p class="form-help">Abweichende Einheitspreise können nicht zugeordnete Restkosten ergeben; diese bleiben prüfpflichtig.</p></div><div class="form-row"><label for="d-cost-note">Notiz / Bemerkung (optional)</label><textarea id="d-cost-note" name="note" rows="5" maxlength="2000" placeholder="Belegnummer, Hinweise oder interne Erläuterungen …">${safeText(c.note||'')}</textarea><p class="form-help">Interne Notiz, nicht automatisch Teil der Mieterbriefe.</p></div><div class="drawer-note">Veränderte Musterwerte werden nur im isolierten Demo-Speicher abgelegt. Es erfolgt kein Zugriff auf die bestehende NK-Pro-App.</div></form>`;
+      title=type==='new-cost'?'Kostenart hinzufügen':c.name;eyebrow='GESAMTKOSTEN';body=`<form id="editForm" data-type="${type}" data-cost-id="${safeText(c.id||'')}"><div class="form-row"><label for="d-catalog">Kostenartenkatalog NK-Pro 1.0</label><select name="sourceId" id="d-catalog"><option value="">Eigene Kostenart</option>${workflow.catalog.filter(x=>!x.placeholder).map(x=>'<option value="'+safeText(x.id)+'" '+(costCatalogId(c)===x.id?'selected':'')+'>'+safeText(x.id)+' · '+safeText(x.name)+'</option>').join('')}</select><p class="form-help">Original-Kostenkennungen als Auswahl, eigene Kostenarten bleiben möglich. Die Umlagefähigkeit ist pro Fall zu prüfen.</p></div><div class="form-row"><label for="d-name">Kostenart</label><input id="d-name" name="name" required maxlength="60" value="${safeText(catalogName(c))}" ${costCatalogId(c)?'readonly':''}></div><details class="cost-exceptions" open><summary>Rechnung & Beleg</summary><div class="form-row"><label>Rechnungsdatum<input name="invoiceDate" type="date" value="${safeText(c.invoiceDate||'')}"></label></div><div class="form-row"><label>Belegdatum<input name="documentDate" type="date" value="${safeText(c.documentDate||'')}"></label></div><div class="form-row"><label>Rechnungsnummer<input name="invoiceNumber" maxlength="100" value="${safeText(c.invoiceNumber||'')}"></label></div><div class="form-row"><label>Rechnungsaussteller<input name="issuer" maxlength="150" value="${safeText(c.issuer||'')}"></label></div><div class="form-row"><label>Belegverweis<input name="invoiceReference" maxlength="150" value="${safeText(c.invoiceReference||'')}"></label></div></details><div class="form-row"><label for="d-amount">Gesamtbetrag (€)</label><input id="d-amount" name="amount" type="number" required step="0.01" min="0.01" value="${c.amount}"></div><div class="form-row"><label for="d-landlord">Belegter nicht umlagefähiger Rechnungsanteil (€)</label><input id="d-landlord" name="landlordShare" type="number" step="0.01" min="0" value="${c.landlordShare??0}"><p class="form-help">Nur explizit auf dem Beleg ausgewiesene Eigentümerkosten hier erfassen. Leerstand und ungeklärte Differenzen werden separat berechnet.</p></div><div class="form-row"><label for="d-method">Umlageschlüssel · synthetischer Fachtest</label><select id="d-method" name="method">${functionalBilling.METHODS.filter(m=>m!=='Wohnfläche').concat(['Externe Einzelabrechnung']).map(m=>'<option value="'+safeText(m)+'" '+(c.method===m?'selected':'')+'>'+safeText(m==='Fläche'?'Wohnfläche':m)+'</option>').join('')}</select><p class="form-help">Sechs portierte Originalverfahren. Berechnung nach individuellen Mietverhältnissen und Zeiträumen; weiterhin nur synthetische Daten.</p></div><div class="form-row" data-price-group ${c.method==='Verbrauch'?'':'hidden'}><label for="d-price-mode">Preis je Verbrauchseinheit</label><select id="d-price-mode" name="priceMode"><option value="auto" ${c.priceMode!=='manual'?'selected':''}>Automatisch aus umlagefähigen Kosten / Rechnungsmenge</option><option value="manual" ${c.priceMode==='manual'?'selected':''}>Manuelle Preisvorgabe</option></select><p class="form-help">Bei Wasser gilt €/m³. Der automatische Preis wird mit vier Nachkommastellen angezeigt.</p></div><div class="form-row" data-consumption-context ${c.method==='Verbrauch'?'':'hidden'}><label for="d-invoice-quantity">Verbrauch laut Rechnung (${safeText(c.consumptionUnit||'m³')})</label><input id="d-invoice-quantity" name="invoiceConsumption" type="number" step="0.001" min="0.001" value="${safeText(c.id==='water'?data.houseWater:c.consumptionTotal??'')}"><p class="form-help">Bei Wasser ist dies der Original-Rechnungsverbrauch, unabhängig vom Hauszählerstand. Ohne Rechnungsmenge ist kein automatischer Einheitspreis möglich.</p><div class="cost-price-preview">Berechneter Preis: <strong id="costPricePreview">${c.method==='Verbrauch'&&waterDetails.priceFor(c,costQuantity(c)).valid?fmtPrice(waterDetails.priceFor(c,costQuantity(c)).effective,c.consumptionUnit||'m³'):'–'}</strong></div></div>${costBasisFields}${costAllocationFields}<div class="form-row" data-manual-price ${c.method==='Verbrauch'&&c.priceMode==='manual'?'':'hidden'}><label for="d-unit-price">Manueller Preis je Einheit (€)</label><input id="d-unit-price" name="unitPrice" type="number" step="0.0001" min="0.0001" max="100000" value="${safeText(c.unitPrice??'')}"><p class="form-help">Abweichende Einheitspreise können nicht zugeordnete Restkosten ergeben; diese bleiben prüfpflichtig.</p></div><div class="form-row"><label for="d-cost-note">Notiz / Bemerkung (optional)</label><textarea id="d-cost-note" name="note" rows="5" maxlength="2000" placeholder="Belegnummer, Hinweise oder interne Erläuterungen …">${safeText(c.note||'')}</textarea><p class="form-help">Interne Notiz, nicht automatisch Teil der Mieterbriefe.</p></div><div class="drawer-note">Veränderte Musterwerte werden nur im isolierten Demo-Speicher abgelegt. Es erfolgt kein Zugriff auf die bestehende NK-Pro-App.</div></form>`;
     } else if(type==='water'||type==='advance'||type==='unit'){
       const u=data.units.find(x=>x.id===id);if(!u)return;title=u.label;eyebrow=type==='water'?'VERBRAUCHSDATEN':type==='advance'?'VORAUSZAHLUNGEN':'WOHNUNGSSTAMM';
       if(type==='water'){
@@ -1253,7 +1255,7 @@
       const sourceId=form.elements.sourceId.value,canonical=workflow.invoiceCatalog(sourceId);
       if(sourceId&&data.costs.some(c=>c.id!==id&&costCatalogId(c)===sourceId))
         return toast('Diese Original-Kostenart ist bereits vorhanden. Bitte den vorhandenen Eintrag bearbeiten.');
-      const value={name,sourceId,category:canonical?.category||existingCost.category||'Betriebskosten',amount:round(amt),landlordShare:round(landlordShare),method,
+      const value={name:canonical?.name||name,sourceId,category:canonical?.category||existingCost.category||'Betriebskosten',amount:round(amt),landlordShare:round(landlordShare),method,
         exclusionMode:form.elements.exclusionMode.value,excludedTenantIds:exclusions,
         consumptionTotal:method==='Verbrauch'?invoiceQty:null,
         consumptionUnit:existingCost.consumptionUnit||'m³',consumptionByTenant:existingCost.consumptionByTenant||{},
@@ -1580,7 +1582,7 @@
       paymentLivePreview(e.target.closest('#editForm'));
     if(e.target.id==='d-catalog'){
       const choice=workflow.invoiceCatalog(e.target.value);
-      if(choice&&$('d-name'))$('d-name').value=choice.name;
+      if($('d-name')){$('d-name').value=choice?.name||'';$('d-name').readOnly=Boolean(choice);}
     }
     if(e.target.id==='d-method'||e.target.id==='d-price-mode'){
       const f=$('editForm');if(!f)return;
