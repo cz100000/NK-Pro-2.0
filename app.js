@@ -1,6 +1,9 @@
 /* NK-Pro 2.0 – isolated UX prototype. NO production calculation or data integration. */
 (() => {
   'use strict';
+  // NK-Pro 2.0 real-data runtime is isolated from the synthetic billing engine.
+  // The same main application and Systemstatus are used for both states.
+  if(window.NKPRO2_INTEGRATED_APP?.bootstrap()) return;
   const LEGACY_DEMO_KEY = 'nkpro2_design_demo_20261121_v1'; // old 0.6 untouched.
   const STORAGE_KEY = 'nkpro2_synthetic_portfolio_0_7_v1'; // no NK-Pro 1.x keys.
   const demoLedger = window.NKPRO2_DEMO_LEDGER;
