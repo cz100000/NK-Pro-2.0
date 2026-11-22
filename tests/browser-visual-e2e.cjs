@@ -101,12 +101,12 @@ const chromeBinary=()=>{
   await waitFor("return document.querySelectorAll('#portfolioTree .tree-property-button').length===3;");
   let d=await layout();
   assert.equal(d.tree,3);assert.ok(d.sw<=d.vw+1&&d.sbRight<=d.mainLeft+4);
-  assert.match(d.h,/Startseite/);assert.ok(d.sbRight>=265);
+  assert.match(d.h,/Startseite/);assert.ok(d.sbRight>=285);
   await snap("01-desktop-portfolio");
-  await click('[data-action="all-billings"]');
-  await waitFor("return document.querySelectorAll('.annual-row').length===7;");
+  await click('[data-action="object-billings"][data-id="SYN-A"]');
+  await waitFor("return document.querySelectorAll('.annual-row').length===3;");
   d=await layout();assert.ok(d.sw<=d.vw+1);assert.match(d.h,/Jahresabrechnungen/);
-  await snap("02-desktop-all-annual-records");
+  await snap("02-desktop-object-A-annual-records");
   await click('[data-view="analytics"]');
   await waitFor("return document.querySelector('#appMain h1')?.textContent==='Analysezentrum';");
   assert.equal(await evalJS("return document.querySelectorAll('.tree-property.expanded').length;"),0);
