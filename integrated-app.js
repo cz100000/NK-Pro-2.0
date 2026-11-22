@@ -14,7 +14,8 @@
   v.toLocaleString("de-DE",{style:"currency",currency:"EUR"}):"–";
  const number=v=>Number(v||0).toLocaleString("de-DE",{maximumFractionDigits:1});
  let state=null,secret=null,remote=null,dirty=false,revision=localStorage.getItem(KEY),
-  drive=driveAPI.create(),busy=false,view="overview",archiveId=null,started=false,live=false;
+  drive=driveAPI.create(),busy=false,view="overview",archiveId=null,started=false,live=false,
+  legacyCandidate=null,remoteExisting=false;
  function status(msg,error=false){const el=$("nkSyncMessage");if(!el)return;
   el.textContent=String(msg);el.classList.toggle("error",error);}
  function password(){const v=secret||$("nkSyncPassword").value;
@@ -27,12 +28,14 @@
     "Lokal verschlüsselt":"Echtdaten gesperrt")):(drive.isConnected()?
     "Google Drive · verbunden":"Google Drive · verbinden");
   $("nkSyncDot").classList.toggle("signal-on",drive.isConnected());
-  for(const name of ["nkImport","nkUnlock","nkConnect","nkPull","nkPush","nkBackup"])
+  for(const name of ["nkImport","nkImportDrive","nkUnlock","nkConnect","nkPull","nkPush","nkBackup"])
    if($(name))$(name).disabled=busy;
   $("nkUnlock").disabled=busy||!revision;
   $("nkPush").disabled=busy||!state||!drive.isConnected();
   $("nkPull").disabled=busy||!drive.isConnected();
   $("nkBackup").disabled=busy||!localStorage.getItem(KEY);
+  $("nkImportDrive").disabled=busy||!drive.isConnected()||!!revision||!!state||
+   !legacyCandidate||remoteExisting;
   $("nkLocalMessage").textContent=state?"Echtdaten geöffnet"+(dirty?" · Cloud-Sicherung ausstehend":" · Cloud-Stand bekannt"):
    revision?"Verschlüsselter Datenbestand vorhanden; zum Öffnen Datenpasswort eingeben.":
    "Noch kein privater Datenbestand auf diesem Gerät.";
@@ -74,9 +77,61 @@
   status("Verschlüsselter Echtdatenbestand geöffnet.");
  }
  async function connect(){
-  await drive.signIn(CLIENT);const h=await drive.history();
-  status(h.head?"Google Drive verbunden, verschlüsselte 2.0-Versionen: "+h.count:
-   "Google Drive verbunden. Noch keine NK-Pro-2.0-Cloudversion.");setStatus();
+  await drive.signIn(CLIENT);
+  const h=await drive.history();
+  remoteExisting=!!h.head;legacyCandidate=null;
+  if(h.head){
+   status("Google Drive verbunden. Ein NK-Pro-2.0-Datenbestand ist bereits vorhanden. "+
+    "Bitte „Aus Google Drive laden“ benutzen; vorhandene Daten werden nicht überschrieben.");
+  }else{
+   const sources=await drive.legacySnapshots();
+   legacyCandidate=sources[0]||null;
+   status(legacyCandidate?
+    "Google verbunden: vorhandene Originaldaten aus NK-Pro 1.0 gefunden. "+
+    "Bitte ein Datenpasswort festlegen und „Altdaten direkt aus Drive übernehmen“ wählen. "+
+    "Die Abrechnung 2025 wird ausdrücklich nicht kopiert.":
+    "Google verbunden, aber keine mit diesem OAuth-Client sichtbaren NK-Pro-1.0-Snapshots. "+
+    "Der manuelle Import ist als Ersatzweg verfügbar.");
+  }
+  setStatus();
+ }
+ async function importDirectlyFromDrive(){
+  if(revision||state)throw Error("Es ist bereits ein lokaler 2.0-Datenbestand vorhanden. "+
+   "Dieser wird nicht überschrieben.");
+  if(!drive.isConnected())throw Error("Bitte zuerst mit Google verbinden.");
+  const pass=password();
+  const remoteState=await drive.history();
+  if(remoteState.head)throw Error("Ein 2.0-Cloudbestand existiert bereits. "+
+   "Bitte stattdessen „Aus Google Drive laden“ verwenden.");
+  const sources=await drive.legacySnapshots();
+  if(!sources.length)throw Error("Keine autorisierten NK-Pro-1.0-Quellsicherungen gefunden.");
+  const latest=sources[0];
+  const snapshot=await drive.readLegacySnapshot(latest.id);
+  const migrated=model.migrate(snapshot);
+  const counts=model.summary(migrated);
+  if(counts.objectCount!==1||counts.apartments!==7||
+   counts.archiveCount!==5||counts.year2025Migrated!==false||
+   counts.current2025CostCount!==0)
+   throw Error("Abnahme der historischen Daten fehlgeschlagen. Nichts importiert.");
+  /* Commit locally first. Nothing is written back into the 1.0 Drive folder. */
+  state=migrated;secret=pass;remote=null;dirty=true;
+  await save();$("nkSyncPassword").value="";
+  sessionStorage.setItem("nkpro2_imported_message",
+   "Historischer Datenbestand übernommen: 1 Objekt, 7 Wohnungen, 5 Mietverhältnisse, "+
+   "5 Archive. 2025 wurde nicht migriert.");
+  try {
+   await push(true);
+   sessionStorage.setItem("nkpro2_imported_message",
+    "Historischer Bestand ist jetzt verschlüsselt in deinem Google Drive gesichert: "+
+    "1 Objekt, 7 Wohnungen, 5 Mietverhältnisse und 5 Archive. 2025 bleibt leer.");
+  } catch(error) {
+   sessionStorage.setItem("nkpro2_imported_message",
+    "Altdaten lokal verschlüsselt übernommen, aber Cloud-Sicherung noch ausstehend. "+
+    "Bitte nach erneutem Verbinden „Verschlüsselt in Drive sichern“ wählen.");
+  }
+  if(!live){location.reload();return;}
+  render();
+  status(sessionStorage.getItem("nkpro2_imported_message"));
  }
  async function pull(){
   if(!drive.isConnected())throw Error("Google Drive noch nicht verbunden.");
@@ -129,10 +184,14 @@
   "<button type='button' id='nkUnlock' class='secondary'>Lokale Daten öffnen</button>",
   "<button type='button' id='nkConnect'>Google verbinden</button>",
   "<button type='button' id='nkPull' class='secondary'>Aus Google Drive laden</button></div>",
-  "<div class='nk-cloud-divider'></div><h3>Einmalige Altdatenübernahme</h3>",
-  "<p>Nur Objekt, Wohnungen, Mietverhältnisse, Zählerstamm und archivierte Vorjahre. Die Abrechnung 2025 wird ausschließlich in NK-Pro 2.0 neu erstellt.</p>",
+  "<div class='nk-cloud-divider'></div><h3>Altdaten direkt aus Google Drive übernehmen</h3>",
+  "<p>NK-Pro 2.0 findet deine vorhandenen NK-Pro-1.0-Daten selbst. Es werden nur das Objekt, Wohnungen, Mietverhältnisse, der Zählerstamm und die historischen Archive übernommen. 2025 bleibt vollständig leer.</p>",
+  "<div class='nk-live-actions'><button id='nkImportDrive' type='button'>Altdaten direkt aus Drive übernehmen</button></div>",
+  "<details class='nk-cloud-manual'><summary>Alternative: Sicherungsdatei manuell auswählen</summary>",
+  "<p>Nur nötig, falls Google die ursprünglichen Daten nicht bereitstellt.</p>",
   "<input id='nkSource' type='file' accept='.json,application/json'>",
-  "<div class='nk-live-actions'><button id='nkImport' type='button' class='secondary'>Altdaten prüfen & übernehmen</button></div>",
+  "<div class='nk-live-actions'><button id='nkImport' type='button' class='secondary'>Datei prüfen und übernehmen</button></div>",
+  "</details>",
   "<div class='nk-cloud-divider'></div><div class='nk-live-actions'>",
   "<button type='button' id='nkPush'>Verschlüsselt in Drive sichern</button>",
   "<button type='button' id='nkBackup' class='secondary'>Sicherungsdatei herunterladen</button></div>",
@@ -144,6 +203,7 @@
   for(const id of ["nkSyncClose","nkShade"])$(id).addEventListener("click",()=>{
    $("nkSyncPanel").hidden=true;});
   $("nkImport").addEventListener("click",action(importSource));
+  $("nkImportDrive").addEventListener("click",action(importDirectlyFromDrive));
   $("nkUnlock").addEventListener("click",action(unlock));
   $("nkConnect").addEventListener("click",action(connect));
   $("nkPull").addEventListener("click",action(pull));
@@ -261,6 +321,8 @@
  function bootstrap(){
   if(started)return live;started=true;live=!!revision;
   makePanel();setStatus();
+  const previous=sessionStorage.getItem("nkpro2_imported_message");
+  if(previous){sessionStorage.removeItem("nkpro2_imported_message");status(previous); }
   if(live){
    for(const el of document.querySelectorAll(".nav-item[data-view]"))
     el.addEventListener("click",()=>navigate(el.dataset.view==="overview"?"overview":
