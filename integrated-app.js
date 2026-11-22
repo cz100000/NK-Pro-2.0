@@ -260,6 +260,8 @@
    if(menu)menu.addEventListener("click",()=>$("sidebar").classList.toggle("open"));
    render();
   }
+  if("serviceWorker" in navigator)navigator.serviceWorker.register("./nkpro2-sw.js",{scope:"./"})
+   .catch(e=>status("Offline-App konnte nicht eingerichtet werden: "+e.message,true));
   setInterval(()=>automatic().catch(e=>status(String(e.message||e),true)),45000);
   window.addEventListener("focus",()=>automatic().catch(e=>status(String(e.message||e),true)));
   return live;
