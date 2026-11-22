@@ -71,11 +71,16 @@
   const fmtVolume=v=>Number(v).toLocaleString('de-DE',{maximumFractionDigits:3});
   const parseField=(field)=>{const raw=String(field.value||'').trim().replace(/\s/g,'').replace(',','.');const val=Number(raw);return Number.isFinite(val)?val:NaN};
   const clone=x=>JSON.parse(JSON.stringify(x));
+  let storedRevision=null;
   function load(){
-    try{
-      const prev=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
-      if(prev)return estates.upgradePortfolio(prev);
-    }catch(error){console.warn("Portfolio wird aus sicheren Demomustern neu aufgebaut:",error.message);}
+    const raw=localStorage.getItem(STORAGE_KEY);
+    storedRevision=raw;
+    if(raw!==null){
+      // Fail closed on corrupt or unknown data: never silently overwrite the only local copy.
+      try{return estates.upgradePortfolio(JSON.parse(raw));}
+      catch(error){throw new Error("Lokaler Fachtestbestand kann nicht sicher gelesen werden. "+
+        "Bitte vor einem Zurücksetzen die bestehenden Browserdaten sichern. "+error.message);}
+    }
     return estates.create(initial());
   }
   let portfolio=load(),data=estates.current(portfolio);
@@ -86,8 +91,19 @@
   const master=()=>estates.object(portfolio);
   const activeYear=()=>portfolio.selectedYear;
   const annualLocked=()=>estates.readonly(data);
-  function savePortfolio(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(portfolio));}
-    catch(e){console.warn("Portfolio nicht dauerhaft gespeichert:",e.message);}}
+  function savePortfolio(){
+    // Optimistic local write guard: another browser tab must never be silently overwritten.
+    const onDisk=localStorage.getItem(STORAGE_KEY);
+    if(onDisk!==storedRevision)throw new Error("Der lokale Bestand wurde in einem anderen Tab geändert. Bitte die Seite neu laden.");
+    const serialized=JSON.stringify(portfolio);
+    localStorage.setItem(STORAGE_KEY,serialized);
+    storedRevision=serialized;
+  }
+  function rollbackLocal(){
+    portfolio=storedRevision!==null?estates.upgradePortfolio(JSON.parse(storedRevision)):
+      estates.create(initial());
+    data=estates.current(portfolio);
+  }
   function persist(){
     if(annualLocked())throw new Error("Historical synthetic annual cannot be edited");
     portfolio=estates.saveYear(portfolio,master().id,activeYear(),data);
@@ -977,7 +993,7 @@
           ui.treeSections.years=true;msg='Synthetisches Abrechnungsjahr angelegt.';
         }
         savePortfolio();closeDrawer();render();toast(msg);
-      }catch(e){toast('Anlage nicht möglich: '+e.message)}
+      }catch(e){rollbackLocal();render();toast('Anlage nicht möglich: '+e.message)}
       return;
     }
     if(type.startsWith('master-')||type==='new-master-tenancy'){
@@ -987,7 +1003,7 @@
         data=estates.current(portfolio);
         savePortfolio();
         closeDrawer();render();toast('Stammdaten gespeichert. Jahresabrechnungen bleiben unverändert.');
-      }catch(e){toast('Stammdaten nicht gespeichert: '+e.message)}
+      }catch(e){rollbackLocal();render();toast('Stammdaten nicht gespeichert: '+e.message)}
       return;
     }
     if(annualLocked())return toast('Historischer Musterstand: Änderungen gesperrt.');
@@ -1178,7 +1194,7 @@
         ui.unitDetailId=null;ui.billingHome=true;
         savePortfolio();render();toast(action==='archive-object'?'Objekt archiviert.':
           action==='restore-object'?'Objekt wiederhergestellt.':'Leeres Objekt gelöscht.');
-      }catch(e){toast('Aktion nicht möglich: '+e.message);}
+      }catch(e){rollbackLocal();render();toast('Aktion nicht möglich: '+e.message);}
       return;
     }
     if(action==='select-property'){
@@ -1277,9 +1293,15 @@
     const an=e.target.closest('[data-analytics]');if(an){ui.analytics=an.dataset.analytics;render();return}
     const objectTab=e.target.closest('[data-object-tab]');if(objectTab){ui.objectTab=objectTab.dataset.objectTab;render();return}
     const consumptionTab=e.target.closest('[data-consumption-tab]');if(consumptionTab){ui.consumptionTab=consumptionTab.dataset.consumptionTab;render();return}
-    const action=e.target.closest('[data-action]');if(action){doAction(action.dataset.action,action.dataset.id||'')}
+    const action=e.target.closest('[data-action]');if(action){
+      try{doAction(action.dataset.action,action.dataset.id||'')}
+      catch(error){rollbackLocal();render();toast('Aktion nicht gespeichert: '+error.message)}
+    }
   });
-  document.addEventListener('submit',e=>{if(e.target.id==='editForm'){e.preventDefault();saveDrawer(e.target)}});
+  document.addEventListener('submit',e=>{if(e.target.id==='editForm'){
+    e.preventDefault();
+    try{saveDrawer(e.target)}catch(error){rollbackLocal();render();toast('Änderung nicht gespeichert: '+error.message)}
+  }});
   document.addEventListener('change',e=>{
     if(e.target.id==='d-catalog'){
       const choice=workflow.invoiceCatalog(e.target.value);
@@ -1315,7 +1337,8 @@
   $('resetDemo').addEventListener('click',()=>{
     if(!window.confirm('Gesamten lokalen Fachtestbestand einschließlich neu angelegter Objekte zurücksetzen? Alle lokalen Änderungen an Musterdaten gehen verloren. NK-Pro 1.0 wird nicht verändert.'))return;
     portfolio=estates.create(initial());data=estates.current(portfolio);
-    savePortfolio();ui.objectTab='overview';ui.unitDetailId=null;ui.billingHome=true;
+    try{savePortfolio()}catch(error){rollbackLocal();render();toast('Zurücksetzen nicht gespeichert: '+error.message);return;}
+    ui.objectTab='overview';ui.unitDetailId=null;ui.billingHome=true;
     ui.treeOpenObjectId=null;ui.treeSections={master:false,years:true};
     navigate('overview');toast('Drei Musterobjekte zurückgesetzt.');
   });
