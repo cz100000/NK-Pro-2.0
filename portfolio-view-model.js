@@ -53,7 +53,9 @@
    radiator:"",status:/^(aktiv|active)$/i.test(String(m.status||""))?"active":
    /^(inaktiv|retired|ausgebaut)$/i.test(String(m.status||""))?"retired":
     "placeholder",installedOn:m.installedOn,removedOn:m.removedOn,
-    originalType:m.legacyType||m.type,originalStatus:m.status
+    originalType:({cold:"Kaltwasser",hot:"Warmwasser",
+    "house-water":"Hauswasserzähler",unknown:"Zähler"}[m.type]||
+    m.legacyType||m.type),sourceType:m.legacyType||m.type,originalStatus:m.status
   }));
   need(new Set(o.archives.map(a=>a.id)).size===o.archives.length,
    "ORIGINAL_ARCHIVE_IDS_NOT_UNIQUE");
