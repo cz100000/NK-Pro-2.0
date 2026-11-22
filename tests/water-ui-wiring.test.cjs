@@ -13,7 +13,7 @@ test("water editor includes KW and WW source readings, dates, meter number and n
 });
 test("water overview shows EUR/m3 price and both water reconciliation differences",()=>{
  for(const text of ["Preis je m³","delta.invoiceHouse","delta.houseUnits",
-  "edit-water-price","cost-note-cell","Notiz / Bemerkung","priceMode","unitPrice"])
+  "edit-water-price","cost-master-table","costPricePreview","invoiceConsumption","Notiz / Bemerkung","priceMode","unitPrice"])
   assert.ok(app.includes(text),"Missing UI: "+text);
 });
 test("domain modules load in order and original production browser data stays out of scope",()=>{
