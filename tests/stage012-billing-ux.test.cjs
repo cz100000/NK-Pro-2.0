@@ -22,7 +22,7 @@ function browser(){
  const ctx=vm.createContext(win,{name:"nkpro2-stage-012"});
  const names=["demo-ledger.js","experimental/settlement-cost.js","water-detail.js",
    "synthetic-billing.js","synthetic-property.js","synthetic-workflow.js",
-   "synthetic-case-billing.js","synthetic-letters.js","synthetic-review.js",
+   "synthetic-case-billing.js","synthetic-letters.js","legacy-letter-engine.js","letter-workspace-ui.js","synthetic-review.js",
    "synthetic-estate.js","synthetic-master-ui.js","app.js"];
  for(const file of names)vm.runInContext(fs.readFileSync(path.join(root,file),"utf8"),
    ctx,{filename:file,timeout:5000});
