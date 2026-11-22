@@ -21,10 +21,10 @@ Das neue Importmodul hat den Original-Snapshot NK-Pro V99.4.81 vom 21.11.2026 un
 | Wohnfläche | 391,5 m² |
 | Zähler / Messwerte / Messperioden | 16 / 90 / 58 |
 | Archive | 5 (2024, 2023/Alt, 2023/Voll, 2022, 2021/2022) |
-| K002 | 164.231 Cent |
-| K006 | 996.597 Cent |
-| K009 | 150.300 Cent |
-| Techem-Versorgung + separate Vermieterposition | 996.209 + 388 = 996.597 Cent |
+| K002 | Originalbetrag ausschließlich im privaten Migrationsprüflauf geprüft |
+| K006 | Originalbetrag ausschließlich im privaten Migrationsprüflauf geprüft |
+| K009 | Originalbetrag ausschließlich im privaten Migrationsprüflauf geprüft |
+| Techem-Verteilung + separate Vermieterposition | Vollständig geprüft, ohne Veröffentlichungen einzelner Rechnungswerte |
 | Vorhandene Quell-Integritätschecksumme | stimmt |
 | M000 – bestätigter Stammdateneinzug | 01.01.2010; ursprünglicher Quellwert bleibt im Originalnachweis |
 | Abrechnung 2025 | Entwurf, keine Freigabe |

@@ -97,7 +97,7 @@ const chromeBinary=()=>{
   await evalJS("document.querySelector('#nkSyncButton').click();"+
    "document.querySelector('#nkSyncPassword').value='Synthetic Long Passphrase 2026';"+
    "document.querySelector('#nkUnlock').click();");
-  await until("return document.querySelector('#appMain h1')?.textContent.includes('Objekt Am Rauhen Biehl 5');");
+  await until("return document.querySelector('#appMain h1')?.textContent.includes('Synthetisches Haus');");
   assert.equal(await evalJS("return document.querySelectorAll('#portfolioTree button[data-nk-view]').length;"),6);
   assert.equal(await evalJS("return document.querySelectorAll('#appMain .nk-live-archive').length;"),5);
   await evalJS("document.querySelector('#nkSyncClose').click();");
@@ -119,7 +119,7 @@ const chromeBinary=()=>{
   const annual=await evalJS("return document.querySelector('#appMain').textContent;");
   assert.ok(annual.includes("keine Altwerte")||annual.includes("nicht migriert"));
   assert.ok(annual.includes("Kosten erfasst"));
-  assert.ok(!annual.includes("9.965,97"),"2025 Techem values must not appear");
+  assert.ok(!annual.includes("7.890,12"),"2025 Techem values must not appear");
   await shot("integrated-05-blank-2025");
   await cmd("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});
   await pause(400);
@@ -142,7 +142,7 @@ const chromeBinary=()=>{
   await evalJS("document.querySelector('#nkSyncButton').click();"+
    "document.querySelector('#nkSyncPassword').value='Synthetic Long Passphrase 2026';"+
    "document.querySelector('#nkUnlock').click();");
-  await until("return document.querySelector('#appMain h1')?.textContent.includes('Objekt Am Rauhen Biehl 5');");
+  await until("return document.querySelector('#appMain h1')?.textContent.includes('Synthetisches Haus');");
   console.log("INTEGRATED_CHROMIUM_PASS: Systemstatus, 5 archives, one object, no legacy 2025 costs, AES cache, mobile and offline restore");
  }finally{
   if(ws&&ws.readyState===WebSocket.OPEN)ws.close();

@@ -9,12 +9,12 @@ function fixture(){
     status:"Aktiv",abrechnungRolle:"Eigentümer/Privat",personen:1},
    {id:"M001",wohnung:"W001.EG-L",name:"Example Tenant",einzug:"2022-01-01",
     status:"Aktiv",abrechnungRolle:"Mieter",personen:1}];
- const costs=[{id:"K002",kostenart:"Wasserversorgung",gesamtbetrag:1642.31,inNK:"Ja"},
-   {id:"K006",kostenart:"Heiz- und Warmwasserkosten",gesamtbetrag:9965.97,inNK:"Ja"},
-   {id:"K009",kostenart:"Müllbeseitigung",gesamtbetrag:1503,inNK:"Ja"}];
+ const costs=[{id:"K002",kostenart:"Wasserversorgung",gesamtbetrag:1234.56,inNK:"Ja"},
+   {id:"K006",kostenart:"Heiz- und Warmwasserkosten",gesamtbetrag:7890.12,inNK:"Ja"},
+   {id:"K009",kostenart:"Müllbeseitigung",gesamtbetrag:1111,inNK:"Ja"}];
  const caseValues={
-  "tenant:M001:W001.EG-L:2025-01-01:2025-12-31":{amount:8000,source:"Techem Gesamtabrechnung 2025"},
-  "private:M000:W000.UG:2025-01-01:2025-12-31":{amount:1962.09,source:"Techem Gesamtabrechnung 2025"}
+  "tenant:M001:W001.EG-L:2025-01-01:2025-12-31":{amount:6000,source:"Techem Gesamtabrechnung 2025"},
+  "private:M000:W000.UG:2025-01-01:2025-12-31":{amount:1886.24,source:"Techem Gesamtabrechnung 2025"}
  };
  const archives=[
   {year:"2023",snapshotId:"old-2023",immutable:true,snapshotStatus:"legacy-partial",data:{year:2023,water:123}},
@@ -24,8 +24,8 @@ function fixture(){
  const d={meta:{dataSchemaVersion:5,abrechnungsjahr:"2025",
     abrechnungsbeginn:"2025-01-01",abrechnungsende:"2025-12-31",
     currentBillingFinalized:false,storageIntegrityAlgorithm:"FNV1A32",
-    confirmed2025Evidence:{water:{invoiceTotal:1642.31},
-     waste:{invoiceTotal:1503},techem:{total:9965.97}}},
+    confirmed2025Evidence:{water:{invoiceTotal:1234.56},
+     waste:{invoiceTotal:1111},techem:{total:7890.12}}},
    wohnungen:units,mieter:tenants,kostenarten:costs,
    stammdaten:{wohnungen:units,mieter:tenants},
    objektStandard:{objekt:{id:"OBJ-001",bezeichnung:"Synthetic 1"},
@@ -35,8 +35,8 @@ function fixture(){
     messwerte:[{messwertId:"R-1",zaehlerId:"MTR-1",wert:10.3}],
     messperioden:[{messperiodeId:"MP-1",zaehlerId:"MTR-1"}],zuordnungen:[],zaehlerwechsel:[]},
    jahresArchiv:archives,vorauszahlungen:[{kostenId:"K002",werte:[240,240]}],
-   umlageInputs:{K006:{caseValues,externalBilling:{includedOwnerShare:3.88,totalCost:9965.97}}},
-   waterMeters:{settings:{houseMeterStart:911,houseMeterEnd:1186,houseWaterTotal:275}}};
+   umlageInputs:{K006:{caseValues,externalBilling:{includedOwnerShare:3.88,totalCost:7890.12}}},
+   waterMeters:{settings:{houseMeterStart:100,houseMeterEnd:150,houseWaterTotal:50}}};
  d.meta.storageIntegrityChecksum=model.fnv(JSON.stringify((()=>{const x=clone(d);
   delete x.meta.storageIntegrityAlgorithm;return x;})()));
  return {format:"nkpro-drive-snapshot-v1",snapshotId:"fake-uuid-12345678",
@@ -48,7 +48,7 @@ test("V99.4.81 signed snapshot converts to isolated full private domain model",(
  assert.equal(s.areaSqm,127.5);assert.equal(s.archiveCount,3);
  assert.deepEqual(s.archiveYears,["2023","2023","2024"]);
  assert.equal(s.meterReadingCount,1);assert.equal(s.billingStatus,"draft");
- assert.deepEqual(s.costsCents,{K002:164231,K006:996597,K009:150300});
+ assert.deepEqual(s.costsCents,{K002:123456,K006:789012,K009:111100});
  assert.equal(p.objects[0].tenancies.find(t=>t.id==="M000").leaseStart,"2010-01-01");
  assert.equal(p.objects[0].tenancies.find(t=>t.id==="M000").billingParticipant,true);
  assert.equal(p.objects[0].tenancies.find(t=>t.id==="M000").privateUse,true);
@@ -58,14 +58,14 @@ test("V99.4.81 signed snapshot converts to isolated full private domain model",(
  assert.equal(before,JSON.stringify(source),"migration never modifies original data");
 });
 test("Tampered source or wrong invoice evidence rejects migration",()=>{
- let x=fixture();x.data.kostenarten[0].gesamtbetrag=1642.32;
+ let x=fixture();x.data.kostenarten[0].gesamtbetrag=1234.57;
  assert.throws(()=>model.migrate(x),/SOURCE_INTEGRITY_FAILED/);
- x=fixture();x.data.kostenarten[0].gesamtbetrag=1642.32;
+ x=fixture();x.data.kostenarten[0].gesamtbetrag=1234.57;
  delete x.data.meta.storageIntegrityChecksum;assert.equal(model.integrity(x.data),false);
 });
 test("Techem allocated cases and owner-only 3.88 must reconcile exactly",()=>{
  const x=fixture(),row=x.data.umlageInputs.K006.caseValues[Object.keys(x.data.umlageInputs.K006.caseValues)[0]];
- row.amount=7999.99;delete x.data.meta.storageIntegrityChecksum;
+ row.amount=5999.99;delete x.data.meta.storageIntegrityChecksum;
  const cloneData=clone(x.data);delete cloneData.meta.storageIntegrityAlgorithm;
  x.data.meta.storageIntegrityChecksum=model.fnv(JSON.stringify(cloneData));
  assert.throws(()=>model.migrate(x),/SOURCE_TECHEM_RECONCILIATION/);
