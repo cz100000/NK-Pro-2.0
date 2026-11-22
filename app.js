@@ -340,7 +340,22 @@
         '<div class="drawer-note">Nur fiktive Musterpersonen erfassen – keine echten Mieterdaten. Überlappungen oder fehlende Verbrauchsaufteilungen verhindern die Musterabrechnung.</div></form>';
     }else if(type==='cost'||type==='new-cost'){
       const c=type==='new-cost'?{name:'',amount:'',landlordShare:0,category:'Betriebskosten',method:'Fläche'}:data.costs.find(x=>x.id===id);if(!c)return;
-      title=type==='new-cost'?'Kostenart hinzufügen':c.name;eyebrow='GESAMTKOSTEN';body=`<form id="editForm" data-type="${type}"><div class="form-row"><label for="d-name">Kostenart</label><input id="d-name" name="name" required maxlength="60" value="${safeText(c.name)}"></div><div class="form-row"><label for="d-amount">Gesamtbetrag (€)</label><input id="d-amount" name="amount" type="number" required step="0.01" min="0.01" value="${c.amount}"></div><div class="form-row"><label for="d-landlord">Davon Vermieteranteil (€) · Muster</label><input id="d-landlord" name="landlordShare" type="number" step="0.01" min="0" value="${c.landlordShare??0}"><p class="form-help">Dieser Betrag wird nicht den Wohnungen zugerechnet. Eine echte Techem-Verteilung ist noch nicht implementiert.</p></div><div class="form-row"><label for="d-method">Umlageschlüssel · synthetischer Fachtest</label><select id="d-method" name="method">${functionalBilling.METHODS.filter(m=>m!=='Wohnfläche').map(m=>'<option value="'+safeText(m)+'" '+(c.method===m?'selected':'')+'>'+safeText(m==='Fläche'?'Wohnfläche':m)+'</option>').join('')}</select><p class="form-help">Sechs portierte Originalverfahren. Berechnung nach individuellen Mietverhältnissen und Zeiträumen; weiterhin nur synthetische Daten.</p></div><div class="form-row" data-price-group ${c.method==='Verbrauch'?'':'hidden'}><label for="d-price-mode">Preis je Verbrauchseinheit</label><select id="d-price-mode" name="priceMode"><option value="auto" ${c.priceMode!=='manual'?'selected':''}>Automatisch aus umlagefähigen Kosten / Rechnungsmenge</option><option value="manual" ${c.priceMode==='manual'?'selected':''}>Manuelle Preisvorgabe</option></select><p class="form-help">Bei Wasser gilt €/m³. Der automatische Preis wird mit vier Nachkommastellen angezeigt.</p></div><div class="form-row" data-manual-price ${c.method==='Verbrauch'&&c.priceMode==='manual'?'':'hidden'}><label for="d-unit-price">Manueller Preis je Einheit (€)</label><input id="d-unit-price" name="unitPrice" type="number" step="0.0001" min="0.0001" max="100000" value="${safeText(c.unitPrice??'')}"><p class="form-help">Abweichende Einheitspreise können nicht zugeordnete Restkosten ergeben; diese bleiben prüfpflichtig.</p></div><div class="form-row"><label for="d-cost-note">Notiz / Bemerkung (optional)</label><textarea id="d-cost-note" name="note" rows="5" maxlength="2000" placeholder="Belegnummer, Hinweise oder interne Erläuterungen …">${safeText(c.note||'')}</textarea><p class="form-help">Interne Notiz, nicht automatisch Teil der Mieterbriefe.</p></div><div class="drawer-note">Veränderte Musterwerte werden nur im isolierten Demo-Speicher abgelegt. Es erfolgt kein Zugriff auf die bestehende NK-Pro-App.</div></form>`;
+      const specificConsumption=!!(c.id&&c.id==='water');
+      const costBasisFields='<div data-consumption-context '+(c.method==='Verbrauch'&&!specificConsumption?'':'hidden')+'>'+
+        '<fieldset class="water-fieldset"><legend>Eigene Verbrauchsgrundlage für diese Kostenart</legend>'+
+        '<div class="water-form-grid"><div class="form-row"><label>Gesamtverbrauch<input name="consumptionTotal" type="number" min="0.001" step="0.001" value="'+safeText(c.consumptionTotal??'')+'"></label></div>'+
+        '<div class="form-row"><label>Verbrauchseinheit<input name="consumptionUnit" maxlength="12" value="'+safeText(c.consumptionUnit||'m³')+'"></label></div></div>'+
+        '<p class="form-help">Jede Verbrauchskostenart benötigt ihren eigenen Gesamtverbrauch und Einzelwerte. Keine automatische Übernahme des Wasser-Hauszählers.</p>'+
+        data.tenancies.map(t=>'<div class="form-row"><label>'+safeText(t.name)+' · '+safeText(t.id)+'<input data-case-consumption="'+safeText(t.id)+'" type="number" step="0.001" min="0" value="'+safeText(c.consumptionByTenant?.[t.id]??'')+'"></label></div>').join('')+
+        '</fieldset></div>';
+      const costAllocationFields='<details class="cost-exceptions"><summary>Zuordnung und Ausnahmen</summary>'+
+        '<div class="form-row"><label>Bei ausgeschlossenen Fällen<select name="exclusionMode">'+
+          '<option value="full" '+(c.exclusionMode!=='owner'?'selected':'')+'>Auf berechtigte Teilnehmer verteilen</option>'+
+          '<option value="owner" '+(c.exclusionMode==='owner'?'selected':'')+'>Anteil nicht berechtigter Fälle ausweisen</option></select></label></div>'+
+        data.tenancies.map(t=>'<label class="case-checkbox"><input type="checkbox" data-case-exclude="'+safeText(t.id)+'" '+
+          ((c.excludedTenantIds||[]).includes(t.id)?'checked':'')+'> '+safeText(t.name)+' ('+safeText(t.id)+') ausschließen</label>').join('')+
+        '<p class="form-help">Ausschlüsse werden je Kostenart geführt; sie gelten auch für die Privatrolle nicht automatisch.</p></details>';
+      title=type==='new-cost'?'Kostenart hinzufügen':c.name;eyebrow='GESAMTKOSTEN';body=`<form id="editForm" data-type="${type}" data-cost-id="${safeText(c.id||'')}"><div class="form-row"><label for="d-name">Kostenart</label><input id="d-name" name="name" required maxlength="60" value="${safeText(c.name)}"></div><div class="form-row"><label for="d-amount">Gesamtbetrag (€)</label><input id="d-amount" name="amount" type="number" required step="0.01" min="0.01" value="${c.amount}"></div><div class="form-row"><label for="d-landlord">Davon Vermieteranteil (€) · Muster</label><input id="d-landlord" name="landlordShare" type="number" step="0.01" min="0" value="${c.landlordShare??0}"><p class="form-help">Dieser Betrag wird nicht den Wohnungen zugerechnet. Eine echte Techem-Verteilung ist noch nicht implementiert.</p></div><div class="form-row"><label for="d-method">Umlageschlüssel · synthetischer Fachtest</label><select id="d-method" name="method">${functionalBilling.METHODS.filter(m=>m!=='Wohnfläche').map(m=>'<option value="'+safeText(m)+'" '+(c.method===m?'selected':'')+'>'+safeText(m==='Fläche'?'Wohnfläche':m)+'</option>').join('')}</select><p class="form-help">Sechs portierte Originalverfahren. Berechnung nach individuellen Mietverhältnissen und Zeiträumen; weiterhin nur synthetische Daten.</p></div><div class="form-row" data-price-group ${c.method==='Verbrauch'?'':'hidden'}><label for="d-price-mode">Preis je Verbrauchseinheit</label><select id="d-price-mode" name="priceMode"><option value="auto" ${c.priceMode!=='manual'?'selected':''}>Automatisch aus umlagefähigen Kosten / Rechnungsmenge</option><option value="manual" ${c.priceMode==='manual'?'selected':''}>Manuelle Preisvorgabe</option></select><p class="form-help">Bei Wasser gilt €/m³. Der automatische Preis wird mit vier Nachkommastellen angezeigt.</p></div>${costBasisFields}${costAllocationFields}<div class="form-row" data-manual-price ${c.method==='Verbrauch'&&c.priceMode==='manual'?'':'hidden'}><label for="d-unit-price">Manueller Preis je Einheit (€)</label><input id="d-unit-price" name="unitPrice" type="number" step="0.0001" min="0.0001" max="100000" value="${safeText(c.unitPrice??'')}"><p class="form-help">Abweichende Einheitspreise können nicht zugeordnete Restkosten ergeben; diese bleiben prüfpflichtig.</p></div><div class="form-row"><label for="d-cost-note">Notiz / Bemerkung (optional)</label><textarea id="d-cost-note" name="note" rows="5" maxlength="2000" placeholder="Belegnummer, Hinweise oder interne Erläuterungen …">${safeText(c.note||'')}</textarea><p class="form-help">Interne Notiz, nicht automatisch Teil der Mieterbriefe.</p></div><div class="drawer-note">Veränderte Musterwerte werden nur im isolierten Demo-Speicher abgelegt. Es erfolgt kein Zugriff auf die bestehende NK-Pro-App.</div></form>`;
     } else if(type==='water'||type==='advance'||type==='unit'){
       const u=data.units.find(x=>x.id===id);if(!u)return;title=u.label;eyebrow=type==='water'?'VERBRAUCHSDATEN':type==='advance'?'VORAUSZAHLUNGEN':'WOHNUNGSSTAMM';
       if(type==='water'){
@@ -435,11 +450,23 @@
       if(mode==='manual'&&(!rawPrice||!Number.isFinite(unitPrice)||unitPrice<=0||unitPrice>100000||
         Math.abs(unitPrice*10000-Math.round(unitPrice*10000))>1e-6))
         return toast('Einheitspreis: positiv, höchstens vier Nachkommastellen.');
+      const consumptionInputs=Object.fromEntries([...form.querySelectorAll('[data-case-consumption]')].filter(el=>el.value.trim()!=='').map(el=>[el.dataset.caseConsumption,Number(el.value)]));
+      if(method==='Verbrauch'&&id!=='water'){
+        const total=String(form.elements.consumptionTotal.value).trim();
+        if(!total||!Number.isFinite(Number(total))||Number(total)<=0||
+          Object.values(consumptionInputs).some(v=>!Number.isFinite(v)||v<0))
+          return toast('Eigene Gesamt- und Einzelverbräuche müssen gültige Mengen enthalten.');
+      }
+      const exclusions=[...form.querySelectorAll('[data-case-exclude]')].filter(el=>el.checked).map(el=>el.dataset.caseExclude);
       const value={name,amount:round(amt),landlordShare:round(landlordShare),method,
+        exclusionMode:form.elements.exclusionMode.value,excludedTenantIds:exclusions,
+        consumptionTotal:method==='Verbrauch'&&id!=='water'?Number(form.elements.consumptionTotal.value):(id==='water'?data.houseWater:null),
+        consumptionUnit:method==='Verbrauch'&&id!=='water'?form.elements.consumptionUnit.value.trim().slice(0,12)||'Einheit':'m³',
+        consumptionByTenant:method==='Verbrauch'&&id!=='water'?consumptionInputs:{},
         priceMode:mode,unitPrice:mode==='manual'?unitPrice:null,
         note:form.elements.note.value.trim().slice(0,2000)};
       if(type==='cost')Object.assign(data.costs.find(x=>x.id===id),value);
-      else data.costs.push({id:'new-'+Date.now(),category:'Betriebskosten',label:'Musterdaten',...value});
+      else data.costs.push({id:'SYN-K-'+Date.now().toString(36).toUpperCase(),category:'Betriebskosten',label:'Musterdaten',...value});
       if(id==='heat'){data.heatingEvidence=false;data.heatingEvidenceFingerprint=null}
     }else if(type==='water'){
       const u=data.units.find(x=>x.id===id),next={};
@@ -520,6 +547,7 @@
       const f=$('editForm');if(!f)return;
       const consume=f.elements.method.value==='Verbrauch';
       f.querySelectorAll('[data-price-group]').forEach(el=>el.hidden=!consume);
+      f.querySelectorAll('[data-consumption-context]').forEach(el=>el.hidden=!consume||f.dataset.costId==='water');
       f.querySelectorAll('[data-manual-price]').forEach(el=>el.hidden=!consume||f.elements.priceMode.value!=='manual');
     }
   });
