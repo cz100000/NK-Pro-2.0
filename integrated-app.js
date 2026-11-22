@@ -7,14 +7,8 @@
  const KEY="nkpro2_live_cloud_encrypted_v1",OLD="nkpro2_live_previous_encrypted_v1",
   CLIENT="603460345425-d6b85th20j9vnvj38lmrr9ndbordguo7.apps.googleusercontent.com";
  const $=id=>document.getElementById(id);
- const clean=v=>String(v??"").replace(/[&<>"']/g,c=>({
-  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
- }[c]));
- const eur=v=>typeof v==="number"&&Number.isFinite(v)?
-  v.toLocaleString("de-DE",{style:"currency",currency:"EUR"}):"–";
- const number=v=>Number(v||0).toLocaleString("de-DE",{maximumFractionDigits:1});
  let state=null,secret=null,remote=null,dirty=false,revision=localStorage.getItem(KEY),
-  drive=driveAPI.create(),busy=false,view="overview",archiveId=null,started=false,live=false,
+  drive=driveAPI.create(),busy=false,started=false,
   legacyCandidate=null,remoteExisting=false;
  function status(msg,error=false){const el=$("nkSyncMessage");if(!el)return;
   el.textContent=String(msg);el.classList.toggle("error",error);}
@@ -23,10 +17,9 @@
   return v;}
  function setStatus(){
   if(!$("nkSyncLabel"))return;
-  $("nkSyncLabel").textContent=live?(drive.isConnected()?(dirty?
-   "Google Drive · ungesichert":"Google Drive · verbunden"):(state?
-    "Lokal verschlüsselt":"Echtdaten gesperrt")):(drive.isConnected()?
-    "Google Drive · verbunden":"Google Drive · verbinden");
+  $("nkSyncLabel").textContent=drive.isConnected()?
+   (dirty?"Google Drive · lokal geändert":"Google Drive · verbunden"):
+   state?"Lokal verschlüsselt":revision?"Echtdaten gesperrt":"Google Drive · verbinden";
   $("nkSyncDot").classList.toggle("signal-on",drive.isConnected());
   for(const name of ["nkImport","nkImportDrive","nkUnlock","nkConnect","nkPull","nkPush","nkBackup"])
    if($(name))$(name).disabled=busy;
