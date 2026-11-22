@@ -23,8 +23,8 @@ function source(){
    wohnungen:copy(units),meta:{abrechnungsjahr:year}}});
  const d={
   meta:{dataSchemaVersion:5,abrechnungsjahr:"2025",storageIntegrityAlgorithm:"FNV1A32"},
-  objektStandard:{objekt:{id:"OBJ-001",bezeichnung:"Objekt Am Rauhen Biehl 5"},
-   gebaeude:[{id:"GEB-001",strasse:"Am Rauhen Biehl 5",plz:"55774",ort:"Baumholder"}],
+  objektStandard:{objekt:{id:"OBJ-001",bezeichnung:"Synthetisches Haus"},
+   gebaeude:[{id:"GEB-001",strasse:"Testweg 12",plz:"00001",ort:"Musterstadt"}],
    einheiten:units,kostenarten:costs},
   stammdaten:{wohnungen:units,mieter:tenants},wohnungen:units,mieter:tenants,
   kostenarten:costs,
@@ -51,8 +51,8 @@ test("Real master and 5 historical archives migrate into one object; 2025 billin
  const snapshot=source(),before=JSON.stringify(snapshot);
  const p=integrated.migrate(snapshot),s=integrated.summary(p),o=p.objects[0];
  assert.equal(p.objects.length,1);assert.equal(s.objectCode,"ARB5");
- assert.equal(o.name,"Objekt Am Rauhen Biehl 5");
- assert.equal(o.street,"Am Rauhen Biehl 5");
+ assert.equal(o.name,"Synthetisches Haus");
+ assert.equal(o.street,"Testweg 12");
  assert.equal(s.apartments,7);assert.equal(s.tenancies,5);assert.equal(s.meters,16);
  assert.deepEqual(s.years,["2024","2023","2023","2022","2021/2022"]);
  assert.equal(o.tenancies.find(x=>x.id==="M000").leaseStart,"2010-01-01");
