@@ -53,7 +53,7 @@ test("object and year switching does not mutate other selected contexts",()=>{
  assert.equal(e.current(c).period,"2023");
  assert.equal(e.current(x).period,"2025");
  assert.deepEqual(e.validate(JSON.parse(JSON.stringify(c))),c);
- assert.throws(()=>e.selectYear(x,"SYN-B","2025"),/Unknown/);
+ assert.throws(()=>e.selectYear(x,"SYN-B","2025"),/Abrechnungsjahr fehlt|Unknown/);
 });
 test("master validation rejects tenure overlaps and bad units",()=>{
  const x=make(),o=x.objects[1],t=o.tenancies[1];

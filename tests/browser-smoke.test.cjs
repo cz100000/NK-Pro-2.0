@@ -47,7 +47,7 @@ test("0.7 boots a genuine 3-property portfolio and a clear 7-year overview",()=>
  assert.equal(p.objects.length,3);
  assert.deepEqual(p.objects.map(o=>o.units.length),[7,3,2]);
  assert.equal(p.objects.reduce((n,o)=>n+Object.keys(o.settlements).length,0),7);
- assert.match(x.html(),/Immobilienbestand/);
+ assert.match(x.html(),/Startseite/);
  assert.match(x.tree(),/Musterobjekt A/);
  assert.match(x.tree(),/Musterobjekt B/);
  assert.match(x.tree(),/Musterobjekt C/);
