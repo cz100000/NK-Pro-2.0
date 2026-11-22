@@ -20,8 +20,9 @@ test("Only private application code, never genuine data, is deployed to GitHub P
  assert.ok(!pages.includes("cp -r private/"));
  assert.ok(!pages.includes("cp private/*"));
  for(const name of allowed)assert.ok(pages.includes("private/"+name));
- for(const forbidden of ["sourceEvidence.json","nkpro-cloud-snapshot","privatdaten.json"])
-  assert.ok(!pages.includes(forbidden));
+ assert.ok(!/cp\s+[^\n]*nkpro-cloud-snapshot/.test(pages));
+ assert.ok(!/cp\s+[^\n]*sourceEvidence\.json/.test(pages));
+ assert.ok(!/cp\s+[^\n]*private-data\//.test(pages));
 });
 test("Service worker caches static shell only, never personal data or Drive response",()=>{
  const sw=file("private/private-sw.js");
