@@ -20,8 +20,9 @@ jobs:
           node --check private/vault-crypto.js
           node --check private/drive-adapter.js
           node --check private/private-app.js
+          node --check private/private-sw.js
           node --check scripts/verify-private-snapshot.cjs
-          node -e 'const fs=require("node:fs"); const h=fs.readFileSync("private/index.html","utf8"); for(const f of ["private-model.js","vault-crypto.js","drive-adapter.js","private-app.js","private.css"]) if(!h.includes("./"+f)||!fs.existsSync("private/"+f)) throw Error("Missing private dependency: "+f); const y=fs.readFileSync(".github/workflows/pages.yml","utf8"); if(/cp\s+.*private\//.test(y)||/copy\s+.*private\//.test(y)) throw Error("Unsafe private staging in public Pages"); const publicHtml=fs.readFileSync("index.html","utf8"); if(publicHtml.includes("private/private-app.js"))throw Error("Private scripts linked into public demo");'
+          node -e 'const fs=require("node:fs"); const h=fs.readFileSync("private/index.html","utf8"); for(const f of ["private-model.js","vault-crypto.js","drive-adapter.js","private-app.js","private.css","private-sw.js","private.webmanifest"]) if(!h.includes("./"+f)||!fs.existsSync("private/"+f)) throw Error("Missing private dependency: "+f); const y=fs.readFileSync(".github/workflows/pages.yml","utf8"); if(/cp\s+.*private\//.test(y)||/copy\s+.*private\//.test(y)) throw Error("Unsafe private staging in public Pages"); const publicHtml=fs.readFileSync("index.html","utf8"); if(publicHtml.includes("private/private-app.js"))throw Error("Private scripts linked into public demo");'
       - run: npm test
       - name: Chromium real-click and responsive visual acceptance
         run: node tests/browser-visual-e2e.cjs
