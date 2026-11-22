@@ -94,6 +94,73 @@
    }
    return {complete:true,valid:true,consumption:total,rawConsumption:raw,segments:rows.length,reason:"OK"};
  }
+ function previousDay(s){return new Date(Date.parse(s+"T00:00:00Z")-86400000).toISOString().slice(0,10)}
+ function followingDay(s){return new Date(Date.parse(s+"T00:00:00Z")+86400000).toISOString().slice(0,10)}
+ function vacancyFromReadings(state){
+   assertSynthetic(state);
+   const out={};
+   if(!Array.isArray(state.tenancies))return out;
+   for(const u of state.units){
+     const tenancy=state.tenancies.filter(t=>t.unitId===u.id&&date(t.start)&&date(t.end))
+       .map(t=>({...t,start:t.start<"2025-01-01"?"2025-01-01":t.start,
+         end:t.end>"2025-12-31"?"2025-12-31":t.end}))
+       .filter(t=>t.start<=t.end).sort((a,b)=>a.start.localeCompare(b.start));
+     const gaps=[],channels=["cold","hot"],gapRows=[];
+     let nextStart="2025-01-01",previous=null;
+     for(const t of tenancy){
+       if(t.start>nextStart)gaps.push({start:nextStart,end:previousDay(t.start),
+         before:previous?.end||"2025-01-01",after:t.start});
+       if(followingDay(t.end)>nextStart)nextStart=followingDay(t.end);
+       previous=t;
+     }
+     if(nextStart<="2025-12-31")gaps.push({start:nextStart,end:"2025-12-31",
+       before:previous?.end||"2025-01-01",after:"2025-12-31"});
+     let complete=true,cold=0,hot=0;
+     for(const gap of gaps){
+       const quantities={};
+       for(const key of channels){
+         const meter=u.waterMeters?.[key],history=meter?.interimReadings||[];
+         const read=when=>{
+           if(meter?.segments?.length>1)return null; // never subtract across replaced physical meters
+           const record=history.find(x=>x.date===when);
+           if(record&&volume(record.value))return Number(record.value);
+           if(meter?.startDate===when&&volume(meter.start))return Number(meter.start);
+           if(meter?.endDate===when&&volume(meter.end))return Number(meter.end);
+           return null;
+         };
+         const before=read(gap.before),after=read(gap.after);
+         if(before===null||after===null||after<before){quantities[key]=null;complete=false;}
+         else quantities[key]=after-before;
+       }
+       if(quantities.cold!==null)cold+=quantities.cold;
+       if(quantities.hot!==null)hot+=quantities.hot;
+       gapRows.push({...gap,days:(Date.parse(gap.end)-Date.parse(gap.start))/86400000+1,
+         cold:quantities.cold,hot:quantities.hot,valid:quantities.cold!==null&&quantities.hot!==null});
+     }
+     out[u.id]={valid:complete,cold:gaps.length&&complete?cold:0,
+       hot:gaps.length&&complete?hot:0,gaps:gapRows};
+   }
+   return out;
+ }
+ function addInterimReading(state,unitId,kind,at,value){
+   assertSynthetic(state);
+   if(!date(at)||!["cold","hot"].includes(kind)||!volume(value))
+     throw new RangeError("Invalid synthetic interim reading");
+   const result=upgrade(state),u=result.units.find(x=>x.id===unitId);
+   if(!u?.waterMeters?.[kind])throw new RangeError("Unknown meter");
+   const meter=u.waterMeters[kind];
+   if(!date(meter.startDate)||!date(meter.endDate)||at<meter.startDate||at>meter.endDate)
+     throw new RangeError("Reading date outside physical period");
+   const history=Array.isArray(meter.interimReadings)?meter.interimReadings.slice():[];
+   if(history.some(x=>x.date===at))throw new RangeError("Duplicate interim reading date");
+   const all=[{date:meter.startDate,value:meter.start},...history,
+     {date:meter.endDate,value:meter.end},{date:at,value:Number(value)}]
+     .sort((a,b)=>a.date.localeCompare(b.date));
+   for(let i=1;i<all.length;i++)if(all[i].date>all[i-1].date&&Number(all[i].value)<Number(all[i-1].value))
+     throw new RangeError("Interim reading reverses meter sequence");
+   meter.interimReadings=[...history,{date:at,value:Number(value)}].sort((a,b)=>a.date.localeCompare(b.date));
+   return result;
+ }
  function precisionPolicy(state){
    const v=state?.meta?.confirmed2025Evidence?.water;
    return state?.period==="2025"&&v?.houseConsumption===275&&v?.readingDate==="2025-12-30";
@@ -113,7 +180,7 @@
  }
  function diagnostics(state){
    assertSynthetic(state);
-   const issues=[],roundEach=precisionPolicy(state);
+   const issues=[],roundEach=precisionPolicy(state),vacancyByUnit=vacancyFromReadings(state);
    const rows=state.units.map(u=>{
      const cold=meterResult(u.waterMeters?.cold,{roundEachToWhole:roundEach});
      const hot=meterResult(u.waterMeters?.hot,{roundEachToWhole:roundEach});
@@ -139,7 +206,7 @@
      houseUnits:house.valid&&totals.units!==null?house.consumption-totals.units:null,
      invoiceUnits:invoice!==null&&totals.units!==null?invoice-totals.units:null
    };
-   return {rows,totals,invoice,house,delta,issues,roundEachToWhole:roundEach,
+   return {rows,totals,invoice,house,delta,issues,vacancyByUnit,roundEachToWhole:roundEach,
      canReview:issues.length===0,exactMatch:issues.length===0&&delta.invoiceHouse===0&&delta.houseUnits===0};
  }
  function registerReplacement(state,unitId,kind,event){
@@ -195,5 +262,5 @@
    return proposals;
  }
  return {example,upgrade,meterResult,diagnostics,priceFor,round4,volume,date,
-   precisionPolicy,registerReplacement,carryForwardPreview,version:"synthetic-water-domain-v2"};
+   precisionPolicy,registerReplacement,carryForwardPreview,vacancyFromReadings,addInterimReading,version:"synthetic-water-domain-v2"};
 });
