@@ -21,7 +21,7 @@ jobs:
       - uses: actions/configure-pages@v5
         with:
           enablement: true
-      - name: Validate and stage demo (only synthetic data)
+      - name: Validate and stage demo and encrypted private client (no real data)
         shell: bash
         run: |
           test -s index.html && test -s styles.css && test -s app.js && test -s demo-ledger.js && test -s synthetic-billing.js && test -s synthetic-property.js && test -s synthetic-case-billing.js && test -s synthetic-workflow.js && test -s synthetic-letters.js && test -s legacy-letter-engine.js && test -s letter-workspace-ui.js && test -s legacy-landlord-documents.js && test -s synthetic-review.js && test -s synthetic-estate.js && test -s synthetic-master-ui.js && test -s water-detail.js && test -s experimental/settlement-cost.js
@@ -40,6 +40,11 @@ jobs:
           node --check synthetic-master-ui.js
           node --check water-detail.js
           node --check experimental/settlement-cost.js
+          node --check private/private-model.js
+          node --check private/vault-crypto.js
+          node --check private/drive-adapter.js
+          node --check private/private-app.js
+          node --check private/private-sw.js
           node --test --test-reporter=tap tests/*.test.cjs > /tmp/nkpro2-tests.tap
           node tests/browser-visual-e2e.cjs
           tail -n 24 /tmp/nkpro2-tests.tap
@@ -54,21 +59,28 @@ jobs:
           cp index.html styles.css app.js demo-ledger.js synthetic-billing.js synthetic-property.js synthetic-case-billing.js synthetic-workflow.js synthetic-letters.js legacy-letter-engine.js letter-workspace-ui.js legacy-landlord-documents.js synthetic-review.js synthetic-estate.js synthetic-master-ui.js water-detail.js status.html status.js _site/
           mkdir -p _site/experimental
           cp experimental/settlement-cost.js _site/experimental/
+          # Explicit allowlist. The private *client source* is public; no private records.
+          mkdir -p _site/private
+          cp private/index.html private/private.css private/private-model.js private/vault-crypto.js private/drive-adapter.js private/private-app.js private/private-sw.js private/private.webmanifest _site/private/
           touch _site/.nojekyll
           # Allowlist publishes only the synthetic reference formula, never pinned originals or tenant fixtures.
-          test "$(find _site -type f | wc -l)" -eq 21
+          test "$(find _site -type f | wc -l)" -eq 29
           # Essential release gate: do not publish a site whose HTML points to missing JS/CSS.
           node -e 'const fs=require("node:fs"),path=require("node:path");
-            const html=fs.readFileSync("_site/index.html","utf8");
-            const refs=[...html.matchAll(/(?:src|href)="(\.\/[^"]+)"/g)].map(x=>x[1].split("?")[0]);
-            if(!refs.length)throw new Error("No referenced assets found in staged index");
-            for(const ref of refs){
-              const file=path.join("_site",ref);
-              if(!fs.existsSync(file)||!fs.statSync(file).isFile()||fs.statSync(file).size===0)
-                throw new Error("Published site would have missing asset: "+ref);
-            }
-            console.log("PUBLISH_ASSETS_OK:",refs.length,"referenced files present");'
+            for(const page of ["_site/index.html","_site/private/index.html"]){
+              const html=fs.readFileSync(page,"utf8");
+              const refs=[...html.matchAll(/(?:src|href)="(\.\/[^"]+)"/g)].map(x=>x[1].split("?")[0]);
+              if(!refs.length)throw new Error("No referenced assets found in "+page);
+              for(const ref of refs){
+                const file=path.join(path.dirname(page),ref);
+                if(!fs.existsSync(file)||!fs.statSync(file).isFile()||fs.statSync(file).size===0)
+                  throw new Error("Missing published asset: "+file);
+              }
+              console.log("PUBLISH_ASSETS_OK:",page,refs.length);
+            }'
           test ! -f _site/tests/reference/billing-calculation-v99.4.86.js
+          test ! -e _site/private/sourceEvidence.json
+          test ! -e _site/private/nkpro-cloud-snapshot-2026-11-21T19-34-02-726Z-01b27143-87e6-4dd5-b77f-707911a86a8e.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

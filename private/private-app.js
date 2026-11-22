@@ -1,5 +1,6 @@
 /* NK-Pro 2.0 private workspace. No private records in code/repository/URLs.
-   Never load on the shared NK-Pro 1.0 GitHub Pages origin. */
+   Uses existing GitHub Pages + Google OAuth/Drive. During the 1.0/2.0 transition
+   same-origin risk remains; vault payloads are encrypted before persistence. */
 (() => {"use strict";
  const model=globalThis.NKPRO2_PRIVATE_MODEL,cryptoBox=globalThis.NKPRO2_VAULT_CRYPTO,
   driveAPI=globalThis.NKPRO2_PRIVATE_DRIVE;
@@ -15,11 +16,15 @@
  const text=(id,s)=>{$(id).textContent=String(s)};
  let vault=null,passphrase=null,remoteId=null,dirty=false,busy=false;
  let cachedRevision=localStorage.getItem(KEY),drive=driveAPI.create();
- const blocked=location.hostname.endsWith(".github.io")||
-  !(location.protocol==="https:"||["localhost","127.0.0.1"].includes(location.hostname));
+ const localPreview=["localhost","127.0.0.1"].includes(location.hostname);
+ const projectPages=location.protocol==="https:"&&
+  location.hostname==="cz100000.github.io"&&
+  (location.pathname==="/NK-Pro-2.0/private/"||
+   location.pathname==="/NK-Pro-2.0/private/index.html");
+ const blocked=!(localPreview||projectPages);
  if(blocked){
   const warning=$("securityWarning");warning.hidden=false;
-  warning.textContent="Sicherheitssperre: Dieser private Datenbereich darf ausschließlich über eine eigene HTTPS-Adresse geladen werden. Die öffentliche GitHub-Pages-Demo teilt den Speicherbereich mit NK-Pro 1.0. Hier werden keine Echtdaten verarbeitet.";
+  warning.textContent="Sicherheitssperre: Der private Tresor wird ausschließlich unter der freigegebenen NK-Pro-2.0-GitHub-Pages-Adresse über HTTPS gestartet. Ein Zugriff über andere Webadressen ist nicht freigegeben.";
   for(const button of document.querySelectorAll("button"))button.disabled=true;
   for(const input of document.querySelectorAll("input"))input.disabled=true;
   return;
