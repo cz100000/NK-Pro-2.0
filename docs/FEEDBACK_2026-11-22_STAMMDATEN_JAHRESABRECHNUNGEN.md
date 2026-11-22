@@ -1,0 +1,35 @@
+# Verbindliches Nutzerfeedback: Stammdatenmodell, Abrechnungsliste, Anrede, Postanschrift
+**Stand: 22.11.2026 · Architekturprüfung der alten und neuen App · vor Umsetzung**
+
+## Ergebnis der Quellcodeprüfung
+NK-Pro 1.0 V99.4.86 (Commit `a089e1fe660dd5502799560efe2bc4b65a09f278`) hatte ausdrücklich zwei Datenebenen:
+- `data.stammdaten.wohnungen` und `data.stammdaten.mieter` als zentraler Bestand (siehe `js/master-data-actions.js`, `ensureStammdatenData`).
+- `data.wohnungen` und `data.mieter` als abrechnungsbezogene Kopien, die beim Anlegen/Abgleichen aus Stammdaten mit Datumsfilter `tenantRelevantForCurrentBilling` gezogen wurden (`applyStammdatenToCurrentBilling`, `mergeStammdatenIntoCurrentBilling`). Dabei bleiben die Jahreszahlungs- und Verbrauchseinträge beim kontrollierten Abgleich getrennt erhalten.
+- Es gibt eine eigene Abrechnungsübersicht mit aktueller und archivierter Abrechnung (`js/ui-navigation-pages.js`, `buildBillingRecordsTableHtml`).
+- Schwäche der alten App: Stammdaten/Abrechnung erfordern Synchronisations-/Merge-Status; diese Doppelschicht ist verbesserungsbedürftig, nicht abzuschaffen.
+
+NK-Pro 2.0 Fachtest 0.6 hat unter `synthetic-property.js` nur `units` und `tenancies` als Teil des **einzigen** synthetischen Jahresfixtures `period:"2025"`. `app.js` rendert sowohl unter „Objekt → Mietverhältnisse“ als auch unter „Abrechnung 2025 → Mietverhältnisse“ die **gleiche** `tenancies()`-Seite mit derselben Bearbeitung und erzeugt direkt aus ihr die Jahresabrechnung. Ein unabhängiges dauerhaftes Stammdatenmodell, eine Jahresfallableitung und eine Liste verschiedener Abrechnungen fehlen. Die Übernahme der Legacy-Trennung wurde bei der Beschleunigung des synthetischen Fachtests (Stufen 1–4) **ausgelassen**. Das ist eine strukturelle Fehlvereinfachung, keine geplante fachliche Verbesserung.
+
+## Zielmodell – verbindlich für Refactoring vor weiterer Stufe-3/4-Fachparität
+1. **Objektstamm:** Objekt/Anschrift → dauerhafte Wohnungen/Flächen/technische Zähleridentitäten → dauerhafte Mietverhältnisse (eigene ID, Einheit, Person/Kontakt, Rolle, Beginn, optionales Ende, Personenzahl/zeitbezogene Änderungshistorie).
+2. **Jahresabrechnungen:** Abrechnungsjahr und Zeitraum, Status `angelegt`/`in Bearbeitung`/`fachlich abgeschlossen`/`archiviert`, versionierte Stammdatenreferenz und eigenständige **Jahresfälle** (Schlüssel `year + tenancyId`; keine zweite manuell pflegbare Person).
+3. **Automatische Fallableitung:** Für das Jahr `[J-01-01,J-12-31]` sind genau die Mietverhältnisse relevant mit `einzug <= Periodenende` und `auszug == leer oder auszug >= Periodenbeginn`. Jeder aktive Vertrag ergibt einen Fall mit effektivem Jahresanfang `max(einzug,Periodenbeginn)`, effektivem Ende `min(auszug oder unbefristet,Periodenende)`; mehrere nacheinander bewohnende Mietverhältnisse einer Wohnung sind eigenständige Fälle, Leerstand sind die echten Zeitlücken. **Leeres Auszugsdatum bedeutet unbefristet**, nicht 31.12.2025.
+4. **Nur eine Bearbeitungsstelle:** Stammdaten (Identität, Einzug/Auszug, Wohnung, Anrede, Postadresse, grundsätzliche Personenbelegung) ausschließlich unter `Objekt → Mietverhältnisse`. Innerhalb `Abrechnungen → Vorauszahlungen` werden Fall, Wohnung und Zeitraum lediglich referenziert; dort nur Jahressoll/-ist. Wasser/Techem-Einzelmengen ausschließlich unter `Verbräuche`.
+5. **Abrechnungsnavigation:** Klick `Abrechnungen` öffnet **Liste aller Jahresabrechnungen** (ein Entwurf und historische Jahre als testbare Musterdatensätze, keine erfundenen Realjahre). Jahr, Zeitraum, Status, Fortschritt, Saldo, Öffnen/Ansehen, Neu anlegen. Klick auf einen Eintrag öffnet den bekannten kompakten Workflow **ohne den separaten bearbeitbaren Tab „Mietverhältnisse“**: `Vorauszahlungen → Gesamtkosten → Verbräuche → Prüfen → Ergebnis → Briefe`. In `Übersicht` nur kurze Karte mit Link auf Abrechnungsliste; Design der ganzen Übersicht erst am Ende finalisieren.
+6. **Änderungen an Stammdaten:** Neue Entwürfe nehmen eine nachvollziehbare Version des Stamms. Änderungen an bereits bestehenden Entwürfen nicht still rückwirkend überschreiben; Änderungs-Hinweis und kontrollierte Rebasierung erhalten Zahlung/Verbrauch/Belegfälle anhand stabiler IDs, zeigen Zuordnungsfehler an. Fachlich abgeschlossene/archivierte Jahre werden **niemals** unbemerkt geändert. Eine laufende Abrechnung darf nicht durch reine Stammdatenänderung heimlich umgerechnet werden.
+7. **Briefanrede:** Nicht anhand eines Vornamens automatisch das Geschlecht festlegen. Auswahl `Neutral` / `Frau` / `Herr` / `Individuell`, optionaler nachvollziehbarer Vorschlag mit manueller Bestätigung nur bei hoher Sicherheit. `Individuelle Anrede (optional)` nur bei Auswahl Individuell als Eingabe, nicht doppelt verpflichtend. Das Original hatte `geschlecht` und `standardanrede` ausdrücklich als Kontaktfelder, keine sichere Namensableitung.
+8. **Briefanschrift:** Standardmäßig **abgeleitet aus der Objektadresse**; „Abweichende Zustellanschrift (optional)“ als expliziter Override der Mietverhältnis-Kontaktdaten, relevant insbesondere nach Auszug. Für bereits erstellte Briefe muss die zum Briefzeitpunkt gültige Zustelladresse im Abrechnungssnapshot eingefroren werden. Fehlende Objektadresse/fehlender Empfänger darf nicht zu versandfähigem Brief führen.
+9. **Privatanteil:** bleibt **reguläres** Mietverhältnis und Jahresabrechnungsfall, keine automatische Ausnahme bei Kosten, Prüfungen oder Briefen. Nur bei Steuer-/Finanzanalysen andere Zuordnung.
+
+## Priorisierte To-dos aus diesem Feedback
+- [ ] **P0: Stammdaten als eigenständige Quelle und versionierte, automatische Jahresfallprojektion implementieren**. Wichtigste Korrektur vor Weiterentwicklung mit Echtdaten.
+- [ ] **P0: Unter Abrechnungen zuerst Jahresübersicht statt fest geöffneter 2025-Abrechnung**, Archivjahre getrennt und sichtbar.
+- [ ] **P0: Mietverhältnisse aus den Jahres-Workflow-Tabs entfernen**; Jahresabrechnungsfälle in Vorauszahlungen/Verbräuchen/Ergebnis read-only aus Stammdaten ziehen.
+- [ ] **P0: Auszug optional / unbefristet und jahresbezogene Zeitfenster korrekt**, Mieterwechsel/Leerstand automatisch.
+- [ ] **P0: Vorhandene 0.6-Demoeingaben kontrolliert transformieren**, keine stille Migration oder Änderung bestehender 1.0-Daten.
+- [ ] **P1: Standard-Postanschrift Objekt + optionale abweichende Zustellanschrift**, Schreiben bei Auszug.
+- [ ] **P1: Briefanrede klar und optional; niemals Gender still aus Namen ableiten.**
+- [ ] **P2: Gesamt-Übersichtsseite erst zum Ende gesamthaft auf UX, Kennzahlen und Navigation prüfen** (ausdrücklicher WIP-Kommentar des Nutzers).
+- [ ] **Regressionen:** Abrechnungen 2024, 2025, 2026, unbefristete Verträge, Mieterwechsel, Zeitraumüberlappung, Leerstand, nachträgliche Stammdatenänderung, eingefrorenes Archiv, Privatanteil, Adressänderung nach Auszug; browserseitige Single-Source-Verifikation.
+
+**Keine 2.0-Produktionsreife behaupten.** Dieser Eintrag ist ein Architekturentscheidungs-/To-do-Vorschlag; die laufende Demo wird nicht eigenmächtig mit potenziell verlustbehafteter Stammdatenumstrukturierung ersetzt.

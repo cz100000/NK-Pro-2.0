@@ -55,3 +55,12 @@ Die priorisierte, quellcodegestützte Tiefenanalyse ist in [LEGACY_FUNCTION_GAP_
 - [ ] **Noch nicht abgeschlossen:** vollständige 1.0-Rechen-/Katalog- und Techem-Sonderfallparität, 19 nicht portierte Regeln und volle Abnahme der Teilregeln, vollständiger Original-Briefgenerator samt A4-/Sammeldruckpreflight, Abschlussbedingung und fachlicher E2E-Freigabe.
 
 Siehe [STAGES_3_4_INTEGRATED_2026-11-22.md](STAGES_3_4_INTEGRATED_2026-11-22.md). Stufen 3+4 sind **gemeinsam bearbeitet, nicht vollständig fertiggestellt**.
+
+## Architekturkorrektur nach Nutzerprüfung vom 22.11.2026
+
+- [ ] **P0 vor weiterem Stufe-3/4-Ausbau:** Objekt-/Wohnungs-/Mietverhältnis-Stammdaten als separate dauerhafte Quelle und automatische, versionierte Jahresfallableitung wiederherstellen. Die ältere App konnte dies bereits teilweise; die aktuelle 0.6-Demo hat fälschlich nur einen einzigen Jahresdatensatz mit direkt editierbaren Fällen.
+- [ ] **P0:** Abrechnungsübersicht (laufende und archivierte Jahresabrechnungen) vor dem Öffnen des Jahresworkflows; „Mietverhältnisse“ aus den Abrechnungsschritten entfernen, Fallnamen und Zeiträume in „Vorauszahlungen“ nur anzeigen.
+- [ ] **P1:** Zustellanschrift standardmäßig aus Objektadresse, abweichende Zustellanschrift optional, Anrede nicht ungeprüft aus Vornamen raten, individuelle Anrede als optional bezeichnen.
+- [ ] **P2:** Gesamt-Übersichtsseite ausdrücklich Work in Progress; finale konzeptionelle UX-Kritik **erst am Ende**.
+
+Quellcodevergleich, konkrete Regeln und Abnahmefälle: [FEEDBACK_2026-11-22_STAMMDATEN_JAHRESABRECHNUNGEN.md](FEEDBACK_2026-11-22_STAMMDATEN_JAHRESABRECHNUNGEN.md).
