@@ -409,7 +409,9 @@
         return '<tr><td><strong>'+safeText(t.name)+'</strong><span class="water-unit-sub">'+safeText(unit)+' · '+safeText(t.id)+'</span></td>'+
          '<td class="money">'+(r?fmt(r.amount):'Nicht erfasst')+'</td>'+
          '<td class="money">'+(r?.units==null?'–':fmtVolume(r.units))+'</td>'+
-         '<td>'+editAction('edit-external',cost.id+'|'+t.id,'Techem-Einzelwerte')+'</td></tr>';
+         '<td>'+actionCell(statusFor(r&&Number.isFinite(Number(r.amount)),Boolean(r)),
+             annualLocked()?viewAction('view-external',cost.id+'|'+t.id,'Techem-Einzelwerte'):
+               editAction('edit-external',cost.id+'|'+t.id,'Techem-Einzelwerte'))+'</td></tr>';
       }).join('');
       const bill=Number(cost.amount)-Number(cost.landlordShare||0);
       return '<section class="section" style="margin-bottom:18px"><div class="section-header"><div><h2>'+safeText(cost.name)+'</h2>'+
@@ -505,47 +507,71 @@
   }
   function advances(){
     const rows=data.tenancies.map(t=>{
-      const p=data.payments?.[t.id]||{},expected=workflow.expected(t,p);
+      const p=data.payments?.[t.id]||{},expected=workflow.expected(t,p),
+        agreement=workflow.agreementPreview(t,p);
       const u=data.units.find(x=>x.id===t.unitId)?.label||t.unitId;
       return '<tr><td><strong>'+safeText(t.name)+'</strong><span class="water-unit-sub">'+safeText(t.id)+' · '+safeText(u)+'</span></td>'+
         '<td>'+safeText(t.start)+' bis '+safeText(t.end)+'</td>'+
-        '<td class="money">'+(p.mode==='monthly'?fmt(p.agreedMonthly||0)+' / Mon.':p.agreedAnnual==null?'–':fmt(p.agreedAnnual)+' / Jahr')+'</td>'+
+        '<td class="money">'+(!agreement.valid?'–':
+          (p.mode==='monthly'?fmt(agreement.monthly)+' / Mon.':fmt(agreement.annual)+' / Jahr'))+'</td>'+
         '<td class="money">'+(expected===null?'Nicht erfasst':fmt(expected))+'</td>'+
         '<td class="money"><strong>'+fmt(p.paidActual??t.advance)+'</strong></td><td>'+
-        editAction('edit-payment',t.id,'Vorauszahlungen')+'</td></tr>';
+        actionCell(statusFor(agreement.valid&&expected!==null&&Number.isFinite(Number(p.paidActual)),
+          agreement.valid||Number.isFinite(Number(p.paidActual))),
+          annualLocked()?viewAction('view-payment',t.id,'Vorauszahlungen'):
+            editAction('edit-payment',t.id,'Vorauszahlungen'))+'</td></tr>';
     }).join('');
     return '<div class="inline-toolbar"><h2>Vorauszahlungen nach Abrechnungsfall</h2></div>'+
       '<section class="section"><div class="stat-inline"><div><small>Tatsächlich gezahlt</small><strong>'+
       fmt(allAdvance())+'</strong></div><div><small>Abrechnungsfälle</small><strong>'+data.tenancies.length+'</strong></div></div>'+
       '<div class="table-wrap"><table class="data-table"><thead><tr><th>Mieter · Wohnung</th>'+
       '<th>Zeitraum (nur Anzeige)</th><th class="money">Vereinbarung</th>'+
-      '<th class="money">Soll Zeitraum</th><th class="money">Ist gezahlt</th><th>Aktion</th>'+
+      '<th class="money">Soll Zeitraum</th><th class="money">Ist gezahlt</th><th>Status / Aktion</th>'+
       '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
       '<div class="table-caption">Mieter, Wohnung, Rolle und Mietzeitraum können hier nicht geändert werden. Nur die Vorauszahlungen werden an dieser Stelle gepflegt. Der Abrechnungssaldo verwendet Ist-Zahlungen.</div></section>';
   }
   function allocations(){
-    const r=ledger(),sum=r.tenants.reduce((s,t)=>s+t.balanceCents,0);
-    const table=r.tenants.map(t=>'<tr><td><strong>'+safeText(t.name)+'</strong>'+
-      '<span class="small soft water-unit-sub">'+safeText(t.id)+' · '+safeText(t.role)+'</span></td>'+
-      '<td>'+safeText(data.units.find(u=>u.id===t.unitId)?.label||t.unitId)+'</td>'+
-      '<td class="money">'+t.days+'</td><td class="money">'+fmt(t.costCents/100)+'</td>'+
-      '<td class="money">'+fmt(t.advanceCents/100)+'</td>'+
-      '<td class="money"><span class="outcome '+(t.balanceCents>0?'neg':'pos')+'">'+fmt(t.balanceCents/100)+'</span></td>'+
-      '<td><span class="small soft">Nur Anzeige</span></td></tr>').join('');
-    return '<div class="inline-toolbar"><h2>Abrechnungsergebnis je Mietverhältnis</h2>'+
-      '<span class="status amber">Vorläufig · nicht geprüft</span></div>'+
-      '<section class="section"><div class="big-total"><div><small>Gesamtsaldo · keine echten Abrechnungsdaten</small>'+
-      '<strong>'+fmt(sum/100)+'</strong></div><span class="small muted">'+r.tenants.length+' Abrechnungsfälle</span></div>'+
-      '<div class="table-wrap"><table class="data-table"><thead><tr><th>Teilnehmer</th><th>Wohnung</th>'+
-      '<th class="money">Miettage</th><th class="money">Umlagekosten</th><th class="money">Vorauszahlungen</th>'+
-      '<th class="money">Saldo</th><th>Aktion</th></tr></thead><tbody>'+table+'</tbody></table></div>'+
-      '<div class="table-caption">Brutto '+fmt(r.totals.grossCostsCents/100)+
-      ', gesondert erfasste Vermieteranteile '+fmt(r.totals.landlordCostsCents/100)+
-      ', umlagefähige Kosten '+fmt(r.totals.allocableCostsCents/100)+
-      ', verteilt '+fmt(r.totals.distributedCents/100)+
-      ', **nicht zugeordnet** '+fmt(r.totals.differenceCents/100)+
-      '. Fehlbeträge und Leerstand werden nicht still verteilt. Anzeige ist ausschließlich vorläufig, bis alle 44 Regeln und Briefe freigegeben sind.</div></section>'+
-      '<div style="margin-top:18px;text-align:right">'+button('Zur Briefvorschau','go-letter',null,'button-primary')+'</div>';
+    const r=ledger(),costs=r.costs.filter(c=>c&&c.id),tenants=r.tenants,totals=r.totals;
+    const rows=tenants.map(t=>{
+      const unit=data.units.find(u=>u.id===t.unitId);
+      const allocations=new Map((t.entries||[]).map(entry=>[entry.costId,entry.cents]));
+      return '<tr><td><strong>'+safeText(unit?.label||t.unitId)+'</strong>'+
+        '<span class="water-unit-sub">'+safeText(t.name)+' · '+safeText(t.id)+
+        ' · '+t.days+' Tage</span></td>'+
+        costs.map(c=>'<td class="money">'+fmt((allocations.get(c.id)||0)/100)+'</td>').join('')+
+        '<td class="money result-grand"><strong>'+fmt(t.costCents/100)+'</strong></td>'+
+        '<td class="money">'+fmt((t.advanceCents||0)/100)+'</td>'+
+        '<td class="money"><span class="outcome '+(t.balanceCents>0?'neg':'pos')+'">'+
+          fmt(t.balanceCents/100)+'</span></td></tr>';
+    }).join('');
+    const totalsRow='<tr><th>Gesamt</th>'+
+      costs.map(c=>'<th class="money">'+fmt(c.distributedCents/100)+'</th>').join('')+
+      '<th class="money">'+fmt(totals.distributedCents/100)+'</th>'+
+      '<th class="money">'+fmt(totals.advancesCents/100)+'</th>'+
+      '<th class="money">'+fmt(totals.balanceCents/100)+'</th></tr>';
+    return '<div class="inline-toolbar"><h2>Abrechnungsergebnis je Wohnung und Mietverhältnis</h2>'+
+      '<span class="status amber">Vorläufig · nicht freigegeben</span></div>'+
+      '<section class="section"><div class="big-total"><div>'+
+      '<small>Gesamtsaldo · synthetischer Fachtest</small><strong>'+
+      fmt(totals.balanceCents/100)+'</strong></div>'+
+      '<span class="small muted">'+tenants.length+' Abrechnungsfälle · '+costs.length+
+      ' Kostenarten</span></div>'+
+      '<div class="table-wrap"><table class="data-table result-detail-table"><thead><tr>'+
+      '<th>Wohnung · Abrechnungsfall</th>'+
+      costs.map(c=>'<th class="money result-category"><small>'+
+        safeText(costCatalogId(data.costs.find(x=>x.id===c.id)||c))+'</small>'+
+        safeText(c.name)+'</th>').join('')+
+      '<th class="money">Umlagekosten gesamt</th>'+
+      '<th class="money">Tatsächlich gezahlt</th><th class="money">Saldo</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody><tfoot>'+totalsRow+'</tfoot></table></div>'+
+      '<div class="table-caption">Umlagekosten werden je Kostenart und Abrechnungsfall ausgewiesen. Die tatsächlich gezahlten Vorauszahlungen sind eine Gesamtsumme je Mietverhältnis; es gibt im Fachtest keine erfundene Aufteilung auf einzelne Kostenarten.</div>'+
+      '<div class="result-reconcile">'+
+      '<div><small>Rechnungen brutto</small><strong>'+fmt(totals.grossCostsCents/100)+'</strong></div>'+
+      '<div><small>Belegter Vermieteranteil</small><strong>'+fmt(totals.landlordCostsCents/100)+'</strong></div>'+
+      '<div><small>Umlagefähig</small><strong>'+fmt(totals.allocableCostsCents/100)+'</strong></div>'+
+      '<div><small>Nicht zugeordnet</small><strong>'+fmt(totals.differenceCents/100)+'</strong></div>'+
+      '</div></section>'+
+      '<div class="info-line">Die Ergebnisanzeige ist unabhängig von der Briefvorschau. Prüfhinweise verhindern die Anzeige nicht; endgültige Freigabe bleibt bei offenen Pflichtprüfungen gesperrt.</div>';
   }
   function review(){
     const q=qualityReport(),real=q.rows.filter(x=>x.status!=='not-run'),
