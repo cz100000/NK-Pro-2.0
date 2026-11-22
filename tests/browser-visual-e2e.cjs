@@ -231,6 +231,8 @@ const chromeBinary=()=>{
    try{ws?.close()}catch{}
    try{chrome?.kill("SIGKILL")}catch{}
    await new Promise(r=>server.close(r));
-   if(profile)fs.rmSync(profile,{recursive:true,force:true,maxRetries:3});
+   if(profile)try{fs.rmSync(profile,{recursive:true,force:true,maxRetries:3,retryDelay:150});}
+    catch(e){if(!["ENOTEMPTY","EBUSY","EPERM"].includes(e.code))throw e;}
+
  }
 })().catch(e=>{console.error(e);process.exitCode=1;});
