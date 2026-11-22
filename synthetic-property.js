@@ -113,15 +113,15 @@
        }
        let vacantCold=0,vacantHot=0;
        if(vacant){
-         if(!number(unit.vacancyCold)||Number(unit.vacancyCold)<0||
-            !number(unit.vacancyHot)||Number(unit.vacancyHot)<0){
+         const measured=waterReport?.vacancyByUnit?.[unitId];
+         if(!measured?.valid){
            complete=false;
            err("VACANCY_WATER_ATTRIBUTION_REQUIRED",
-             "Bei Leerstand sind KW-/WW-Mengen von Mietern und Leerstand separat nachzuweisen: "+unitId,unitId);
+             "Bei Leerstand fehlen Ablesungen an Auszugs-/Einzugsgrenzen für KW und WW: "+unitId,unitId);
          }else{
-           vacantCold=Number(unit.vacancyCold);vacantHot=Number(unit.vacancyHot);
+           vacantCold=measured.cold;vacantHot=measured.hot;
            for(const v of vacancy.filter(v=>v.unitId===unitId))
-             v.waterSource="explicit-unit-vacancy";
+             v.waterSource="dated-interim-readings";
          }
        }
        if(!complete&&rows.length)

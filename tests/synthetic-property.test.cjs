@@ -28,7 +28,11 @@ test("two non-overlapping tenancies on one apartment produce two cases and vacan
  x.tenancies.push({id:"SYN-T3",unitId:"U1",name:"Musterperson X",start:"2025-07-15",end:"2025-12-31",
  persons:1,role:"Mieter",advance:600,consumptionCold:8,consumptionHot:10});
  x.tenancies[0].consumptionCold=12;x.tenancies[0].consumptionHot=10;
- x.units[0].vacancyCold=0;x.units[0].vacancyHot=0;
+ // Build dated evidence for zero vacancy rather than typing synthetic vacancy amounts.
+ for(const kind of ["cold","hot"]){
+   const m=x.units[0].waterMeters[kind];
+   m.interimReadings=[{date:"2025-06-30",value:10},{date:"2025-07-15",value:10}];
+ }
  const r=p.inspect(x,water.diagnostics(x));
  assert.equal(r.issues.length,0);
  assert.equal(r.cases.length,3);
@@ -72,7 +76,10 @@ test("single tenancy with vacancy and measured consumption cannot silently recei
  let r=p.inspect(x,water.diagnostics(x));
  assert.ok(r.issues.some(i=>i.code==="VACANCY_WATER_ATTRIBUTION_REQUIRED"));
  x.tenancies[0].consumptionCold=19;x.tenancies[0].consumptionHot=19;
- x.units[0].vacancyCold=1;x.units[0].vacancyHot=1;
+ for(const kind of ["cold","hot"]){
+   x.units[0].waterMeters[kind].interimReadings=[{date:"2025-11-30",value:19}];
+   x.units[0].waterMeters[kind].endDate="2025-12-31";
+ }
  r=p.inspect(x,water.diagnostics(x));
  assert.equal(r.valid,true);
  assert.equal(r.cases[0].consumption,38);
