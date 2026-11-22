@@ -7,7 +7,10 @@
   const waterDetails = window.NKPRO2_WATER_DETAIL;
   const propertyModel = window.NKPRO2_PROPERTY;
   const caseBilling = window.NKPRO2_CASE_BILLING;
-  if (!demoLedger || !functionalBilling || !waterDetails || !propertyModel || !caseBilling || typeof caseBilling.calculate !== 'function') throw new Error('Synthetic billing modules missing.');
+  const workflow = window.NKPRO2_WORKFLOW;
+  const qualityModule = window.NKPRO2_REVIEW;
+  const letterModule = window.NKPRO2_LETTERS;
+  if (!demoLedger || !functionalBilling || !waterDetails || !propertyModel || !caseBilling || !workflow || !qualityModule || !letterModule || typeof caseBilling.calculate !== 'function') throw new Error('Synthetic billing modules missing.');
   const icons = {
     overview:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
     bill:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
@@ -30,7 +33,7 @@
     file:'<path d="M6 2h8l5 5v14H6zM14 2v6h5M9 12h7M9 16h7"/>'
   };
   const icon=(name)=>`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icons[name]||icons.info}</svg>`;
-  const initial=()=>propertyModel.upgrade(waterDetails.example({
+  const initial=()=>workflow.example(propertyModel.upgrade(waterDetails.example({
     fixture:true,period:'2025',houseWater:266,waterDecision:null,heatingEvidence:false,heatingEvidenceFingerprint:null,letterChecked:false,demoFinalized:false,
     costs:[
       {id:'water',name:'Wasser & Abwasser',category:'Verbrauch',amount:1850,method:'Verbrauch',label:'Zählerdaten'},
@@ -48,7 +51,7 @@
       {id:'DEMO-W06',label:'Wohnung F',position:'2. Obergeschoss rechts',area:77,waterStart:158,waterEnd:200,advance:2000,people:1,days:365,active:true},
       {id:'DEMO-W07',label:'Wohnung G',position:'Dachgeschoss',area:71,waterStart:194,waterEnd:223,advance:2050,people:2,days:365,active:true}
     ]
-  }));
+  })));
   const $=id=>document.getElementById(id);
   const safeText=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt=n=>Number(n||0).toLocaleString('de-DE',{style:'currency',currency:'EUR'});
@@ -59,11 +62,13 @@
   const fmtPrice=(n,unit='m³')=>Number.isFinite(n)?n.toLocaleString('de-DE',{minimumFractionDigits:4,maximumFractionDigits:4})+' €/'+unit:'–';
   const fmtVolume=v=>Number(v).toLocaleString('de-DE',{maximumFractionDigits:3});
   const parseField=(field)=>{const raw=String(field.value||'').trim().replace(/\s/g,'').replace(',','.');const val=Number(raw);return Number.isFinite(val)?val:NaN};
-  function load(){try{const v=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(v&&v.fixture===true&&v.period==='2025'&&Array.isArray(v.units)&&v.units.length===7&&Array.isArray(v.costs))return propertyModel.upgrade(waterDetails.upgrade(v));}catch(_){/* standalone file localStorage might be blocked */}return initial()}
-  let data=load();const ui={view:'overview',step:'costs',analytics:'nk',objectTab:'overview',filter:'',drawer:null,lastFocus:null};
+  function load(){try{const v=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(v&&v.fixture===true&&v.period==='2025'&&Array.isArray(v.units)&&v.units.length===7&&Array.isArray(v.costs))return workflow.upgrade(propertyModel.upgrade(waterDetails.upgrade(v)));}catch(_){/* standalone file localStorage might be blocked */}return initial()}
+  let data=load();const ui={view:'overview',step:'tenancies',analytics:'nk',objectTab:'overview',consumptionTab:'water',letterId:null,filter:'',drawer:null,lastFocus:null};
   function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch(_){/* safe in-memory fallback; never touch real NK-Pro keys */}}
   function stateChange(){data.demoFinalized=false;persist();render()}
   const ledger=()=>caseBilling.calculate(data);
+  const letterBundle=()=>letterModule.make(data,ledger());
+  const qualityReport=()=>qualityModule.assess(data,ledger(),letterBundle());
   const waterReport=()=>waterDetails.diagnostics(data);
   const consumption=u=>{const kw=waterDetails.meterResult(u.waterMeters?.cold),ww=waterDetails.meterResult(u.waterMeters?.hot);return kw.valid&&ww.valid?kw.consumption+ww.consumption:0};
   const unitConsumption=()=>waterReport().totals.units??0;
@@ -82,7 +87,7 @@
   ]);
   const unresolved=()=>checks().filter(x=>!x.done);
   const allCost=()=>round(data.costs.reduce((s,c)=>s+num(c.amount),0));
-  const allAdvance=()=>round(data.tenancies.reduce((s,t)=>s+num(t.advance),0));
+  const allAdvance=()=>round(ledger().totals.advancesCents/100);
   const allocation=(unit)=>{const row=ledger().units.find(x=>x.id===unit.id);return row?row.costCents/100:0};
   const balance=u=>{const row=ledger().units.find(x=>x.id===u.id);return row?row.balanceCents/100:0};
   const labelStatus=(done,t='Vollständig',f='Offen')=>`<span class="status ${done?'green':'amber'}">${done?t:f}</span>`;
@@ -90,7 +95,7 @@
   const button=(label,action,id,cls='')=>`<button class="button ${cls}" type="button" data-action="${action}"${id?` data-id="${safeText(id)}"`:''}>${label}</button>`;
   const section=(title,inner,extra='',classes='')=>`<section class="section ${classes}"><div class="section-header"><div><h2>${title}</h2></div>${extra}</div>${inner}</section>`;
   const head=(kicker,title,description,action='')=>`<div class="page-heading"><div><div class="eyebrow">${safeText(kicker)}</div><h1>${title}</h1><p>${description}</p></div>${action?`<div class="heading-actions">${action}</div>`:''}</div>`;
-  function progress(){const done=checks().filter(c=>c.done).length;let html='<div class="flow-track">';for(let i=0;i<7;i++)html+=`<div class="flow-segment ${i<done?'complete':i===done?'current':''}"></div>`;return html+`</div><div class="flow-labels">${['Mietverhältnisse','Kosten','Verbräuche','Zahlungen','Umlage','Prüfen','Briefe'].map((x,i)=>`<span class="${i===Math.min(done,6)?'highlight':''}">${x}</span>`).join('')}</div>`}
+  function progress(){const done=checks().filter(c=>c.done).length;let html='<div class="flow-track">';for(let i=0;i<7;i++)html+=`<div class="flow-segment ${i<done?'complete':i===done?'current':''}"></div>`;return html+`</div><div class="flow-labels">${['Mietverhältnisse','Vorauszahlungen','Gesamtkosten','Verbräuche','Prüfen','Ergebnis','Briefe'].map((x,i)=>`<span class="${i===Math.min(done,6)?'highlight':''}">${x}</span>`).join('')}</div>`}
   function overview(){
     const done=checks().length-unresolved().length;
     const tasks=unresolved();
@@ -101,10 +106,10 @@
       `</div><div class="section"><div class="section-header"><div><h2>Bearbeitungsstand</h2><p>${done} von ${checks().length} Kontrollen erledigt</p></div>${labelStatus(tasks.length===0,'Bereit','In Bearbeitung')}</div><div class="section-body">${progress()}<p class="note" style="margin:24px 0 0">Ein Schritt führt direkt zu den betroffenen Daten. Technische Prüflisten bleiben im Hintergrund.</p></div><div class="progress-foot">${button('Prüfcockpit öffnen','go-review',null,'button-quiet')}</div></div></div>`+
       `<div class="divider-title">FINANZIELLE MOMENTAUFNAHME</div><div class="section"><div class="stat-inline"><div><small>Umlagefähige Musterkosten</small><strong>${fmt(ledger().totals.allocableCostsCents/100)}</strong></div><div><small>Vorauszahlungen</small><strong>${fmt(allAdvance())}</strong></div><div><small>Saldo Gesamt (Muster)</small><strong>${fmt(ledger().totals.balanceCents/100)}</strong></div></div><p class="section-note">Illustrative Werte. Bruttokosten: ${fmt(ledger().totals.grossCostsCents/100)}; davon Muster-Vermieteranteil: ${fmt(ledger().totals.landlordCostsCents/100)}. Kein produktiver Abrechnungsstand.</p></div>`;
   }
-  const steps=[['tenancies','Mietverhältnisse'],['costs','Gesamtkosten'],['water','Verbräuche'],['advance','Vorauszahlungen'],['allocation','Umlage'],['review','Prüfen'],['letters','Briefe']];
+  const steps=[['tenancies','Mietverhältnisse'],['advance','Vorauszahlungen'],['costs','Gesamtkosten'],['water','Verbräuche'],['review','Prüfen'],['allocation','Ergebnis'],['letters','Briefe']];
   const renderSteps=()=>`<div class="tab-bar" role="tablist" aria-label="Abrechnungsprozess">${steps.map(([id,label])=>`<button class="tab-button ${ui.step===id?'active':''}" role="tab" aria-selected="${ui.step===id}" type="button" data-step="${id}">${label}</button>`).join('')}</div>`;
   function billing(){
-    const ending=data.demoFinalized?'Musterabschluss simuliert':'Synthetischer Fachtest';
+    const ending='Entwurf · nicht abschließbar';
     let content='';let action='';let title='Abrechnung 2025';let description='Alle Arbeitsschritte in einem gemeinsamen Arbeitsplatz. Details bearbeiten, ohne den Kontext zu verlieren.';
     if(ui.step==='tenancies'){content=tenancies();}
     else if(ui.step==='costs'){action=button('Kostenart hinzufügen','new-cost',null,'button-primary');content=costs();}
