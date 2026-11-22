@@ -1,14 +1,20 @@
 # NK-Pro 2.0 – Designprototyp (nicht produktiv)
 
-## Private Datenstrecke – getrennt und nicht veröffentlicht (22.11.2026)
+## Private Datenstrecke – GitHub Pages und Google Drive (22.11.2026)
 
-Im Unterverzeichnis **private/** ist jetzt eine eigenständige, verschlüsselte Migrations-/Google-Drive-Lösung vorbereitet. Der echte NK-Pro-1.0-Cloud-Snapshot V99.4.81 vom 21.11.2026 wurde mit dem neuen Importmodul vollständig und unverändert überprüft; die fachlichen Daten einschließlich fünf historischer Archivinstanzen sind migrierbar. Die echte Datenquelle wurde **nicht** in dieses öffentliche Repository übernommen.
+Die private Migration und verschlüsselte Google-Drive-Anbindung werden **innerhalb der bereits vorhandenen GitHub-/Google-Infrastruktur** angeboten. Kein neuer Hostinganbieter, keine neue Domain und kein neues Google-Projekt sind für diese Stufe erforderlich.
 
-Wichtig: Der private Tresor darf **nicht unter der öffentlichen GitHub-Pages-Origin** dieser Demo betrieben werden, weil beide NK-Pro-Versionen dort denselben Browser-Origin teilen. Er ist ausdrücklich **nicht Teil des Pages-Builds**. Eine separate HTTPS-Origin und die Freischaltung dieser Origin im vorhandenen Google-OAuth-Webclient sind erforderlich, bevor echte Daten cloudbasiert nutzbar werden. Die Google-API-Tests sind simuliert; echte OAuth-/iPhone-Tests stehen noch aus. Im privaten Tresor ist die derzeitige Anzeige ausschließlich lesend; vollständige Fachberechnung und produktive Abrechnungsfreigabe fehlen weiterhin.
+**Öffentliche Fachtest-Demo:** https://cz100000.github.io/NK-Pro-2.0/ (weiterhin ausschließlich synthetisch)
 
-Details: [Private Migration und Drive-Tresor](docs/PRIVATE_VAULT_DRIVE_MIGRATION_2026-11-22.md).
+**Separater verschlüsselter Datentresor:** https://cz100000.github.io/NK-Pro-2.0/private/ (Programmcode öffentlich abrufbar; Echtdaten niemals im Repository/Hosting; noch **keine produktive Abrechnungssoftware**)
 
+GitHub Pages liefert ausschließlich statische Programmdateien aus einer strengen Allowlist. Der Tresor verschlüsselt persönliche Daten im Browser vor Speicherung in lokalem Storage und in dem eigenen Google-Drive-Ordner `NK-Pro 2.0 – Privatdaten`. Die vorhandene öffentliche OAuth-Web-Client-ID aus NK-Pro 1.0 kann auf derselben `github.io`-Origin wiederverwendet werden, sofern diese Origin tatsächlich bereits in der Google-Konsole freigeschaltet ist. Die Anmeldung und tatsächliche API-Berechtigung müssen mit dem Nutzerkonto bestätigt und auf iPhone/Safari getestet werden.
 
+**Sicherheitsgrenze:** NK-Pro 1.0 und 2.0 bleiben während der Parallelphase unterschiedliche Repositorys und Verzeichnisse, aber **derselbe Browser-Origin**. Auch unterschiedliche Storage-Schlüssel bieten hier keine echte Isolation. Der Endnutzer darf die private 2.0-Oberfläche nur mit Bewusstsein für das Übergangsrisiko nutzen. Nach vollständiger Fachparität wird NK-Pro 1.0 kontrolliert außer Betrieb genommen: endgültiges Backup, Datennachweis, Abschalten der 1.0-Pages-Veröffentlichung und Prüfung alter Service Worker/Caches. Das entfernt den parallel laufenden 1.0-Code, ändert aber nicht rückwirkend die gemeinsame Origin oder die schon vorhandenen Browserdaten. Eine unabhängige Origin kann künftig zusätzlich sinnvoll sein, ist aber für diese Migration nicht zwingend.
+
+Der echte NK-Pro-1.0-Snapshot V99.4.81 wurde mit dem neuen Importmodul erfolgreich geprüft; 7 Wohnungen, 5 Verhältnisse, 16 Zähler, 90 Messwerte und fünf individuelle Archive sind übertragbar. **Keine echten Daten sind im GitHub-Repository enthalten.** Die private Ansicht zeigt vorerst ein lesendes Inventar; die vollständige Fachberechnung, Bearbeitung und Abrechnungsfreigabe fehlen.
+
+Details: [Google/GitHub-Betriebsplan](docs/EXISTING_GITHUB_GOOGLE_HOSTING_2026-11-22.md) und [Private Migration](docs/PRIVATE_VAULT_DRIVE_MIGRATION_2026-11-22.md).
 
 Dies ist die **eigenständige Neugestaltung** von NK-Pro. Das ursprüngliche Projekt [cz100000/NK-Pro](https://github.com/cz100000/NK-Pro) bleibt unverändert. Alle Inhalte dieser Demo sind **synthetische Musterdaten**; der aktuelle Stand ist **kein für Nebenkostenabrechnungen zugelassenes Produkt**.
 
