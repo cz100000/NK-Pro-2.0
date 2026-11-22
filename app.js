@@ -33,7 +33,12 @@
     calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v5M17 3v5M3 10h18"/>',
     layers:'<path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5m-18 5 9 5 9-5"/>',
     print:'<path d="M6 9V3h12v6M6 18H4V9h16v9h-2M6 15h12v6H6z"/>',
-    file:'<path d="M6 2h8l5 5v14H6zM14 2v6h5M9 12h7M9 16h7"/>'
+    file:'<path d="M6 2h8l5 5v14H6zM14 2v6h5M9 12h7M9 16h7"/>',
+    door:'<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M10 11h.01M14 3v18"/>',
+    users:'<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5v1"/>',
+    gauge:'<path d="M4 18a9 9 0 1 1 16 0H4Z"/><path d="m12 15 4-6M7 13h.01M12 8h.01M17 13h.01"/>',
+    more:'<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
+    plus:'<path d="M12 4v16M4 12h16"/>'
   };
   const icon=(name)=>`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icons[name]||icons.info}</svg>`;
   const initial=()=>workflow.example(propertyModel.upgrade(waterDetails.example({
@@ -69,7 +74,7 @@
   function load(){
     try{
       const prev=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
-      if(prev)return estates.validate(prev);
+      if(prev)return estates.upgradePortfolio(prev);
     }catch(error){console.warn("Portfolio wird aus sicheren Demomustern neu aufgebaut:",error.message);}
     return estates.create(initial());
   }
@@ -85,7 +90,8 @@
     catch(e){console.warn("Portfolio nicht dauerhaft gespeichert:",e.message);}}
   function persist(){
     if(annualLocked())throw new Error("Historical synthetic annual cannot be edited");
-    const o=master();o.settlements[activeYear()]=clone(data);
+    portfolio=estates.saveYear(portfolio,master().id,activeYear(),data);
+    data=estates.current(portfolio);
     savePortfolio();
   }
   function switchPortfolio(next){
@@ -134,60 +140,84 @@
   const head=(kicker,title,description,action='')=>`<div class="page-heading"><div><div class="eyebrow">${safeText(kicker)}</div><h1>${title}</h1><p>${description}</p></div>${action?`<div class="heading-actions">${action}</div>`:''}</div>`;
   function progress(){const done=Math.min(6,qualityReport().counts.executed===44?6:4);let html='<div class="flow-track">';for(let i=0;i<7;i++)html+=`<div class="flow-segment ${i<done?'complete':i===done?'current':''}"></div>`;return html+`</div><div class="flow-labels">${['Mietverhältnisse','Vorauszahlungen','Gesamtkosten','Verbräuche','Prüfen','Ergebnis','Briefe'].map((x,i)=>`<span class="${i===Math.min(done,6)?'highlight':''}">${x}</span>`).join('')}</div>`}
   function overview(){
-    const totals=portfolio.objects.reduce((x,o)=>{
+    const live=portfolio.objects.filter(o=>o.lifecycle?.status!=="archived"),
+      archived=portfolio.objects.filter(o=>o.lifecycle?.status==="archived");
+    const totals=live.reduce((x,o)=>{
       x.units+=o.units.length;x.settlements+=Object.keys(o.settlements).length;return x;
     },{units:0,settlements:0});
-    const cards=portfolio.objects.map(o=>'<div class="overview-object-card">'+
-      '<div><h3>'+safeText(o.name)+'</h3><p>'+safeText(o.street)+', '+
-        safeText(o.postalCode)+' '+safeText(o.city)+'</p></div>'+
-      '<div class="overview-count"><strong>'+o.units.length+'</strong><span>Wohnungen</span></div>'+
-      '<div class="overview-actions">'+button('Objekt öffnen','select-property',o.id,'button-quiet')+
-        button('Abrechnungen','object-billings',o.id,'button-quiet')+'</div></div>').join('');
+    const card=(o,isArchived)=>{
+      const years=Object.keys(o.settlements).length;
+      const menu='<details class="estate-menu"><summary aria-label="Aktionen für '+
+        safeText(o.name)+'" title="Objektaktionen">'+icon('more')+'</summary>'+
+        '<div class="estate-menu-items">'+(isArchived?
+          button('Objekt wiederherstellen','restore-object',o.id,'button-quiet'):
+          button('Objekt archivieren','archive-object',o.id,'button-quiet'))+
+        (!o.units.length&&!o.tenancies.length&&!years?
+          button('Leeres Objekt löschen','delete-empty-object',o.id,'button-quiet'):'')+
+        '</div></details>';
+      return '<article class="estate-card'+(isArchived?' is-archived':'')+'">'+
+        '<div class="estate-card-header"><span class="estate-symbol">'+icon('building')+
+        '</span><span class="status '+(isArchived?'neutral':'green')+'">'+
+        (isArchived?'Archiviert':'Aktiv')+'</span>'+menu+'</div>'+
+        '<h3>'+safeText(o.name)+'</h3><p class="estate-address">'+safeText(o.street)+
+        '<br>'+safeText(o.postalCode)+' '+safeText(o.city)+'</p>'+
+        '<div class="estate-stats"><div><strong>'+o.units.length+
+        '</strong><span>Wohnungen</span></div><div><strong>'+years+
+        '</strong><span>Jahresstände</span></div></div>'+
+        (isArchived?'<p class="estate-archived-note">Die Daten bleiben erhalten. Für die Bearbeitung zuerst wiederherstellen.</p>':
+          '<div class="estate-actions">'+button('Objekt öffnen '+icon('arrow'),'select-property',o.id,'button-primary')+'</div>')+
+        '</article>';
+    };
     return head('IMMOBILIENBESTAND · NUR MUSTERDATEN','Startseite',
-      'Drei fiktive Immobilien. Die vollständige Dashboard-Gestaltung folgt nach Abschluss der Kernfunktionen.',
-      button('Alle Jahresabrechnungen','all-billings',null,'button-primary'))+
-      '<div class="portfolio-summary"><div><small>Objekte</small><strong>'+portfolio.objects.length+'</strong></div>'+
+      'Wählen Sie eine Immobilie. Stammdaten und Jahresabrechnungen werden im jeweiligen Objekt bearbeitet.',
+      button(icon('plus')+' Neues Objekt','new-object',null,'button-primary'))+
+      '<div class="portfolio-summary"><div><small>Aktive Objekte</small><strong>'+live.length+'</strong></div>'+
       '<div><small>Wohnungen</small><strong>'+totals.units+'</strong></div>'+
       '<div><small>Jahresabrechnungen</small><strong>'+totals.settlements+'</strong></div></div>'+
-      '<section class="section"><div class="section-header"><div><h2>Immobilienbestand</h2>'+
-        '<p>Objekt auswählen und die dazugehörigen Wohnungen, Mietverhältnisse oder Abrechnungen öffnen.</p></div></div>'+
-      cards+'</section>'+
-      '<div class="info-line">Die Übersichtsseite bleibt bewusst Work in Progress. Die neue Hierarchie „Objekt → Wohnungen/Mietverhältnisse → Jahresabrechnungen“ ist dagegen bereits als Kernnavigation umgesetzt. Historische Musterstände sind keine fachlich archivierten echten Abrechnungen.</div>';
+      '<div class="estate-grid">'+(live.length?live.map(o=>card(o,false)).join(''):
+        '<div class="estate-empty"><h3>Noch keine aktiven Objekte</h3>'+
+        '<p>Erstellen Sie ein neues Objekt oder stellen Sie ein archiviertes Objekt wieder her.</p></div>')+
+      '</div>'+(archived.length?
+        '<details class="estate-archive-group"><summary>Archivierte Immobilien ('+archived.length+
+        ')</summary><div class="estate-grid">'+archived.map(o=>card(o,true)).join('')+'</div></details>':'')+
+      '<p class="footnote">Ausschließlich synthetische Testdaten. Archivieren erhält sämtliche Jahresstände; endgültiges Löschen ist nur bei vollständig leeren Objekten möglich.</p>';
   }
   const steps=[['advance','Vorauszahlungen'],['costs','Gesamtkosten'],['water','Verbräuche'],['review','Prüfen'],['allocation','Ergebnis'],['letters','Briefe']];
   const renderSteps=()=>`<div class="tab-bar" role="tablist" aria-label="Abrechnungsprozess">${steps.map(([id,label])=>`<button class="tab-button ${ui.step===id?'active':''}" role="tab" aria-selected="${ui.step===id}" type="button" data-step="${id}">${label}</button>`).join('')}</div>`;
   function renderTree(){
     const el=$('portfolioTree');if(!el)return;
+    const activeObjects=portfolio.objects.filter(o=>o.lifecycle?.status!=="archived");
     el.innerHTML='<div class="tree-heading"><span>IMMOBILIEN</span><span class="tree-count">'+
-      portfolio.objects.length+'</span></div>'+
-      portfolio.objects.map(o=>{
+      activeObjects.length+'</span></div>'+
+      activeObjects.map(o=>{
         const expanded=o.id===ui.treeOpenObjectId;
         const related=o.id===portfolio.selectedObjectId &&
           (ui.view==='object'||(ui.view==='billing'&&(!ui.billingHome||ui.objectListFilter===o.id)));
         const years=Object.keys(o.settlements).sort((a,b)=>b.localeCompare(a));
-        const item=(label,action,id,count,selected)=>'<button type="button" class="tree-subitem'+
+        const item=(label,action,id,count,selected,ico)=>'<button type="button" class="tree-subitem'+
           (selected?' selected':'')+'" data-action="'+action+'" data-id="'+safeText(id)+
-          '"'+(selected?' aria-current="page"':'')+'>'+safeText(label)+
+          '"'+(selected?' aria-current="page"':'')+'><span class="tree-icon">'+icon(ico)+'</span>'+safeText(label)+
           (count!=null?'<span class="tree-meta">'+count+'</span>':'')+'</button>';
         const group=(id,label,count,children)=>{
           const open=ui.treeSections[id];
           return '<div class="tree-section"><button type="button" class="tree-group-toggle"'+
             ' data-action="toggle-tree-section" data-id="'+id+'" aria-expanded="'+open+'">'+
-            '<span class="tree-arrow" aria-hidden="true">'+(open?'⌄':'›')+'</span>'+
+            '<span class="tree-arrow'+(open?' open':'')+'" aria-hidden="true">'+icon('chevron')+'</span>'+
+            '<span class="tree-icon">'+icon(id==='master'?'layers':'calendar')+'</span>'+
             '<span class="tree-group-label">'+label+'</span>'+
             (count!=null?'<span class="tree-meta">'+count+'</span>':'')+'</button>'+
             (open?'<div class="tree-section-children">'+children+'</div>':'')+'</div>';
         };
         const masterItems=item('Objektdaten','open-object-tab','overview',null,
-            related&&ui.view==='object'&&ui.objectTab==='overview')+
+            related&&ui.view==='object'&&ui.objectTab==='overview','building')+
           item('Wohnungen','open-object-tab','units',o.units.length,
-            related&&ui.view==='object'&&ui.objectTab==='units')+
+            related&&ui.view==='object'&&ui.objectTab==='units','door')+
           item('Mietverhältnisse','open-object-tab','tenancies',o.tenancies.length,
-            related&&ui.view==='object'&&ui.objectTab==='tenancies')+
+            related&&ui.view==='object'&&ui.objectTab==='tenancies','users')+
           item('Zähler','open-object-tab','meters',o.units.length*2,
-            related&&ui.view==='object'&&ui.objectTab==='meters');
+            related&&ui.view==='object'&&ui.objectTab==='meters','gauge');
         const yearItems=item('Alle Jahre','object-billings',o.id,years.length,
-            related&&ui.view==='billing'&&ui.billingHome&&ui.objectListFilter===o.id)+
+            related&&ui.view==='billing'&&ui.billingHome&&ui.objectListFilter===o.id,'layers')+
           years.map(year=>{
             const a=o.settlements[year];
             const selected=related&&ui.view==='billing'&&!ui.billingHome&&
@@ -195,8 +225,8 @@
             return '<button type="button" class="tree-year'+(selected?' selected':'')+
               '" data-action="open-year" data-id="'+safeText(o.id)+'|'+year+'"'+
               (selected?' aria-current="page"':'')+'>'+
-              '<span>'+year+'</span><small>'+
-              safeText(a.settlement?.status==='draft'?'In Bearbeitung':'Musterstand')+
+              '<span class="tree-year-name"><span class="tree-icon">'+icon('calendar')+'</span>'+
+              year+'</span><small>'+safeText(a.settlement?.status==='draft'?'In Bearbeitung':'Musterstand')+
               '</small></button>';
           }).join('');
         return '<div class="tree-property'+(expanded?' expanded':'')+'">'+
@@ -204,8 +234,9 @@
             '" type="button" aria-expanded="'+expanded+'"'+
             (related?' aria-current="location"':'')+
             ' aria-label="'+safeText(o.name)+' öffnen" data-action="select-property" data-id="'+
-            safeText(o.id)+'"><span class="tree-arrow" aria-hidden="true">'+
-            (expanded?'⌄':'›')+'</span><span class="tree-property-label">'+safeText(o.name)+
+            safeText(o.id)+'"><span class="tree-arrow'+(expanded?' open':'')+'" aria-hidden="true">'+
+            icon('chevron')+'</span><span class="tree-icon">'+icon('building')+
+            '</span><span class="tree-property-label">'+safeText(o.name)+
             '</span><span class="tree-units">'+o.units.length+' WE</span></button>'+
           (expanded?'<div class="tree-children">'+
             group('master','Stammdaten',null,masterItems)+
@@ -215,25 +246,18 @@
       '<p class="tree-footnote">Ausschließlich fiktive Musterobjekte.</p>';
   }
   function billingList(){
-    const candidates=portfolio.objects.filter(o=>!ui.objectListFilter||o.id===ui.objectListFilter);
-    return head('JAHRESABRECHNUNGEN · MUSTERBESTAND','Jahresabrechnungen',
-      'Wählen Sie zuerst das Objekt und anschließend das Abrechnungsjahr. Historische Musterstände sind schreibgeschützt.')+
+    const o=master(),years=Object.keys(o.settlements).sort((a,b)=>b.localeCompare(a));
+    return head('JAHRESABRECHNUNGEN · '+safeText(o.name),'Jahresabrechnungen',
+      'Hier werden ausschließlich Jahresabrechnungen dieser Immobilie angezeigt.',
+      button(icon('plus')+' Jahr anlegen','new-year',null,'button-primary'))+
       '<div class="portfolio-summary">'+
-        '<div><small>Objekte</small><strong>'+portfolio.objects.length+'</strong></div>'+
-        '<div><small>Wohnungen</small><strong>'+portfolio.objects.reduce((n,o)=>n+o.units.length,0)+'</strong></div>'+
-        '<div><small>Jahresabrechnungen</small><strong>'+portfolio.objects.reduce((n,o)=>n+Object.keys(o.settlements).length,0)+'</strong></div></div>'+
-      '<div class="portfolio-filter"><button type="button" class="'+(!ui.objectListFilter?'selected':'')+
-        '" data-action="all-billings">Alle Objekte</button>'+
-        portfolio.objects.map(o=>'<button type="button" class="'+(ui.objectListFilter===o.id?'selected':'')+
-         '" data-action="object-billings" data-id="'+safeText(o.id)+'">'+safeText(o.name)+'</button>').join('')+'</div>'+
-      candidates.map(o=>{
-        const years=Object.keys(o.settlements).sort((a,b)=>b.localeCompare(a));
-        return '<section class="section annual-property">'+
-        '<div class="section-header"><div><h2>'+safeText(o.name)+'</h2>'+
-          '<p>'+safeText(o.street)+', '+safeText(o.postalCode)+' '+safeText(o.city)+
-          ' · '+o.units.length+' Wohnungen</p></div>'+
-          button('Objekt öffnen','select-property',o.id,'button-quiet')+'</div>'+
-        '<div class="annual-rows">'+years.map(y=>{
+        '<div><small>Objekt</small><strong class="portfolio-object-name">'+safeText(o.name)+'</strong></div>'+
+        '<div><small>Wohnungen</small><strong>'+o.units.length+'</strong></div>'+
+        '<div><small>Jahresabrechnungen</small><strong>'+years.length+'</strong></div></div>'+
+      '<section class="section annual-property">'+
+        '<div class="section-header"><div><h2>Alle Jahre</h2>'+
+        '<p>'+safeText(o.street)+', '+safeText(o.postalCode)+' '+safeText(o.city)+'</p></div></div>'+
+        (years.length?'<div class="annual-rows">'+years.map(y=>{
           const a=o.settlements[y],active=a.settlement?.status==='draft',
             stale=estates.rebasePreview(portfolio,o.id,y).stale;
           return '<button type="button" class="annual-row" data-action="open-year" data-id="'+safeText(o.id)+'|'+y+'">'+
@@ -243,9 +267,9 @@
             '<span class="annual-status '+(active?'active':'')+'">'+safeText(estates.statusLabel(a.settlement?.status))+
               (stale?' · Stammdatenabweichung':'')+'</span>'+
             '<span class="annual-link">'+(active?'Bearbeiten':'Ansehen')+' →</span></button>';
-        }).join('')+'</div></section>';
-      }).join('')+
-      '<div class="info-line">Die Jahre 2023 und 2024 sind ausschließlich synthetische historische Musterstände und keine archivierten echten Abrechnungen. Der bisherige Fachtest 2025 bleibt als bearbeitbarer Entwurf beim sieben-Wohnungen-Objekt erhalten.</div>';
+        }).join('')+'</div>':
+        '<div class="empty"><h3>Noch keine Jahresabrechnungen</h3><p>Erfassen Sie zunächst Wohnungen und Mietverhältnisse unter Stammdaten. Danach können Sie ein Musterabrechnungsjahr anlegen.</p></div>')+
+        '</section><div class="info-line">Jahresabrechnungen sind diesem Objekt fest zugeordnet. Objektwechsel erfolgen ausschließlich links im Immobilienbaum.</div>';
   }
   function billing(){
     const ending=estates.statusLabel(data.settlement?.status);
@@ -258,7 +282,7 @@
     else if(ui.step==='allocation'){content=allocations();}
     else if(ui.step==='review'){content=review();}
     else if(ui.step==='letters'){if(!annualLocked())action=button(icon('print')+' Musterentwurf drucken','print-letter',null,'button-quiet');content=letters();}
-    return '<div class="context-return">'+button('← Alle Jahresabrechnungen','back-billings',null,'button-quiet')+
+    return '<div class="context-return">'+button('← Alle Jahre dieses Objekts','back-billings',null,'button-quiet')+
       '<span>'+safeText(master().name)+' · '+safeText(ending)+'</span></div>'+
       (estates.rebasePreview(portfolio,master().id,activeYear()).stale?
         '<div class="warning-line"><strong>Stammdaten wurden geändert. Dieser Jahresstand bleibt zunächst unverändert.</strong> '+
@@ -561,7 +585,8 @@
             button(y+' öffnen','open-year',o.id+'|'+y,'button-quiet')).join('')+'</div>';
       }else{
         content=head('WOHNUNGSSTAMMDATEN',o.name+' · Wohnungen',
-          'Wohnungen werden einmalig im Objekt gepflegt; Abrechnungen übernehmen die zugehörigen Daten.')+
+          'Wohnungen werden einmalig im Objekt gepflegt; Abrechnungen übernehmen die zugehörigen Daten.',
+          button(icon('plus')+' Wohnung hinzufügen','new-master-unit',null,'button-primary'))+
           '<section class="section"><div class="stat-inline"><div><small>Wohnungen</small><strong>'+o.units.length+
           '</strong></div><div><small>Gesamtwohnfläche</small><strong>'+
           fmtVolume(o.units.reduce((n,u)=>n+u.area,0))+' m²</strong></div></div>'+
@@ -599,7 +624,11 @@
     }
     return switcher+content;
   }
-  function analytics(){const choices=[['nk','Nebenkosten'],['finance','Finanzen'],['tax','Steuern']];let body='';
+  function analytics(){
+    if(!data)return head('OBJEKTÜBERGREIFEND','Analysezentrum',
+      'Objektübergreifende Auswertungen folgen in einer späteren Entwicklungsstufe.')+
+      '<div class="info-line">Im aktuellen Objekt liegt noch kein Abrechnungsjahr vor. Keine Kennzahlen verfügbar.</div>';
+    const choices=[['nk','Nebenkosten'],['finance','Finanzen'],['tax','Steuern']];let body='';
     if(ui.analytics==='nk'){let max=Math.max(...data.costs.map(c=>c.amount));body=`<div class="metric-row"><div class="metric"><span class="metric-label">Gesamtkosten 2025</span><div class="metric-number" style="font-size:23px">${fmt(allCost())}</div><span class="metric-helper">Musterwerte</span></div><div class="metric"><span class="metric-label">Kosten je m²</span><div class="metric-number">${euroNum(allCost()/data.units.reduce((s,u)=>s+u.area,0))} <small>€/m²</small></div><span class="metric-helper">Rein illustrative Kennzahl</span></div><div class="metric"><span class="metric-label">Wohnungsverbrauch</span><div class="metric-number">${int(unitConsumption())} <small>m³</small></div><span class="metric-helper">Vereinfachte Musterzähler</span></div></div>`+
       section('Kostenstruktur 2025',`<div class="section-body"><div class="bars">${data.costs.map(c=>`<div class="bar-row"><span>${safeText(c.name)}</span><div class="bar-rail"><div class="bar-fill" style="width:${Math.round(c.amount/max*100)}%"></div></div><span class="bar-value">${fmt(c.amount)}</span></div>`).join('')}</div><p class="footnote" style="margin-top:24px">Preis-/Verbrauchseffekte und Mehrjahresvergleiche werden erst gezeigt, wenn vergleichbare Vorjahresdaten nachweislich verfügbar sind.</p></div>`);
     }else if(ui.analytics==='finance'){body=`<div class="no-data-box"><strong>Cashflow derzeit nicht berechenbar</strong><p>Die Demo enthält Kosten und Vorauszahlungen, aber keine verifizierten tatsächlichen Miet- oder Lieferantenzahlungen. NK-Pro 2.0 wird Soll, Ist, Forderungen und Cashflow getrennt erfassen.</p></div>`+section('Finanzielle Überleitung (Beispiel)',`<div class="stat-inline"><div><small>Nebenkosten (Soll)</small><strong>${fmt(allCost())}</strong></div><div><small>Vorauszahlungen (Abrechnungswert)</small><strong>${fmt(allAdvance())}</strong></div><div><small>Tatsächliche Zahlungen</small><strong>–</strong></div></div><div class="table-caption">Keine fiktiven Zahlungseingänge oder Renditen.</div>`);
@@ -609,7 +638,10 @@
       '<div class="info-line">Fachtest: Angezeigte Musterkennzahlen stammen derzeit nur aus '+safeText(master().name)+' / '+safeText(activeYear())+'. Keine objektübergreifende Aggregation.</div>'+
       `<div class="analytic-switch" role="tablist" aria-label="Analyseperspektive">${choices.map(([id,label])=>`<button type="button" role="tab" aria-selected="${ui.analytics===id}" class="${ui.analytics===id?'selected':''}" data-analytics="${id}">${label}</button>`).join('')}</div>`+body;
   }
-  function documents(){return head('OBJEKTÜBERGREIFEND','Dokumente & Archiv',
+  function documents(){if(!data)return head('OBJEKTÜBERGREIFEND','Dokumente & Archiv',
+      'Zentrale Ablage für sämtliche Immobilien und Jahre – noch im Aufbau.')+
+      '<div class="empty"><h3>Noch keine Dokumente verfügbar</h3><p>Für das aktuelle Objekt wurden noch keine Musterabrechnungen angelegt.</p></div>';
+    return head('OBJEKTÜBERGREIFEND','Dokumente & Archiv',
       'Zentraler Zugang für Unterlagen sämtlicher Immobilien und Jahre. Der übergreifende Dokumentenindex ist noch nicht umgesetzt.')+
     '<div class="info-line">Aktuelle Musteransicht: '+safeText(master().name)+' / '+safeText(activeYear())+'. Keine produktiv freigegebenen Dokumente.</div>'+
     `<section class="section"><div class="section-header"><div><h2>Dokumente · ${safeText(master().name)} · ${safeText(activeYear())}</h2><p>Erstellte Dokumente werden erst nach der fachlichen Freigabe verbindlich.</p></div></div><div class="task-row"><div class="task-icon">${icon('file')}</div><div class="task-copy"><strong>Musterbrief · Wohnung A</strong><span>Vorschau · synthetische Beträge · nicht versandfertig</span></div><button class="link" type="button" data-action="go-letter">Vorschau →</button></div><div class="task-row"><div class="task-icon">${icon('layers')}</div><div class="task-copy"><strong>Prüf- und Abschlussprotokoll</strong><span>Erst nach Fachfreigabe des vollständigen Systems verfügbar</span></div><button class="link" type="button" data-action="go-review">Prüfstatus →</button></div></section>`+
@@ -626,9 +658,8 @@
     else if(ui.view==='documents')path='Objektübergreifend / Dokumente & Archiv';
     else if(ui.view==='object')path='Startseite / '+master().name+' / Stammdaten / '+
       (objectTitles[ui.objectTab]||'Objektdaten');
-    else if(ui.view==='billing')path='Startseite / '+
-      (ui.billingHome?(ui.objectListFilter?master().name+' / Jahresabrechnungen':'Alle Jahresabrechnungen'):
-        master().name+' / Jahresabrechnungen / '+activeYear());
+    else if(ui.view==='billing')path='Startseite / '+master().name+
+      ' / Jahresabrechnungen'+(ui.billingHome?'':' / '+activeYear());
     $('breadcrumbView').textContent=path;
     renderTree();
     const target=$('appMain');
@@ -647,7 +678,7 @@
   function navigate(view,step){
     ui.view=view;
     if(view==='overview'||view==='analytics'||view==='documents')ui.treeOpenObjectId=null;
-    if(view==='billing'&&!step){ui.billingHome=true;ui.objectListFilter=null;ui.treeOpenObjectId=null;}
+    if(view==='billing'&&!step){ui.billingHome=true;ui.objectListFilter=master()?.id||null;ui.treeOpenObjectId=master()?.id||null;}
     if(step){ui.step=step;ui.billingHome=false;ui.treeOpenObjectId=master().id;ui.treeSections.years=true;}
     ui.filter='';render();
     window.scrollTo({top:0,behavior:'instant'});
@@ -668,8 +699,33 @@
     }).join('');
     return '<div class="drawer-breakdown"><div class="eyebrow">Kostenpositionen · Muster-Nachweis</div><div class="drawer-table-scroll"><table class="data-table"><thead><tr><th>Position</th><th class="money">Umlagefähig</th><th class="money">Wohnungsanteil</th></tr></thead><tbody>'+costRows+'</tbody></table></div><div class="drawer-note">Getestete Referenzformeln, Centverteilung mit Restcents. Nicht zugeordnete Beträge bleiben offen. Keine produktive Umlageabrechnung.</div></div>';
   }
-  function openDrawer(type,id){const d={type,id};ui.drawer=d;ui.lastFocus=document.activeElement;let title='',eyebrow='',body='',actionLabel='Änderungen speichern';
-    if(type.startsWith('master-')||type==='new-master-tenancy'){
+  function openDrawer(type,id){
+    if(type==='new-master-tenancy'&&!master().units.length)return toast('Bitte zuerst eine Wohnung anlegen.');
+    const d={type,id};ui.drawer=d;ui.lastFocus=document.activeElement;let title='',eyebrow='',body='',actionLabel='Änderungen speichern';
+    if(type==='new-object'){
+      title='Neue Immobilie';eyebrow='OBJEKTSTAMM · NUR FIKTIVE DATEN';
+      body='<form id="editForm" data-type="new-object">'+
+        '<div class="form-row"><label>Objektbezeichnung<input name="name" required maxlength="90" placeholder="Musterobjekt D"></label></div>'+
+        '<div class="form-row"><label>Straße und Hausnummer<input name="street" required maxlength="120" placeholder="Musterweg 4"></label></div>'+
+        '<div class="water-form-grid"><div class="form-row"><label>PLZ<input name="postalCode" required maxlength="12" placeholder="00004"></label></div>'+
+        '<div class="form-row"><label>Ort<input name="city" required maxlength="80" placeholder="Musterstadt"></label></div></div>'+
+        '<div class="drawer-note">Die neue Immobilie erhält eine dauerhafte, eindeutige ID. Wohnungen, Verträge und Abrechnungsjahre werden anschließend im Objekt angelegt. Hier keine echten personenbezogenen Daten verwenden.</div></form>';
+      actionLabel='Objekt anlegen';
+    }else if(type==='new-master-unit'){
+      title='Wohnung hinzufügen';eyebrow='DAUERHAFTE STAMMDATEN · '+safeText(master().name);
+      body='<form id="editForm" data-type="new-master-unit">'+
+        '<div class="form-row"><label>Wohnungsbezeichnung<input name="label" required maxlength="70" placeholder="Wohnung 1"></label></div>'+
+        '<div class="form-row"><label>Lage / Geschoss<input name="position" required maxlength="100" placeholder="EG links"></label></div>'+
+        '<div class="form-row"><label>Wohnfläche (m²)<input name="area" required type="number" min="0.01" max="1000000" step="0.01"></label></div>'+
+        '<div class="drawer-note">Eine stabile Wohnungs-ID sowie fiktive KW-/WW-Zählerkennungen werden vergeben. Es entsteht keine Jahresabrechnung.</div></form>';
+      actionLabel='Wohnung anlegen';
+    }else if(type==='new-year'){
+      title='Jahresabrechnung anlegen';eyebrow='JAHR · '+safeText(master().name);
+      body='<form id="editForm" data-type="new-year">'+
+        '<div class="form-row"><label>Abrechnungsjahr<input name="year" type="number" required min="2000" max="2100" step="1" value="2025"></label></div>'+
+        '<div class="drawer-note">Ausschließlich synthetischer Jahresentwurf. Vorher sind Wohnungen und zeitlich gültige Mietverhältnisse erforderlich. Bereits vorhandene Jahresstände werden nie überschrieben.</div></form>';
+      actionLabel='Musterjahr anlegen';
+    }else if(type.startsWith('master-')||type==='new-master-tenancy'){
       const result=masterUi.form(type,master(),id);
       if(!result)return toast('Stammdatensatz nicht gefunden.');
       title=result.title;eyebrow=result.eyebrow;body=result.body;
@@ -897,6 +953,33 @@
     $('overlay').hidden=false;$('drawer').hidden=false;document.body.style.overflow='hidden';setTimeout(()=>{const input=$('drawerBody').querySelector('input,textarea,select');if(input)input.focus();else $('closeDrawer').focus()},10);
   }
   function saveDrawer(form){const {type,id}=ui.drawer||{};let good=true,msg='Musterwert gespeichert.';
+    if(type==='new-object'||type==='new-master-unit'||type==='new-year'){
+      try{
+        if(type==='new-object'){
+          portfolio=estates.addObject(portfolio,{
+            name:form.elements.name.value,street:form.elements.street.value,
+            postalCode:form.elements.postalCode.value,city:form.elements.city.value});
+          data=null;ui.view='object';ui.objectTab='overview';
+          ui.treeOpenObjectId=portfolio.selectedObjectId;
+          ui.treeSections.master=true;ui.unitDetailId=null;ui.billingHome=true;
+          msg='Musterobjekt angelegt.';
+        }else if(type==='new-master-unit'){
+          portfolio=estates.addUnit(portfolio,master().id,{
+            label:form.elements.label.value,position:form.elements.position.value,
+            area:form.elements.area.value});
+          data=estates.current(portfolio);ui.view='object';ui.objectTab='units';
+          ui.treeOpenObjectId=portfolio.selectedObjectId;ui.treeSections.master=true;
+          msg='Wohnung angelegt. Es sind noch Mietverhältnisse zu erfassen.';
+        }else{
+          portfolio=estates.addYear(portfolio,master().id,form.elements.year.value);
+          data=estates.current(portfolio);ui.view='billing';ui.billingHome=false;
+          ui.step='advance';ui.treeOpenObjectId=portfolio.selectedObjectId;
+          ui.treeSections.years=true;msg='Synthetisches Abrechnungsjahr angelegt.';
+        }
+        savePortfolio();closeDrawer();render();toast(msg);
+      }catch(e){toast('Anlage nicht möglich: '+e.message)}
+      return;
+    }
     if(type.startsWith('master-')||type==='new-master-tenancy'){
       try{
         const parsed=masterUi.parse(type,form.elements,id,ui.draftMasterTenancy);
@@ -1076,6 +1159,28 @@
     if(good){closeDrawer();stateChange();toast(msg)}
   }
   function doAction(action,id){
+    if(action==='new-object'){openDrawer('new-object');return;}
+    if(action==='new-master-unit'){openDrawer('new-master-unit');return;}
+    if(action==='new-year'){openDrawer('new-year');return;}
+    if(['archive-object','restore-object','delete-empty-object'].includes(action)){
+      const o=portfolio.objects.find(x=>x.id===id);if(!o)return;
+      const prompt=action==='archive-object'?
+        'Objekt "'+o.name+'" archivieren? Alle Stammdaten und Jahresabrechnungen bleiben erhalten; die Immobilie wird aus dem aktiven Navigationsbaum entfernt.':
+        action==='delete-empty-object'?
+        'Leeres Objekt "'+o.name+'" endgültig löschen? Der Löschvermerk bleibt für eine spätere Synchronisierung erhalten.':
+        'Objekt "'+o.name+'" wiederherstellen?';
+      if(!window.confirm(prompt))return;
+      try{
+        portfolio=action==='archive-object'?estates.archiveObject(portfolio,id):
+          action==='restore-object'?estates.restoreObject(portfolio,id):
+          estates.deleteEmptyObject(portfolio,id);
+        data=estates.current(portfolio);ui.view='overview';ui.treeOpenObjectId=null;
+        ui.unitDetailId=null;ui.billingHome=true;
+        savePortfolio();render();toast(action==='archive-object'?'Objekt archiviert.':
+          action==='restore-object'?'Objekt wiederhergestellt.':'Leeres Objekt gelöscht.');
+      }catch(e){toast('Aktion nicht möglich: '+e.message);}
+      return;
+    }
     if(action==='select-property'){
       const collapse=ui.treeOpenObjectId===id&&ui.view==='object';
       if(portfolio.selectedObjectId!==id)switchPortfolio(estates.selectObject(portfolio,id));
@@ -1096,8 +1201,9 @@
       if(portfolio.selectedObjectId!==id)switchPortfolio(estates.selectObject(portfolio,id));
       ui.treeOpenObjectId=id;ui.treeSections.years=true;
       render();document.body.classList.remove('menu-open');return;}
-    if(action==='all-billings'||action==='back-billings'){ui.objectListFilter=null;ui.billingHome=true;
-      ui.treeOpenObjectId=null;ui.view='billing';render();document.body.classList.remove('menu-open');return;}
+    if(action==='all-billings'||action==='back-billings'){ui.objectListFilter=master().id;ui.billingHome=true;
+      ui.treeOpenObjectId=master().id;ui.treeSections.years=true;
+      ui.view='billing';render();document.body.classList.remove('menu-open');return;}
     if(action==='open-year'){
       const pos=id.lastIndexOf('|'),oid=id.slice(0,pos),year=id.slice(pos+1);
       if(pos<0)return;
@@ -1207,9 +1313,10 @@
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('drawer').hidden)closeDrawer();document.body.classList.remove('menu-open')}if(e.key==='Tab'&&!$('drawer').hidden){const nodes=[...$('drawer').querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled)')].filter(x=>x.offsetParent!==null);if(!nodes.length)return;const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});
   $('openMenu').addEventListener('click',()=>document.body.classList.toggle('menu-open'));
   $('resetDemo').addEventListener('click',()=>{
-    if(!window.confirm('Nur Portfolio 0.7 mit allen drei synthetischen Musterobjekten zurücksetzen? Ältere Fachtestdaten und NK-Pro 1.0 werden nicht verändert.'))return;
+    if(!window.confirm('Gesamten lokalen Fachtestbestand einschließlich neu angelegter Objekte zurücksetzen? Alle lokalen Änderungen an Musterdaten gehen verloren. NK-Pro 1.0 wird nicht verändert.'))return;
     portfolio=estates.create(initial());data=estates.current(portfolio);
     savePortfolio();ui.objectTab='overview';ui.unitDetailId=null;ui.billingHome=true;
+    ui.treeOpenObjectId=null;ui.treeSections={master:false,years:true};
     navigate('overview');toast('Drei Musterobjekte zurückgesetzt.');
   });
   document.querySelectorAll('[data-icon]').forEach(node=>node.innerHTML=icon(node.dataset.icon));
