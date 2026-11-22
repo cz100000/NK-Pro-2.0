@@ -530,10 +530,18 @@
             '<div class="water-actions" style="padding:8px 0">'+button('Zählerwechsel dokumentieren','replace-meter',u.id+'|'+key,'button-quiet')+'</div></fieldset>';
         };
         body='<form id="editForm" data-type="water">'+meterGroup('cold')+meterGroup('hot')+
-          '<fieldset class="water-fieldset"><legend>Leerstandsverbrauch (nur bei Zeitlücken)</legend><div class="water-form-grid">'+
-          '<div class="form-row"><label>KW Leerstand (m³)<input name="vacancyCold" type="number" min="0" step="0.001" value="'+safeText(u.vacancyCold??'')+'"></label></div>'+
-          '<div class="form-row"><label>WW Leerstand (m³)<input name="vacancyHot" type="number" min="0" step="0.001" value="'+safeText(u.vacancyHot??'')+'"></label></div></div>'+
-          '<p class="form-help">Bei zeitlichem Leerstand ist der Verbrauch ausdrücklich von den Mieterverbräuchen zu trennen und mit der Zählersumme abzugleichen. Null muss bewusst eingetragen werden.</p></fieldset>'+
+          '<fieldset class="water-fieldset"><legend>Verbrauch und Leerstand · automatische Berechnung</legend>'+
+          '<div id="water-live-sum" class="drawer-note">KW/WW-Verbrauch wird aus den Zählerständen berechnet.</div>'+
+          '<p class="form-help">Leerstandstage entstehen aus Mietverhältnissen. Leerstandsverbrauch entsteht nur aus dokumentierten Zwischenablesungen an den Zeitgrenzen – kein frei veränderlicher Pauschalwert.</p>'+
+          '<div class="water-actions">'+button('KW-Zwischenablesung','add-interim',u.id+'|cold','button-quiet')+
+          button('WW-Zwischenablesung','add-interim',u.id+'|hot','button-quiet')+'</div>'+
+          '<div class="meter-history">'+['cold','hot'].map(key=>(u.waterMeters?.[key]?.interimReadings||[]).map(x=>
+           '<div><strong>'+safeText(key==='cold'?'KW':'WW')+'</strong><span>'+safeText(x.date)+'</span><span>'+fmtVolume(x.value)+' m³</span></div>').join('')).join('')+'</div>'+
+          '<div class="drawer-note">Leerstand laut Ablesungen: '+
+            (waterReport().vacancyByUnit?.[u.id]?.valid?
+               fmtVolume(waterReport().vacancyByUnit[u.id].cold)+' m³ KW / '+
+               fmtVolume(waterReport().vacancyByUnit[u.id].hot)+' m³ WW':'Für den Zeitraum nicht vollständig messbar')+
+          '</div></fieldset>'+
           '<div class="form-row"><label>Notiz zu den Zählerständen (optional)<textarea name="waterNote" maxlength="2000" rows="4">'+safeText(u.waterNote||'')+'</textarea></label></div>'+
           '<div class="drawer-note">KW und WW mit Originalwerten und Messperioden. Zeitliche Leerstände benötigen dokumentierte KW-/WW-Anteile. Historische Vorjahresübernahme ist nur als kontrollierte Prüfvorschau vorbereitet.</div></form>';
       }
@@ -561,6 +569,15 @@
         data.tenancies.map(t=>'<div class="form-row"><label>'+safeText(t.name)+' · '+safeText(data.units.find(u=>u.id===t.unitId)?.label||t.unitId)+
         '<input data-case-consumption="'+safeText(t.id)+'" type="number" min="0" step="0.001" value="'+safeText(c.consumptionByTenant?.[t.id]??'')+'"></label></div>').join('')+
         '<div class="drawer-note">Gesamtmenge und Mengen der Einzelabrechnungsfälle werden getrennt geprüft. Fehlt ein Wert, gilt er nicht automatisch als null.</div></form>';
+    }else if(type==='interim-reading'){
+      const parts=String(id).split('|'),kind=parts.pop(),unitId=parts.join('|');
+      const u=data.units.find(x=>x.id===unitId);
+      if(!u||!['cold','hot'].includes(kind))return;
+      title=u.label+' · Zwischenablesung';eyebrow=kind==='cold'?'KALTWASSER':'WARMWASSER';
+      body='<form id="editForm" data-type="interim-reading">'+
+        '<div class="form-row"><label>Ablesedatum<input name="readingDate" type="date" required value="2025-06-30"></label></div>'+
+        '<div class="form-row"><label>Zählerstand (m³)<input name="readingValue" type="number" step="0.001" min="0" required></label></div>'+
+        '<div class="drawer-note">Ablesungen an Auszugs- und Einzugsgrenzen ermöglichen die automatische Berechnung des Leerstandsverbrauchs. Fehlende Ablesungen erzeugen einen Prüfhinweis.</div></form>';
     }else if(type==='meter-replacement'){
       const parts=String(id||'').split('|'),channel=parts.pop(),unitId=parts.join('|');
       const u=data.units.find(x=>x.id===unitId),m=u?.waterMeters?.[channel];
@@ -695,12 +712,6 @@
         next[channel]={...(u.waterMeters?.[channel]||{}),number:form.elements[channel+'Number'].value.trim().slice(0,60),
           start,end,startDate,endDate};
       }
-      const vacCold=String(form.elements.vacancyCold.value).trim(),vacHot=String(form.elements.vacancyHot.value).trim();
-      if((vacCold!==''&&(!waterDetails.volume(vacCold)))||
-         (vacHot!==''&&(!waterDetails.volume(vacHot))))
-        return toast('Leerstandsverbrauch muss eine nichtnegative Zahl sein.');
-      u.vacancyCold=vacCold===''?null:Number(vacCold);
-      u.vacancyHot=vacHot===''?null:Number(vacHot);
       u.waterMeters=next;u.waterNote=form.elements.waterNote.value.trim().slice(0,2000);
       delete u.waterSourceNotice;
     }
@@ -725,6 +736,13 @@
       }
       c.consumptionTotal=total;c.consumptionUnit=form.elements.consumptionUnit.value.trim()||'Einheit';
       c.consumptionByTenant=by;msg='Verbrauchswerte je Abrechnungsfall gespeichert.';
+    }
+    else if(type==='interim-reading'){
+      const parts=String(id).split('|'),kind=parts.pop(),unitId=parts.join('|');
+      try{data=waterDetails.addInterimReading(data,unitId,kind,
+         form.elements.readingDate.value,parseField(form.elements.readingValue));}
+      catch(e){return toast('Zwischenablesung prüfen: '+e.message)}
+      msg='Zwischenablesung gespeichert – Leerstand wird neu berechnet.';
     }
     else if(type==='meter-replacement'){
       const parts=String(id||'').split('|'),channel=parts.pop(),unitId=parts.join('|');
@@ -767,6 +785,7 @@
     if(action==='edit-external'){openDrawer('external',id);return}
     if(action==='edit-other-consumption'){openDrawer('other-consumption',id);return}
     if(action==='edit-property'){openDrawer('property');return}
+    if(action==='add-interim'){openDrawer('interim-reading',id);return}
     if(action==='replace-meter'){openDrawer('meter-replacement',id);return}
     if(action==='new-tenancy'){openDrawer('new-tenancy');return}
     if(action==='edit-tenancy'){openDrawer('tenancy',id);return}
@@ -805,7 +824,22 @@
       f.querySelectorAll('[data-manual-price]').forEach(el=>el.hidden=!consume||f.elements.priceMode.value!=='manual');
     }
   });
-  document.addEventListener('input',e=>{if(e.target.id==='tableSearch'){ui.filter=e.target.value;const pos=e.target.selectionStart;render();const input=$('tableSearch');if(input){input.focus();input.setSelectionRange(pos,pos)}}});
+  document.addEventListener('input',e=>{
+    if(['coldStart','coldEnd','hotStart','hotEnd'].includes(e.target.name)){
+      const f=$('editForm'),el=$('water-live-sum');
+      if(f&&el&&f.dataset.type==='water'){
+        const read=key=>{
+          const a=String(f.elements[key+'Start'].value).trim(),b=String(f.elements[key+'End'].value).trim();
+          if(a===''||b==='')return null;
+          const delta=Number(b)-Number(a);
+          return Number.isFinite(delta)&&delta>=0?delta:null;
+        };
+        const kw=read('cold'),ww=read('hot');
+        el.textContent=kw===null||ww===null?'Zählerstand fehlt oder ist unplausibel':
+          'KW '+fmtVolume(kw)+' m³ · WW '+fmtVolume(ww)+' m³ · Summe '+fmtVolume(kw+ww)+' m³ (vor Prüfung)';
+      }
+    }
+    if(e.target.id==='tableSearch'){ui.filter=e.target.value;const pos=e.target.selectionStart;render();const input=$('tableSearch');if(input){input.focus();input.setSelectionRange(pos,pos)}}});
   $('closeDrawer').addEventListener('click',closeDrawer);$('overlay').addEventListener('click',closeDrawer);
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('drawer').hidden)closeDrawer();document.body.classList.remove('menu-open')}if(e.key==='Tab'&&!$('drawer').hidden){const nodes=[...$('drawer').querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled)')].filter(x=>x.offsetParent!==null);if(!nodes.length)return;const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});
   $('openMenu').addEventListener('click',()=>document.body.classList.toggle('menu-open'));
