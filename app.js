@@ -155,8 +155,8 @@
   function costs(){
     let q=ui.filter.toLowerCase();const c=data.costs.filter(x=>(x.name+' '+x.category+' '+(x.note||'')).toLowerCase().includes(q));
     return `<div class="inline-toolbar"><h2>Gesamtkosten</h2><div class="filterbar"><input class="search" id="tableSearch" aria-label="Kosten durchsuchen" placeholder="Kostenarten suchen …" value="${safeText(ui.filter)}"></div></div>`+
-      `<section class="section"><div class="stat-inline"><div><small>Gesamtkosten</small><strong>${fmt(allCost())}</strong></div><div><small>Kostenarten</small><strong>${data.costs.length}</strong></div><div><small>Vermieteranteile</small><strong>${fmt(ledger().totals.landlordCostsCents/100)}</strong></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Kostenart</th><th>Bereich</th><th>Umlageschlüssel</th><th class="money">Preis je Einheit</th><th class="money">Gesamtbetrag</th><th>Notiz</th><th>Status</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
-      (c.length?c.map(x=>`<tr><td><strong>${safeText(x.name)}</strong></td><td>${safeText(x.category)}</td><td>${safeText(x.method)}</td><td class="money">${x.method==='Verbrauch'?(waterDetails.priceFor(x,x.id==='water'?data.houseWater:x.consumptionTotal).valid?fmtPrice(waterDetails.priceFor(x,x.id==='water'?data.houseWater:x.consumptionTotal).effective,x.consumptionUnit||'m³'):'Preis fehlt'):'–'}</td><td class="money">${fmt(x.amount)}</td><td class="cost-note-cell">${x.note?safeText(x.note):'<span class="soft">–</span>'}</td><td>${labelStatus(x.amount>0,'Betrag erfasst','Betrag fehlt')}</td><td>${iconButton('edit-cost',x.id,'Kostenart bearbeiten')}</td></tr>`).join(''):`<tr><td colspan="8" class="muted">Keine Treffer.</td></tr>`)+
+      `<section class="section"><div class="stat-inline"><div><small>Gesamtkosten</small><strong>${fmt(allCost())}</strong></div><div><small>Kostenarten</small><strong>${data.costs.length}</strong></div><div><small>Vermieteranteile</small><strong>${fmt(ledger().totals.landlordCostsCents/100)}</strong></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Kostenart</th><th>Bereich</th><th>Rechnungsdatum</th><th>Umlageschlüssel</th><th class="money">Preis je Einheit</th><th class="money">Gesamtbetrag</th><th>Notiz</th><th>Status</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
+      (c.length?c.map(x=>`<tr><td><strong>${safeText(x.name)}</strong></td><td>${safeText(x.category)}</td><td>${safeText(x.invoiceDate||'–')}</td><td>${safeText(x.method)}</td><td class="money">${x.method==='Verbrauch'?(waterDetails.priceFor(x,x.id==='water'?data.houseWater:x.consumptionTotal).valid?fmtPrice(waterDetails.priceFor(x,x.id==='water'?data.houseWater:x.consumptionTotal).effective,x.consumptionUnit||'m³'):'Preis fehlt'):'–'}</td><td class="money">${fmt(x.amount)}</td><td class="cost-note-cell">${x.note?safeText(x.note):'<span class="soft">–</span>'}</td><td>${x.active===false?labelStatus(false,'Aktiv','Inaktiv'):labelStatus(x.amount>0,'Betrag erfasst','Betrag fehlt')}</td><td><button class="link" type="button" data-action="toggle-cost" data-id="${safeText(x.id)}">${x.active===false?'Aktivieren':'Deaktivieren'}</button> ${iconButton('edit-cost',x.id,'Kostenart bearbeiten')}</td></tr>`).join(''):`<tr><td colspan="9" class="muted">Keine Treffer.</td></tr>`)+
       `</tbody></table></div><div class="table-caption">Klicken Sie auf eine Kostenart. Alle Einstellungen öffnen rechts – die Übersicht bleibt bestehen.</div></section><p class="footnote">Funktionsmuster: Sechs Originalverfahren werden für synthetische Ein-Mieter-Wohnungen berechnet. Kein Produktivbetrieb, keine Mieterwechsel, keine vollständige Techem-Einzelabrechnung.</p>`;
   }
   function water(){
@@ -525,11 +525,12 @@
         return toast('Einheitspreis: positiv, höchstens vier Nachkommastellen.');
       // Individual consumption values are only editable in the Verbräuche step.
       const exclusions=[...form.querySelectorAll('[data-case-exclude]')].filter(el=>el.checked).map(el=>el.dataset.caseExclude);
+      const existingCost=data.costs.find(x=>x.id===id)||{};
       const sourceId=form.elements.sourceId.value,canonical=workflow.invoiceCatalog(sourceId);
-      const value={name:canonical?.name||name,sourceId,category:canonical?.category||c.category||'Betriebskosten',amount:round(amt),landlordShare:round(landlordShare),method,
+      const value={name:canonical?.name||name,sourceId,category:canonical?.category||existingCost.category||'Betriebskosten',amount:round(amt),landlordShare:round(landlordShare),method,
         exclusionMode:form.elements.exclusionMode.value,excludedTenantIds:exclusions,
-        consumptionTotal:method==='Verbrauch'?(id==='water'?data.houseWater:c.consumptionTotal):null,
-        consumptionUnit:c.consumptionUnit||'m³',consumptionByTenant:c.consumptionByTenant||{},
+        consumptionTotal:method==='Verbrauch'?(id==='water'?data.houseWater:existingCost.consumptionTotal):null,
+        consumptionUnit:existingCost.consumptionUnit||'m³',consumptionByTenant:existingCost.consumptionByTenant||{},
         priceMode:mode,unitPrice:mode==='manual'?unitPrice:null,
         note:form.elements.note.value.trim().slice(0,2000)};
       if(type==='cost')Object.assign(data.costs.find(x=>x.id===id),value);
@@ -628,6 +629,10 @@
   });
   document.addEventListener('submit',e=>{if(e.target.id==='editForm'){e.preventDefault();saveDrawer(e.target)}});
   document.addEventListener('change',e=>{
+    if(e.target.id==='d-catalog'){
+      const choice=workflow.invoiceCatalog(e.target.value);
+      if(choice&&$('d-name'))$('d-name').value=choice.name;
+    }
     if(e.target.id==='d-method'||e.target.id==='d-price-mode'){
       const f=$('editForm');if(!f)return;
       const consume=f.elements.method.value==='Verbrauch';
