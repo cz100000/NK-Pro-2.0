@@ -139,7 +139,7 @@
   "<div id='nkLocalMessage' class='nk-live-muted'></div>",
   "<div id='nkSyncMessage' class='nk-cloud-message' role='status' aria-live='polite'></div>",
   "</section></div>"].join(""));
-  $("nkSyncButton").addEventListener("click",()=>{$("nkSyncPanel").hidden=false;
+  $("nkSyncButton").addEventListener("click",()=>{document.body.classList.remove("menu-open");$("nkSyncPanel").hidden=false;
    $("nkSyncPassword").focus();setStatus();});
   for(const id of ["nkSyncClose","nkShade"])$(id).addEventListener("click",()=>{
    $("nkSyncPanel").hidden=true;});
@@ -159,7 +159,7 @@
  const archiveButtons=a=>a.map(x=>"<button type='button' class='nk-live-archive' data-nk-view='archive' data-id='"+
   clean(x.id)+"'><span><b>"+clean(x.year)+"</b> · "+(x.completeness==="complete"?
   "Vollständiger Archivstand":"Historischer Teilbestand")+"</span><span>Nur lesen →</span></button>").join("");
- function navigate(next,id){view=next;archiveId=id||null;render();}
+ function navigate(next,id){document.body.classList.remove("menu-open");view=next;archiveId=id||null;render();}
  function render(){
   if(!live)return;
   const main=$("appMain"),crumb=$("breadcrumbView"),o=state?.objects?.[0];
@@ -266,7 +266,15 @@
     el.addEventListener("click",()=>navigate(el.dataset.view==="overview"?"overview":
       el.dataset.view==="analytics"?"analytics":"documents"));
    const menu=$("openMenu");
-   if(menu)menu.addEventListener("click",()=>$("sidebar").classList.toggle("open"));
+   if(menu)menu.addEventListener("click",()=>document.body.classList.toggle("menu-open"));
+   document.addEventListener("click",e=>{
+    if(document.body.classList.contains("menu-open")&&
+     !e.target.closest("#sidebar")&&!e.target.closest("#openMenu"))
+      document.body.classList.remove("menu-open");
+   });
+   document.addEventListener("keydown",e=>{if(e.key==="Escape"){
+    document.body.classList.remove("menu-open");$("nkSyncPanel").hidden=true;
+   }});
    render();
   }
   if("serviceWorker" in navigator){
