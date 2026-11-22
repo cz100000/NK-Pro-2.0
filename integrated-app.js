@@ -230,10 +230,19 @@
    if(!a){view="archives";render();return;}
    title="Archiv "+a.year;
    const costs=a.snapshot?.data?.kostenarten||[];
+   const figures=a.snapshot?.summary||{},calculation=a.snapshot?.calculation||{};
+   const results=Array.isArray(calculation.tenantResults)?calculation.tenantResults:[];
    html=intro+"<button type='button' class='nk-live-back' data-nk-view='archives'>← Alle Archive</button>"+
     "<h1>Archiv "+clean(a.year)+"</h1><div class='nk-live-notice'><b>"+
     (a.completeness==="complete"?"Vollständiger Archivstand":"Historischer Teilbestand")+
     "</b><p>Unveränderte Originalwerte, ohne neue Berechnung oder stillschweigende Datenkorrektur.</p></div>"+
+    "<div class='nk-live-stats'>"+metric(eur(figures.kostenNK),"Historische Kosten laut Quelle")+
+    metric(eur(figures.vorauszahlungen),"Vorauszahlungen laut Quelle")+
+    metric(eur(figures.saldo),"Saldo laut Quelle")+metric(results.length,"Originale Teilnehmerergebnisse")+"</div>"+
+    (results.length?"<section class='nk-live-section'><h2>Originale Einzelabrechnungsergebnisse</h2>"+
+     grid(["Mietverhältnis","Kostenanteil","Vorauszahlungen","Saldo"],
+      results.map(r=>[r.tenant?.name||r.tenant?.id||"–",eur(r.costShare),
+       eur(r.prepayments),eur(r.balance)]))+"</section>":"")+
     "<section class='nk-live-section'><h2>Historische Kostenarten</h2>"+
     grid(["Kennung","Originalbezeichnung","Originalbetrag"],
     costs.map(c=>[c.id,c.kostenart,eur(c.gesamtbetrag)]))+"</section>";
