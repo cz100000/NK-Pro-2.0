@@ -107,5 +107,5 @@ function assess(state,ledger,letters){
    complete:false,readyForPrint:false,readyForClose:false,
    reason:notRun+" Originalprüfungen und dokumentenechte A4-Abnahme sind noch nicht portiert."};
 }
-return{assess,registry:rules,version:"stage4-synthetic-review-2"};
+return{assess,registry:rules,portedIds:[...ported],version:"stage4-synthetic-review-2"};
 });

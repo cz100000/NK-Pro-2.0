@@ -9,8 +9,8 @@ test("public status generated from actual CI test counts",()=>{
  const r=build.manifest(tap(117),"a".repeat(40));
  assert.equal(r.tests.passed,117);
  assert.equal(r.inventory.qualityRules,44);
- assert.equal(r.inventory.experimentalQualityRules,10);
- assert.equal(r.inventory.notPortedRules,34);
+ assert.equal(r.inventory.experimentalQualityRules,25);
+ assert.equal(r.inventory.notPortedRules,19);
  assert.equal(r.gates.realBilling,false);
  assert.equal(r.gates.realDataImport,false);
 });
