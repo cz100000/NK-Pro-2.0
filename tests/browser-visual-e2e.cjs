@@ -102,8 +102,12 @@ const chromeBinary=()=>{
   let d=await layout();
   assert.equal(d.tree,3);assert.ok(d.sw<=d.vw+1&&d.sbRight<=d.mainLeft+4);
   assert.match(d.h,/Startseite/);assert.ok(d.sbRight>=285);
+  assert.equal(await evalJS("return document.querySelectorAll('.estate-card').length;"),0);
+  assert.equal(await evalJS("return document.querySelectorAll('.estate-table tbody tr').length;"),3);
   await snap("01-desktop-portfolio");
   await click('[data-action="select-property"][data-id="SYN-A"]');
+  assert.equal(await evalJS("return document.querySelectorAll('.object-shortcuts').length;"),0);
+  assert.equal(await evalJS("return document.querySelectorAll('#appMain .edit-action').length;"),1);
   await click('[data-action="object-billings"][data-id="SYN-A"]');
   await waitFor("return document.querySelectorAll('.annual-row').length===3;");
   d=await layout();assert.ok(d.sw<=d.vw+1);assert.match(d.h,/Jahresabrechnungen/);
@@ -124,6 +128,7 @@ const chromeBinary=()=>{
     "Misaligned navigation sibling icons: "+JSON.stringify(alignment));
   await click('[data-action="open-object-tab"][data-id="units"]');
   assert.equal(await evalJS("return document.querySelectorAll('.data-table tbody tr').length;"),3);
+  assert.equal(await evalJS("return document.querySelectorAll('.edit-action').length;"),3);
   assert.equal(await evalJS("return document.querySelectorAll('[data-action=view-unit]').length;"),0);
   await snap("03-desktop-three-units");
   await click('[data-action="edit-master-unit"][data-id="SYN-B-W02"]');
@@ -133,9 +138,13 @@ const chromeBinary=()=>{
   await click('[data-action="open-object-tab"][data-id="meters"]');
   assert.equal(await evalJS("return document.querySelectorAll('.meter-unit').length;"),3);
   assert.equal(await evalJS("return document.querySelectorAll('[data-action=view-unit]').length;"),0);
+  assert.equal(await evalJS("return document.querySelectorAll('.meter-table .edit-action').length;"),15);
+  assert.equal(await evalJS("return document.querySelectorAll('.meter-table [data-action=retire-master-meter],.meter-table [data-action=delete-master-meter]').length;"),0);
   await snap("04b-desktop-meter-master");
   await click('[data-action="edit-master-meter"]');
   await waitFor("return document.querySelector('#drawerTitle')?.textContent==='Zähler bearbeiten';");
+  assert.ok(await evalJS("return document.querySelector('#drawerBody').textContent.includes('Zählerverwaltung');"));
+  await snap("04c-desktop-meter-edit");
   await click('#closeDrawer');
   await click('[data-action="open-year"][data-id="SYN-B|2024"]');
   await waitFor("return document.querySelector('#appMain h1')?.textContent==='Abrechnung 2024';");
