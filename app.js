@@ -398,8 +398,12 @@
             '<div class="water-actions" style="padding:8px 0">'+button('Zählerwechsel dokumentieren','replace-meter',u.id+'|'+key,'button-quiet')+'</div></fieldset>';
         };
         body='<form id="editForm" data-type="water">'+meterGroup('cold')+meterGroup('hot')+
+          '<fieldset class="water-fieldset"><legend>Leerstandsverbrauch (nur bei Zeitlücken)</legend><div class="water-form-grid">'+
+          '<div class="form-row"><label>KW Leerstand (m³)<input name="vacancyCold" type="number" min="0" step="0.001" value="'+safeText(u.vacancyCold??'')+'"></label></div>'+
+          '<div class="form-row"><label>WW Leerstand (m³)<input name="vacancyHot" type="number" min="0" step="0.001" value="'+safeText(u.vacancyHot??'')+'"></label></div></div>'+
+          '<p class="form-help">Bei zeitlichem Leerstand ist der Verbrauch ausdrücklich von den Mieterverbräuchen zu trennen und mit der Zählersumme abzugleichen. Null muss bewusst eingetragen werden.</p></fieldset>'+
           '<div class="form-row"><label>Notiz zu den Zählerständen (optional)<textarea name="waterNote" maxlength="2000" rows="4">'+safeText(u.waterNote||'')+'</textarea></label></div>'+
-          '<div class="drawer-note">Die beiden Musterzähler werden getrennt erfasst; unvollständige oder ungültige Angaben bleiben prüfpflichtig. Noch keine echte Zählerhistorie oder Vorjahresübernahme.</div></form>';
+          '<div class="drawer-note">KW und WW mit Originalwerten und Messperioden. Zeitliche Leerstände benötigen dokumentierte KW-/WW-Anteile. Historische Vorjahresübernahme ist nur als kontrollierte Prüfvorschau vorbereitet.</div></form>';
       }
       else if(type==='advance')body=`<form id="editForm" data-type="advance"><div class="form-row"><label for="d-advance">Jahresvorauszahlung (€)</label><input id="d-advance" name="advance" type="number" step="0.01" min="0" value="${u.advance}" required></div><div class="drawer-note">Musterjahreswert. Keine tatsächlichen Zahlungseingänge hinterlegt.</div></form>`;
       else body=`<form id="editForm" data-type="unit"><div class="form-row"><label for="d-label">Wohnungsbezeichnung</label><input id="d-label" name="label" required value="${safeText(u.label)}"></div><div class="form-row"><label for="d-position">Lage</label><input id="d-position" name="position" required value="${safeText(u.position)}"></div><div class="form-row"><label for="d-area">Wohnfläche (m²)</label><input id="d-area" name="area" type="number" min="1" step="0.01" required value="${u.area}"></div><div class="form-row"><label><input name="active" type="checkbox" style="width:auto;margin-right:8px" ${u.active!==false?'checked':''}>Aktive Musterwohnung</label></div><div class="drawer-note">Wohnfläche und Status gelten dauerhaft. Personen und Miettage werden aus den einzelnen Mietverhältnissen ermittelt; bitte dort bearbeiten.</div></form>`;
@@ -514,6 +518,12 @@
         next[channel]={...(u.waterMeters?.[channel]||{}),number:form.elements[channel+'Number'].value.trim().slice(0,60),
           start,end,startDate,endDate};
       }
+      const vacCold=String(form.elements.vacancyCold.value).trim(),vacHot=String(form.elements.vacancyHot.value).trim();
+      if((vacCold!==''&&(!waterDetails.volume(vacCold)))||
+         (vacHot!==''&&(!waterDetails.volume(vacHot))))
+        return toast('Leerstandsverbrauch muss eine nichtnegative Zahl sein.');
+      u.vacancyCold=vacCold===''?null:Number(vacCold);
+      u.vacancyHot=vacHot===''?null:Number(vacHot);
       u.waterMeters=next;u.waterNote=form.elements.waterNote.value.trim().slice(0,2000);
       delete u.waterSourceNotice;
     }
