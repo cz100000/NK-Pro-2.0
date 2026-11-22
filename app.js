@@ -114,6 +114,38 @@
     else if(ui.step==='letters'){action=button(icon('print')+' Musterbrief drucken','print-letter',null,'button-primary');content=letters();}
     return head(`ABRECHNUNG 2025 · ${ending}`,title,description,action)+renderSteps()+content;
   }
+  function tenancies(){
+    const model=propertyModel.inspect(data,waterReport()),state=ledger();
+    const c=new Map(state.tenants.map(t=>[t.id,t]));
+    const rows=data.tenancies.map(t=>{
+      const r=c.get(t.id),unit=data.units.find(u=>u.id===t.unitId);
+      const errors=model.issues.filter(x=>x.entityId===t.id||x.entityId===t.unitId);
+      return '<tr><td><strong>'+safeText(t.name)+'</strong><span class="small soft water-unit-sub">'+safeText(t.id)+' · '+safeText(t.role)+'</span></td>'+
+        '<td>'+safeText(unit?.label||t.unitId)+'</td>'+
+        '<td>'+safeText(t.start)+'<br><span class="soft">bis</span> '+safeText(t.end)+'</td>'+
+        '<td class="money">'+(r?r.days:'–')+'</td><td class="money">'+safeText(t.persons)+'</td>'+
+        '<td class="money">'+(r?fmt(r.costCents/100):'–')+'</td>'+
+        '<td class="money">'+fmt(t.advance)+'</td><td>'+labelStatus(!errors.length,'Erfasst','Prüfen')+'</td>'+
+        '<td>'+iconButton('edit-tenancy',t.id,'Abrechnungsfall bearbeiten')+'</td></tr>';
+    }).join('');
+    const gaps=model.vacancy.filter(v=>v.days>0);
+    const info='<div class="case-summary"><div><small>Abrechnungsfälle</small><strong>'+data.tenancies.length+'</strong></div>'+
+       '<div><small>Wohnungen</small><strong>'+data.units.length+'</strong></div>'+
+       '<div><small>Leerstandstage</small><strong>'+model.vacancyDays+'</strong></div>'+
+       '<div><small>Zu prüfende Einträge</small><strong>'+model.issues.length+'</strong></div></div>';
+    return '<div class="inline-toolbar"><div><h2>Mietverhältnisse und Abrechnungsfälle</h2>'+
+      '<p class="small muted">Ein-/Auszug, Nutzung und Vorauszahlungen je Fall · 2025</p></div>'+
+      button('Musterfall hinzufügen','new-tenancy',null,'button-primary')+'</div>'+
+      info+'<section class="section"><div class="section-header"><div><h2>Teilnehmer und Zeiträume</h2>'+
+      '<p>Eine Wohnung kann mehrere aufeinanderfolgende Mietverhältnisse besitzen. Privatanteile nehmen an der Abrechnung teil.</p></div></div>'+
+      '<div class="table-wrap"><table class="data-table case-table"><thead><tr><th>Abrechnungsfall</th><th>Wohnung</th><th>Zeitraum</th><th class="money">Tage</th><th class="money">Personen</th><th class="money">Kostenanteil</th><th class="money">Vorauszahlung</th><th>Status</th><th>Aktion</th></tr></thead><tbody>'+
+      rows+'</tbody></table></div>'+
+      (gaps.length?'<div class="table-caption">Leerstand: '+
+        gaps.map(x=>safeText(x.unitId)+' · '+safeText(x.start)+' bis '+safeText(x.end)+' ('+x.days+' Tage)').join('; ')+'</div>':'')+
+      (model.issues.length?'<div class="water-issues"><strong>Fachliche Lücken</strong><ul>'+
+        model.issues.map(x=>'<li>'+safeText(x.message)+'</li>').join('')+'</ul></div>':'')+
+      '</section><p class="footnote">Ausschließlich fiktive Personen verwenden. Bei Mieterwechsel KW/WW-Verbrauch pro Fall ergänzen; die Summe muss zur Messung der Wohnung passen. Keine echten Mieterdaten in diese Demo eingeben.</p>';
+  }
   function costs(){
     let q=ui.filter.toLowerCase();const c=data.costs.filter(x=>(x.name+' '+x.category+' '+(x.note||'')).toLowerCase().includes(q));
     return `<div class="inline-toolbar"><h2>Gesamtkosten</h2><div class="filterbar"><input class="search" id="tableSearch" aria-label="Kosten durchsuchen" placeholder="Kostenarten suchen …" value="${safeText(ui.filter)}"></div></div>`+
@@ -181,19 +213,74 @@
       KPIs+differences+table+
       (data.units.some(u=>u.waterSourceNotice)?'<p class="footnote"><strong>Ältere Demowerte:</strong> Die früheren Ein-Zähler-Daten bleiben als KW-Entwurf erhalten. Warmwasser wurde nicht erfunden. Bitte vervollständigen oder die Demo zurücksetzen.</p>':'');
   }
-  function advances(){return `<div class="inline-toolbar"><h2>Vorauszahlungen</h2><span class="small muted">Jahreswerte · Musterstand</span></div><section class="section"><div class="stat-inline"><div><small>Summe Vorauszahlungen</small><strong>${fmt(allAdvance())}</strong></div><div><small>Erfasste Wohnungen</small><strong>${data.units.length} von 7</strong></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Wohnung</th><th class="money">Vorauszahlung/Jahr</th><th class="money">Monatsäquivalent*</th><th>Status</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
-      data.units.map(u=>`<tr><td><strong>${safeText(u.label)}</strong><div class="small soft">${safeText(u.position)}</div></td><td class="money">${fmt(u.advance)}</td><td class="money">${fmt(u.advance/12)}</td><td>${labelStatus(u.advance>0)}</td><td>${iconButton('edit-advance',u.id,'Vorauszahlung bearbeiten')}</td></tr>`).join('')+`</tbody></table></div><div class="table-caption">*Nur rechnerisches Monatsäquivalent, keine Prüfung tatsächlich gezahlter Einzelmonate.</div></section>`;}
-  function allocations(){let res=data.units.map(u=>({unit:u,cost:allocation(u),saldo:balance(u)}));let sum=res.reduce((s,r)=>s+r.saldo,0);return `<div class="inline-toolbar"><h2>Abrechnungsergebnis</h2><span class="status amber">Nicht produktiv</span></div><section class="section"><div class="big-total"><div><small>Gesamtsaldo · synthetische Beispielrechnung</small><strong>${fmt(round(sum))}</strong></div><span class="small muted">Kosten minus Vorauszahlungen</span></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Wohnung</th><th class="money">Umlagekosten</th><th class="money">Vorauszahlungen</th><th class="money">Saldo</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
-    res.map(r=>`<tr><td><strong>${safeText(r.unit.label)}</strong></td><td class="money">${fmt(r.cost)}</td><td class="money">${fmt(r.unit.advance)}</td><td class="money"><span class="outcome ${r.saldo>0?'neg':'pos'}">${fmt(r.saldo)}</span></td><td>${iconButton('show-unit-result',r.unit.id,'Berechnungsgrundlage öffnen')}</td></tr>`).join('')+`</tbody></table></div><div class="table-caption">Referenzbasierter Musterabgleich: Brutto ${fmt(ledger().totals.grossCostsCents/100)}, gesonderte Vermieteranteile ${fmt(ledger().totals.landlordCostsCents/100)}, umlagefähig ${fmt(ledger().totals.allocableCostsCents/100)}, verteilt ${fmt(ledger().totals.distributedCents/100)}, noch nicht zugeordnet ${fmt(ledger().totals.differenceCents/100)}. Keine echte Abrechnungsfreigabe.</div></section><div style="margin-top:18px;text-align:right">${button('Zur Prüfung','go-review',null,'button-primary')}</div>`;}
+  function advances(){
+    return '<div class="inline-toolbar"><div><h2>Vorauszahlungen nach Abrechnungsfall</h2>'+
+      '<p class="small muted">Jahresbezogene Werte gehören zum Mietverhältnis, nicht pauschal zur Wohnung.</p></div></div>'+
+      '<section class="section"><div class="stat-inline"><div><small>Gesamtsumme</small><strong>'+fmt(allAdvance())+'</strong></div>'+
+      '<div><small>Abrechnungsfälle</small><strong>'+data.tenancies.length+'</strong></div></div>'+
+      '<div class="table-wrap"><table class="data-table"><thead><tr><th>Teilnehmer</th><th>Wohnung</th>'+
+      '<th class="money">Vorauszahlung</th><th>Status</th><th>Aktion</th></tr></thead><tbody>'+
+      data.tenancies.map(t=>'<tr><td><strong>'+safeText(t.name)+'</strong><span class="small soft water-unit-sub">'+safeText(t.id)+'</span></td>'+
+        '<td>'+safeText(data.units.find(u=>u.id===t.unitId)?.label||t.unitId)+'</td><td class="money">'+fmt(t.advance)+'</td>'+
+        '<td>'+labelStatus(Number.isFinite(Number(t.advance)))+'</td><td>'+iconButton('edit-tenancy',t.id,'Vorauszahlung des Mietverhältnisses bearbeiten')+'</td></tr>').join('')+
+      '</tbody></table></div><div class="table-caption">Synthetische Jahreswerte: noch keine vollständige Kostenartenmatrix, echten Zahlungen oder Korrekturen.</div></section>';
+  }
+  function allocations(){
+    const r=ledger(),sum=r.tenants.reduce((s,t)=>s+t.balanceCents,0);
+    const table=r.tenants.map(t=>'<tr><td><strong>'+safeText(t.name)+'</strong>'+
+      '<span class="small soft water-unit-sub">'+safeText(t.id)+' · '+safeText(t.role)+'</span></td>'+
+      '<td>'+safeText(data.units.find(u=>u.id===t.unitId)?.label||t.unitId)+'</td>'+
+      '<td class="money">'+t.days+'</td><td class="money">'+fmt(t.costCents/100)+'</td>'+
+      '<td class="money">'+fmt(t.advanceCents/100)+'</td>'+
+      '<td class="money"><span class="outcome '+(t.balanceCents>0?'neg':'pos')+'">'+fmt(t.balanceCents/100)+'</span></td>'+
+      '<td>'+iconButton('edit-tenancy',t.id,'Abrechnungsfall öffnen')+'</td></tr>').join('');
+    return '<div class="inline-toolbar"><h2>Abrechnungsergebnis je Mietverhältnis</h2>'+
+      '<span class="status amber">Synthetischer Fachtest</span></div>'+
+      '<section class="section"><div class="big-total"><div><small>Gesamtsaldo · keine echten Abrechnungsdaten</small>'+
+      '<strong>'+fmt(sum/100)+'</strong></div><span class="small muted">'+r.tenants.length+' Abrechnungsfälle</span></div>'+
+      '<div class="table-wrap"><table class="data-table"><thead><tr><th>Teilnehmer</th><th>Wohnung</th>'+
+      '<th class="money">Miettage</th><th class="money">Umlagekosten</th><th class="money">Vorauszahlungen</th>'+
+      '<th class="money">Saldo</th><th>Aktion</th></tr></thead><tbody>'+table+'</tbody></table></div>'+
+      '<div class="table-caption">Brutto '+fmt(r.totals.grossCostsCents/100)+
+      ', gesondert erfasste Vermieteranteile '+fmt(r.totals.landlordCostsCents/100)+
+      ', umlagefähige Kosten '+fmt(r.totals.allocableCostsCents/100)+
+      ', verteilt '+fmt(r.totals.distributedCents/100)+
+      ', **nicht zugeordnet** '+fmt(r.totals.differenceCents/100)+
+      '. Fehlbeträge und Leerstand werden nicht still verteilt.</div></section>'+
+      '<div style="margin-top:18px;text-align:right">'+button('Zur Prüfung','go-review',null,'button-primary')+'</div>';
+  }
   function review(){const list=checks();const todo=list.filter(x=>!x.done);return `<div class="inline-toolbar"><h2>Prüfen und abschließen</h2><span class="status ${todo.length?'amber':'green'}">${todo.length?todo.length+' offene Punkte':'Alle Musterpunkte geprüft'}</span></div><section class="section"><div class="section-header"><div><h2>Abschlusskontrolle</h2><p>Jede Auffälligkeit führt direkt zur Ursache und möglichen Lösung.</p></div></div>`+
     list.map(c=>`<div class="check-item"><div class="check-dot ${c.done?'pass':'todo'}">${icon(c.done?'check':'alert')}</div><div class="check-content"><strong>${safeText(c.title)}</strong><span>${safeText(c.note)}</span></div>${c.done?'<span class="status green">Erledigt</span>':`<button class="link" type="button" data-action="${c.action}">Bearbeiten →</button>`}</div>`).join('')+
     `<div class="progress-foot" style="display:flex;align-items:center;justify-content:space-between;gap:14px"><span class="note">${list.length-todo.length}/${list.length} Musterkontrollen erledigt</span>${button(data.demoFinalized?'Musterabschluss erfolgt': 'Musterabschluss simulieren','demo-finish',null,'button-primary'+(todo.length?' disabled-look':''))}</div></section>`+
     `<div class="info-line">Der Musterabschluss ist eine reine Simulation. Die echte Freigabe bleibt bis zur vollständigen Prüfung aller 44 Originalregeln, Briefe, Archiv und Datenmigration gesperrt.</div>`;}
   function docPaper(){const u=data.units[0];const cost=allocation(u),adv=u.advance,saldo=balance(u);return `<article class="doc-paper"><div class="doc-top">MUSTERHAUS · DEMO-VERMIETUNG</div><div class="doc-address">Musterempfänger<br>Wohnung A<br>Beispielstraße 1<br>00000 Musterstadt</div><div class="doc-title">Nebenkostenabrechnung 2025</div><div class="doc-prose">Sehr geehrte Damen und Herren,<br><br>für den Abrechnungszeitraum 01.01.2025 bis 31.12.2025 ergibt sich aus diesem unverbindlichen Muster folgende Übersicht:</div><div class="doc-results"><div><small>Umlagekosten</small><b>${fmt(cost)}</b></div><div><small>Vorauszahlungen</small><b>${fmt(adv)}</b></div><div><small>${saldo>0?'Nachzahlung':'Guthaben'}</small><b>${fmt(Math.abs(saldo))}</b></div></div><div class="doc-prose">Dies ist ausschließlich eine Layoutvorschau mit synthetischen Beträgen. Sie stellt keine versandfertige Abrechnung dar.</div><div class="doc-sign">Mit freundlichen Grüßen<strong>Mustermann Immobilien</strong>Vermietung</div><div class="demo-watermark">DESIGNDEMO · NICHT VERSENDEN</div></article>`;}
   function letters(){return `<div class="inline-toolbar"><h2>Briefvorschau</h2><span class="status ${letterResolved()?'green':'amber'}">${letterResolved()?'Layout geprüft (Demo)':'Layoutprüfung offen'}</span></div><p class="print-note">Diese Vorschau nutzt keine realen Mieterdaten. Der spätere Dokumentengenerator muss auf dem bestehenden geprüften Briefsystem aufbauen.</p><section class="section printable"><div class="section-header"><div><h2>Musterbrief – Wohnung A</h2></div><button type="button" class="link" data-action="mark-letter">${letterResolved()?'Prüfung zurücksetzen':'Musterlayout als geprüft markieren'}</button></div><div class="section-body">${docPaper()}</div></section>`;}
-  function object(){return head('STAMMDATEN','Objekt','Wohnungen und Zähler sind einmalig gepflegt. Jahresbezogene Daten werden im Abrechnungsarbeitsplatz bearbeitet.')+
+  function objectUnits(){return head('STAMMDATEN','Objekt','Wohnungen und Zähler sind einmalig gepflegt. Jahresbezogene Daten werden im Abrechnungsarbeitsplatz bearbeitet.')+
     `<div class="section"><div class="section-header"><div><h2>Musterobjekt</h2><p>7 Wohnungen · 1 Gebäude · ausschließlich synthetische Daten</p></div><span class="status green">Demo aktiv</span></div><div class="stat-inline"><div><small>Wohneinheiten</small><strong>${data.units.length}</strong></div><div><small>Gesamtfläche</small><strong>${int(data.units.reduce((s,u)=>s+u.area,0))} m²</strong></div><div><small>Zähler erfasst</small><strong>7 Musterzähler</strong></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Wohnung</th><th>Kennung</th><th>Lage</th><th class="money">Fläche</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
     data.units.map(u=>`<tr><td><strong>${safeText(u.label)}</strong></td><td>${safeText(u.id)}</td><td>${safeText(u.position)}</td><td class="money">${int(u.area)} m²</td><td>${iconButton('edit-unit',u.id,'Wohnung bearbeiten')}</td></tr>`).join('')+`</tbody></table></div><div class="table-caption">Im Wohnungs-Detailpanel können Personen, Miettage und Aktivstatus des synthetischen Fachtests geändert werden.</div></div>`;}
+  function object(){
+    const tabs=[['tenancies','Mietverhältnisse'],['units','Wohnungen'],['meters','Zähler']];
+    let content='';
+    if(ui.objectTab==='units')content=objectUnits();
+    else if(ui.objectTab==='meters'){
+      const rows=data.units.flatMap(u=>['cold','hot'].map(key=>{
+        const meter=u.waterMeters?.[key]||{},detail=waterDetails.meterResult(meter);
+        return '<tr><td><strong>'+safeText(u.label)+'</strong></td><td>'+safeText(key==='cold'?'Kaltwasser':'Warmwasser')+'</td>'+
+          '<td>'+safeText(meter.number||'–')+'</td><td>'+safeText(meter.startDate||'–')+'</td>'+
+          '<td>'+safeText(meter.endDate||'–')+'</td><td class="money">'+(detail.valid?int(detail.consumption)+' m³':'–')+'</td>'+
+          '<td>'+labelStatus(detail.valid,'Erfasst','Prüfen')+'</td><td>'+iconButton('edit-water',u.id,'Zählerstände bearbeiten')+'</td></tr>';
+      })).join('');
+      content='<div class="inline-toolbar"><div><h2>Zählerbestand · Musterobjekt</h2>'+
+        '<p class="small muted">Getrennte KW-/WW-Kanäle je Wohnung; Jahresmessung 2025</p></div></div>'+
+        '<section class="section"><div class="stat-inline"><div><small>Wohnungen</small><strong>'+data.units.length+'</strong></div>'+
+        '<div><small>Zählerkanäle</small><strong>'+(data.units.length*2)+'</strong></div></div>'+
+        '<div class="table-wrap"><table class="data-table"><thead><tr><th>Wohnung</th><th>Typ</th><th>Nummer</th><th>Beginn</th><th>Ende</th><th class="money">Verbrauch</th><th>Status</th><th>Details</th></tr></thead><tbody>'+
+        rows+'</tbody></table></div><div class="table-caption">Zählerwechsel, Messperioden und Vorjahresübernahmen werden in den nächsten Teilbausteinen der integrierten Stufe 2 vervollständigt.</div></section>';
+    }else content=tenancies();
+    return '<div class="object-switch" role="tablist" aria-label="Objektstammdaten">'+
+      tabs.map(([key,label])=>'<button role="tab" aria-selected="'+(ui.objectTab===key)+'" type="button" data-object-tab="'+key+'" class="'+(ui.objectTab===key?'active':'')+'">'+label+'</button>').join('')+
+      '</div>'+content;
+  }
   function analytics(){const choices=[['nk','Nebenkosten'],['finance','Finanzen'],['tax','Steuern']];let body='';
     if(ui.analytics==='nk'){let max=Math.max(...data.costs.map(c=>c.amount));body=`<div class="metric-row"><div class="metric"><span class="metric-label">Gesamtkosten 2025</span><div class="metric-number" style="font-size:23px">${fmt(allCost())}</div><span class="metric-helper">Musterwerte</span></div><div class="metric"><span class="metric-label">Kosten je m²</span><div class="metric-number">${euroNum(allCost()/data.units.reduce((s,u)=>s+u.area,0))} <small>€/m²</small></div><span class="metric-helper">Rein illustrative Kennzahl</span></div><div class="metric"><span class="metric-label">Wohnungsverbrauch</span><div class="metric-number">${int(unitConsumption())} <small>m³</small></div><span class="metric-helper">Vereinfachte Musterzähler</span></div></div>`+
       section('Kostenstruktur 2025',`<div class="section-body"><div class="bars">${data.costs.map(c=>`<div class="bar-row"><span>${safeText(c.name)}</span><div class="bar-rail"><div class="bar-fill" style="width:${Math.round(c.amount/max*100)}%"></div></div><span class="bar-value">${fmt(c.amount)}</span></div>`).join('')}</div><p class="footnote" style="margin-top:24px">Preis-/Verbrauchseffekte und Mehrjahresvergleiche werden erst gezeigt, wenn vergleichbare Vorjahresdaten nachweislich verfügbar sind.</p></div>`);
@@ -338,6 +425,7 @@
     const nav=e.target.closest('[data-view]');if(nav){navigate(nav.dataset.view);return}
     const st=e.target.closest('[data-step]');if(st){ui.step=st.dataset.step;ui.filter='';render();return}
     const an=e.target.closest('[data-analytics]');if(an){ui.analytics=an.dataset.analytics;render();return}
+    const objectTab=e.target.closest('[data-object-tab]');if(objectTab){ui.objectTab=objectTab.dataset.objectTab;render();return}
     const action=e.target.closest('[data-action]');if(action){doAction(action.dataset.action,action.dataset.id||'')}
   });
   document.addEventListener('submit',e=>{if(e.target.id==='editForm'){e.preventDefault();saveDrawer(e.target)}});

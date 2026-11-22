@@ -47,3 +47,14 @@
 .water-fieldset legend{font-size:13px;font-weight:700;padding:0 7px}
 @media(max-width:1100px){.water-metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.water-comparison{grid-template-columns:1fr}.water-comparison>div{border-right:0;border-bottom:1px solid var(--line);padding:16px 20px}}
 @media(max-width:420px){.water-metric-grid{gap:8px}.water-metric{padding:12px}.water-metric strong{font-size:17px}.water-form-grid{grid-template-columns:1fr}}
+
+/* 0.5 | tenancy cases and object secondary navigation */
+.object-switch{display:flex;gap:8px;align-items:center;margin:3px 0 22px;border-bottom:1px solid var(--line)}
+.object-switch button{border:0;border-bottom:2px solid transparent;background:none;padding:13px 17px;font:inherit;font-weight:600;font-size:12px;color:var(--sub);cursor:pointer}
+.object-switch button.active{color:var(--accent);border-color:var(--accent)}
+.case-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.case-summary>div{background:white;border:1px solid var(--border);border-radius:9px;padding:17px;display:flex;flex-direction:column;gap:8px}
+.case-summary small{font-size:11px;color:var(--sub)}.case-summary strong{font-size:23px;font-variant-numeric:tabular-nums}
+.case-table{min-width:1000px}.case-table td{vertical-align:middle}
+@media(max-width:800px){.case-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:450px){.object-switch button{padding:12px 10px}.case-summary{gap:8px}.case-summary>div{padding:13px}}
