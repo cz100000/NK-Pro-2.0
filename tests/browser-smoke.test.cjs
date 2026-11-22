@@ -28,7 +28,8 @@ function browser(){
   win.window=win;win.globalThis=win;
   const ctx=vm.createContext(win,{name:"nkpro2-synthetic-browser"});
   const sources=["demo-ledger.js","experimental/settlement-cost.js","water-detail.js",
-    "synthetic-billing.js","synthetic-property.js","synthetic-case-billing.js","app.js"];
+    "synthetic-billing.js","synthetic-property.js","synthetic-workflow.js",
+    "synthetic-case-billing.js","synthetic-letters.js","synthetic-review.js","app.js"];
   for(const filename of sources){
     const src=fs.readFileSync(path.join(root,filename),"utf8");
     vm.runInContext(src,ctx,{filename,timeout:5000});
@@ -85,7 +86,7 @@ test("synthetic case editor saves start/end, and new cases cannot be silently me
 test("cost editor includes all-case eligibility and independent consumption inputs",()=>{
  const app=browser();app.click("[data-action]",{action:"edit-cost",id:"waste"});
  assert.match(app.drawer(),/Zuordnung und Ausnahmen/);
- assert.match(app.drawer(),/Eigene Verbrauchsgrundlage/);
+ assert.match(app.drawer(),/Einzelverbräuche.*Verbräuche/);
  assert.match(app.drawer(),/Notiz \/ Bemerkung/);
 });
 test("standalone water editor contains dated physical replacement action",()=>{
@@ -94,4 +95,25 @@ test("standalone water editor contains dated physical replacement action",()=>{
  assert.match(app.drawer(),/Zählerwechsel dokumentieren/);
  app.click("[data-action]",{action:"replace-meter",id:id+"|cold"});
  assert.match(app.drawer(),/Ausbau-Endstand/);
+});
+
+test("reordered process has advances before invoices and review before result",()=>{
+ const app=browser();app.click("[data-view]",{view:"billing"});
+ const html=app.source();
+ assert.ok(html.indexOf("Vorauszahlungen")<html.indexOf("Gesamtkosten"));
+ assert.ok(html.indexOf(">Prüfen<")<html.indexOf(">Ergebnis<"));
+});
+test("partial quality module never permits finalization, even with synthetic valid inputs",()=>{
+ const app=browser(),review=app.window.NKPRO2_REVIEW.assess(app.getState(),app.window.NKPRO2_CASE_BILLING.calculate(app.getState()));
+ assert.equal(review.counts.total,44);
+ assert.equal(review.counts.notRun,34);
+ assert.equal(review.readyForClose,false);
+ app.click("[data-view]",{view:"billing"});app.click("[data-step]",{step:"review"});
+ assert.match(app.source(),/Abschluss gesperrt/);
+});
+test("Techem costs live in consumption workspace not general invoices",()=>{
+ const app=browser();app.click("[data-view]",{view:"billing"});
+ app.click("[data-step]",{step:"water"});app.click("[data-consumption-tab]",{consumptionTab:"techem"});
+ assert.match(app.source(),/Heizung/);
+ assert.match(app.source(),/Einzelkosten/);
 });
