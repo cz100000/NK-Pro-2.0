@@ -132,7 +132,8 @@ test("0.12 water bands, total emphasis and status before editor; results are by-
  assert.match(x.html(),/class="money water-cold"/);
  assert.match(x.html(),/class="money water-hot"/);
  assert.match(x.html(),/water-total-value/);
- assert.match(x.html(),/table-action-pair/);
+ assert.match(x.html(),/class="action-cell"/);
+ assert.match(x.html(),/class="status-column"/);
  assert.match(x.html(),/data-action="edit-water"/);
  x.click("[data-step]",{step:"allocation"});
  assert.match(x.html(),/result-detail-table/);
