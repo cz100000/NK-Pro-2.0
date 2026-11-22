@@ -40,7 +40,7 @@ test("invoice metadata validation and archive-safe deactivation",()=>{
  assert.equal(a.costs[0].invoiceDate,"2025-12-31");
  assert.throws(()=>w.setInvoice(base(),"heat",{invoiceDate:"2025-02-30"}),/Invalid/);
  assert.equal(w.deactivate(base(),"heat").costs[0].active,false);
- assert.throws(()=>w.removeUnused(base(),"heat"),/Only unused/);
+ assert.throws(()=>w.removeUnused(base(),"heat"),/Only draft/);
 });
 test("explicit external individual amounts, no implicit Techem cost fabrication on upgrade",()=>{
  const x=w.upgrade(base());
