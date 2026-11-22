@@ -6,7 +6,7 @@ const root=path.resolve(__dirname,".."),screens=path.join(root,"_visual-test-art
 fs.mkdirSync(screens,{recursive:true});
 const server=http.createServer((req,res)=>{
  const pathname=decodeURIComponent((req.url||"/").split("?")[0]);
- const filepath=path.resolve(root,"."+pathname);
+ const filepath=path.resolve(root,"."+(pathname==="/private/"?"/private/index.html":pathname));
  if(!filepath.startsWith(path.join(root,"private")+path.sep)||
    !fs.existsSync(filepath)||!fs.statSync(filepath).isFile()){
   res.writeHead(404);res.end();return;
@@ -98,13 +98,16 @@ const browser=()=>{
   await sleep(300);
   assert.ok(await evalJS("return document.documentElement.scrollWidth<=innerWidth+2;"));
   await screenshot("private-03-mobile-migrated");
+  await until("return !!navigator.serviceWorker.controller;");
+  await cmd("Network.enable");
+  await cmd("Network.emulateNetworkConditions",{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
   await cmd("Page.reload",{ignoreCache:true});
   await until("return !!document.querySelector('#unlockLocal');");
   assert.equal(await evalJS("return document.querySelector('#dataPanel').hidden;"),true);
   await evalJS("document.querySelector('#vaultPassphrase').value='Synthetic Long Passphrase 2026';document.querySelector('#unlockLocal').click();");
   await until("return !document.querySelector('#dataPanel').hidden;");
   assert.equal(await evalJS("return document.querySelectorAll('#unitRows tr').length;"),1);
-  console.log("PRIVATE_BROWSER_ACCEPTANCE_OK: desktop, mobile, encrypted cache, reload/unlock; no private source in repository");
+  console.log("PRIVATE_BROWSER_ACCEPTANCE_OK: desktop, mobile, encrypted cache, offline reload/unlock; no private source in repository");
  }finally{
   if(ws&&ws.readyState===WebSocket.OPEN)ws.close();
   if(chrome&&!chrome.killed)chrome.kill("SIGTERM");
