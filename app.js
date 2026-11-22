@@ -225,11 +225,37 @@
       title=type==='new-cost'?'Kostenart hinzufügen':c.name;eyebrow='GESAMTKOSTEN';body=`<form id="editForm" data-type="${type}"><div class="form-row"><label for="d-name">Kostenart</label><input id="d-name" name="name" required maxlength="60" value="${safeText(c.name)}"></div><div class="form-row"><label for="d-amount">Gesamtbetrag (€)</label><input id="d-amount" name="amount" type="number" required step="0.01" min="0.01" value="${c.amount}"></div><div class="form-row"><label for="d-landlord">Davon Vermieteranteil (€) · Muster</label><input id="d-landlord" name="landlordShare" type="number" step="0.01" min="0" value="${c.landlordShare??0}"><p class="form-help">Dieser Betrag wird nicht den Wohnungen zugerechnet. Eine echte Techem-Verteilung ist noch nicht implementiert.</p></div><div class="form-row"><label for="d-method">Umlageschlüssel · synthetischer Fachtest</label><select id="d-method" name="method">${functionalBilling.METHODS.filter(m=>m!=='Wohnfläche').map(m=>'<option value="'+safeText(m)+'" '+(c.method===m?'selected':'')+'>'+safeText(m==='Fläche'?'Wohnfläche':m)+'</option>').join('')}</select><p class="form-help">Sechs portierte Originalverfahren. Zunächst ein fiktiver Teilnehmer pro Wohnung.</p></div><div class="form-row" data-price-group ${c.method==='Verbrauch'?'':'hidden'}><label for="d-price-mode">Preis je Verbrauchseinheit</label><select id="d-price-mode" name="priceMode"><option value="auto" ${c.priceMode!=='manual'?'selected':''}>Automatisch aus umlagefähigen Kosten / Rechnungsmenge</option><option value="manual" ${c.priceMode==='manual'?'selected':''}>Manuelle Preisvorgabe</option></select><p class="form-help">Bei Wasser gilt €/m³. Der automatische Preis wird mit vier Nachkommastellen angezeigt.</p></div><div class="form-row" data-manual-price ${c.method==='Verbrauch'&&c.priceMode==='manual'?'':'hidden'}><label for="d-unit-price">Manueller Preis je Einheit (€)</label><input id="d-unit-price" name="unitPrice" type="number" step="0.0001" min="0.0001" max="100000" value="${safeText(c.unitPrice??'')}"><p class="form-help">Abweichende Einheitspreise können nicht zugeordnete Restkosten ergeben; diese bleiben prüfpflichtig.</p></div><div class="form-row"><label for="d-cost-note">Notiz / Bemerkung (optional)</label><textarea id="d-cost-note" name="note" rows="5" maxlength="2000" placeholder="Belegnummer, Hinweise oder interne Erläuterungen …">${safeText(c.note||'')}</textarea><p class="form-help">Interne Notiz, nicht automatisch Teil der Mieterbriefe.</p></div><div class="drawer-note">Veränderte Musterwerte werden nur im isolierten Demo-Speicher abgelegt. Es erfolgt kein Zugriff auf die bestehende NK-Pro-App.</div></form>`;
     } else if(type==='water'||type==='advance'||type==='unit'){
       const u=data.units.find(x=>x.id===id);if(!u)return;title=u.label;eyebrow=type==='water'?'VERBRAUCHSDATEN':type==='advance'?'VORAUSZAHLUNGEN':'WOHNUNGSSTAMM';
-      if(type==='water')body=`<form id="editForm" data-type="water"><div class="form-row"><label for="d-start">Anfangsstand (m³)</label><input id="d-start" name="start" type="number" step="1" min="0" value="${u.waterStart}" required></div><div class="form-row"><label for="d-end">Endstand (m³)</label><input id="d-end" name="end" type="number" step="1" min="0" value="${u.waterEnd}" required></div><div class="drawer-note">Der reale Wasserzählerbestand ist komplexer; die Migration muss alle KW-/WW-Zähler und Rundungsregeln unverändert übernehmen.</div></form>`;
+      if(type==='water'){
+        const meterGroup=key=>{
+          const meter=u.waterMeters?.[key]||{},label=key==='cold'?'Kaltwasser (KW)':'Warmwasser (WW)';
+          return '<fieldset class="water-fieldset"><legend>'+label+'</legend>'+
+            '<div class="form-row"><label>Zählernummer<input name="'+key+'Number" maxlength="60" value="'+safeText(meter.number||'')+'"></label></div>'+
+            '<div class="water-form-grid">'+
+            '<div class="form-row"><label>Anfangsstand (m³)<input name="'+key+'Start" type="number" min="0" step="1" value="'+safeText(meter.start??'')+'"></label></div>'+
+            '<div class="form-row"><label>Endstand (m³)<input name="'+key+'End" type="number" min="0" step="1" value="'+safeText(meter.end??'')+'"></label></div>'+
+            '<div class="form-row"><label>Ablesedatum Beginn<input name="'+key+'StartDate" type="date" value="'+safeText(meter.startDate||'')+'"></label></div>'+
+            '<div class="form-row"><label>Ablesedatum Ende<input name="'+key+'EndDate" type="date" value="'+safeText(meter.endDate||'')+'"></label></div></div></fieldset>';
+        };
+        body='<form id="editForm" data-type="water">'+meterGroup('cold')+meterGroup('hot')+
+          '<div class="form-row"><label>Notiz zu den Zählerständen (optional)<textarea name="waterNote" maxlength="2000" rows="4">'+safeText(u.waterNote||'')+'</textarea></label></div>'+
+          '<div class="drawer-note">Die beiden Musterzähler werden getrennt erfasst; unvollständige oder ungültige Angaben bleiben prüfpflichtig. Noch keine echte Zählerhistorie oder Vorjahresübernahme.</div></form>';
+      }
       else if(type==='advance')body=`<form id="editForm" data-type="advance"><div class="form-row"><label for="d-advance">Jahresvorauszahlung (€)</label><input id="d-advance" name="advance" type="number" step="0.01" min="0" value="${u.advance}" required></div><div class="drawer-note">Musterjahreswert. Keine tatsächlichen Zahlungseingänge hinterlegt.</div></form>`;
       else body=`<form id="editForm" data-type="unit"><div class="form-row"><label for="d-label">Wohnungsbezeichnung</label><input id="d-label" name="label" required value="${safeText(u.label)}"></div><div class="form-row"><label for="d-position">Lage</label><input id="d-position" name="position" required value="${safeText(u.position)}"></div><div class="form-row"><label for="d-area">Wohnfläche (m²)</label><input id="d-area" name="area" type="number" min="1" step="0.01" required value="${u.area}"></div><div class="form-row"><label for="d-people">Personen (Muster)</label><input id="d-people" name="people" type="number" min="0" max="1000" step="1" required value="${u.people??1}"></div><div class="form-row"><label for="d-days">Miettage 2025 (Muster)</label><input id="d-days" name="days" type="number" min="0" max="365" step="1" required value="${u.days??365}"></div><div class="form-row"><label><input name="active" type="checkbox" style="width:auto;margin-right:8px" ${u.active!==false?'checked':''}>Aktive Musterwohnung</label></div><div class="drawer-note">Nur Musterwerte. Echte Mietverhältnisse und Wechsel kommen später.</div></form>`;
-    }else if(type==='house') {title='Hauswasserzähler';eyebrow='VERBRAUCHSABGLEICH';body=`<form id="editForm" data-type="house"><div class="form-row"><label for="d-house">Jahresverbrauch Hauszähler (m³)</label><input id="d-house" name="house" type="number" step="1" min="0" required value="${data.houseWater}"></div><div class="drawer-note">Abweichungen zur Summe der Wohnungszähler bleiben prüfpflichtig und werden niemals stillschweigend umgelegt.</div></form>`;
-    }else if(type==='water-decision'){title='Wasserdifferenz prüfen';eyebrow='PRÜFENTSCHEIDUNG';const gap=waterGap();body=`<form id="editForm" data-type="water-decision"><div class="key-value" style="margin-bottom:23px"><small>Abweichung Haus-/Wohnungsverbrauch</small><strong>${gap>0?'+':''}${int(gap)} m³</strong></div><div class="form-row"><label for="d-reason">Begründung der Musterentscheidung</label><textarea id="d-reason" name="reason" minlength="5" required placeholder="Warum wird die Differenz als geprüft akzeptiert?">${safeText(data.waterDecision?.note||'')}</textarea><p class="form-help">Mindestens fünf Zeichen. Ändern sich die zugrunde liegenden Zählerwerte, wird die Entscheidung erneut prüfpflichtig.</p></div><div class="drawer-note">Im produktiven System gelten zusätzlich alle bestehenden fachlichen Prüfschritte und dokumentierten Entscheidungstypen.</div></form>`;actionLabel='Entscheidung dokumentieren';
+    }else if(type==='house'){
+      const h=data.waterSettings||{};
+      title='Hauszähler & Wasserwerksrechnung';eyebrow='VERBRAUCHSABGLEICH';
+      body='<form id="editForm" data-type="house">'+
+        '<div class="form-row"><label>Hauszählernummer<input name="houseMeterNumber" maxlength="60" value="'+safeText(h.houseMeterNumber||'')+'"></label></div>'+
+        '<div class="water-form-grid">'+
+        '<div class="form-row"><label>Hauszähler Anfang (m³)<input name="houseStart" type="number" min="0" step="1" value="'+safeText(h.houseStart??'')+'"></label></div>'+
+        '<div class="form-row"><label>Hauszähler Ende (m³)<input name="houseEnd" type="number" min="0" step="1" value="'+safeText(h.houseEnd??'')+'"></label></div>'+
+        '<div class="form-row"><label>Ablesedatum Beginn<input name="houseStartDate" type="date" value="'+safeText(h.houseStartDate||'')+'"></label></div>'+
+        '<div class="form-row"><label>Ablesedatum Ende<input name="houseEndDate" type="date" value="'+safeText(h.houseEndDate||'')+'"></label></div></div>'+
+        '<div class="form-row"><label>Wasserwerksrechnung · Verbrauch (m³)<input name="invoice" type="number" min="1" step="1" required value="'+safeText(data.houseWater)+'"></label></div>'+
+        '<div class="form-row"><label>Rechnungsnummer / Bemerkungen (optional)<textarea name="invoiceNote" rows="4" maxlength="2000">'+safeText(h.invoiceNote||'')+'</textarea></label></div>'+
+        '<div class="drawer-note">Hauszählerverbrauch = Endstand − Anfangsstand. Abgleich zur Rechnungsmenge und zur Summe der Wohnungszähler. Abweichungen werden nicht still verteilt.</div></form>';
+    }else if(type==='water-decision'){title='Wasserdifferenz prüfen';eyebrow='PRÜFENTSCHEIDUNG';const r=waterReport();body=`<form id="editForm" data-type="water-decision"><div class="key-value" style="margin-bottom:15px"><small>Abweichung Rechnung ↔ Hauszähler</small><strong>${int(r.delta.invoiceHouse)} m³</strong></div><div class="key-value" style="margin-bottom:23px"><small>Abweichung Hauszähler ↔ Wohnungen</small><strong>${int(r.delta.houseUnits)} m³</strong></div><div class="form-row"><label for="d-reason">Begründung der Musterentscheidung</label><textarea id="d-reason" name="reason" minlength="5" required placeholder="Warum wird die Differenz als geprüft akzeptiert?">${safeText(data.waterDecision?.note||'')}</textarea><p class="form-help">Mindestens fünf Zeichen. Ändern sich die zugrunde liegenden Zählerwerte, wird die Entscheidung erneut prüfpflichtig.</p></div><div class="drawer-note">Im produktiven System gelten zusätzlich alle bestehenden fachlichen Prüfschritte und dokumentierten Entscheidungstypen.</div></form>`;actionLabel='Entscheidung dokumentieren';
     }else if(type==='heat-evidence'){title='Heizkostenbeleg';eyebrow='PRÜFENTSCHEIDUNG';body=`<form id="editForm" data-type="heat-evidence"><div class="key-value" style="margin-bottom:20px"><small>Externe Heizkosten (Muster)</small><strong>${fmt(data.costs.find(x=>x.id==='heat')?.amount||0)}</strong></div><div class="form-row"><label><input name="confirmed" type="checkbox" style="width:auto;margin-right:8px" ${heatResolved()?'checked':''} required> Musterbeleg ist geprüft</label><p class="form-help">Diese Checkbox simuliert nur die später einzubindende Belegprüfung.</p></div></form>`;actionLabel='Belegstatus speichern';
     }else if(type==='result'){const u=data.units.find(x=>x.id===id);if(!u)return;title=u.label;eyebrow='BERECHNUNGSNACHWEIS';let a=data.units.reduce((s,x)=>s+x.area,0),w=unitConsumption();body=`<div class="drawer-note">Ausschließlich vereinfachter Beispielnachweis. Die produktive Umlage besitzt zusätzliche Schlüssel, Nachweise und Sonderfälle.</div><div class="key-value" style="margin-bottom:17px"><small>Wohnflächenanteil</small><strong>${int(u.area)} / ${int(a)} m²</strong></div><div class="key-value" style="margin-bottom:17px"><small>Verbrauchsanteil</small><strong>${int(consumption(u))} / ${int(w)} m³</strong></div><div class="key-value" style="margin-bottom:17px"><small>Berechnete Kosten</small><strong>${fmt(allocation(u))}</strong></div><div class="key-value"><small>Saldo nach Vorauszahlungen</small><strong>${fmt(balance(u))}</strong></div>${demoBreakdown(u.id)}`;actionLabel='Schließen';
     }
@@ -256,10 +282,39 @@
       if(type==='cost')Object.assign(data.costs.find(x=>x.id===id),value);
       else data.costs.push({id:'new-'+Date.now(),category:'Betriebskosten',label:'Musterdaten',...value});
       if(id==='heat'){data.heatingEvidence=false;data.heatingEvidenceFingerprint=null}
-    }else if(type==='water'){const u=data.units.find(x=>x.id===id),start=parseField(form.elements.start),end=parseField(form.elements.end);if(!Number.isInteger(start)||!Number.isInteger(end)||start<0||end<start)return toast('Endstand muss mindestens dem Anfangsstand entsprechen.');u.waterStart=start;u.waterEnd=end;}
+    }else if(type==='water'){
+      const u=data.units.find(x=>x.id===id),next={};
+      for(const channel of ['cold','hot']){
+        const rawStart=String(form.elements[channel+'Start'].value).trim();
+        const rawEnd=String(form.elements[channel+'End'].value).trim();
+        const start=rawStart===''?'':Number(rawStart),end=rawEnd===''?'':Number(rawEnd);
+        const startDate=form.elements[channel+'StartDate'].value,endDate=form.elements[channel+'EndDate'].value;
+        if((start!==''&&!waterDetails.volume(start))||(end!==''&&!waterDetails.volume(end))||
+          (start!==''&&end!==''&&end<start)||
+          (startDate&&!waterDetails.date(startDate))||(endDate&&!waterDetails.date(endDate))||
+          (startDate&&endDate&&startDate>endDate))
+          return toast('Bitte gültige Zählerstände und Ablesedaten eingeben.');
+        next[channel]={number:form.elements[channel+'Number'].value.trim().slice(0,60),
+          start,end,startDate,endDate};
+      }
+      u.waterMeters=next;u.waterNote=form.elements.waterNote.value.trim().slice(0,2000);
+      delete u.waterSourceNotice;
+    }
     else if(type==='advance'){const val=parseField(form.elements.advance);if(!Number.isFinite(val)||val<0)return toast('Ungültige Vorauszahlung.');data.units.find(x=>x.id===id).advance=round(val);}
     else if(type==='unit'){const u=data.units.find(x=>x.id===id);const area=parseField(form.elements.area),people=parseField(form.elements.people),days=parseField(form.elements.days);if(!Number.isFinite(area)||area<1||area>1000000||!Number.isInteger(people)||people<0||people>1000||!Number.isInteger(days)||days<0||days>365)return toast('Bitte gültige Fläche, Personenzahl und Miettage eingeben.');const label=form.elements.label.value.trim(),position=form.elements.position.value.trim();if(!label||!position)return toast('Bezeichnung und Lage fehlen.');Object.assign(u,{label,position,area,people,days,active:form.elements.active.checked});}
-    else if(type==='house'){const val=parseField(form.elements.house);if(!Number.isInteger(val)||val<0)return toast('Bitte einen ganzzahligen Verbrauch eingeben.');data.houseWater=val;}
+    else if(type==='house'){
+      const get=key=>{const raw=String(form.elements[key].value).trim();return raw===''?'':Number(raw)};
+      const start=get('houseStart'),end=get('houseEnd'),invoice=get('invoice'),
+        startDate=form.elements.houseStartDate.value,endDate=form.elements.houseEndDate.value;
+      if(!waterDetails.volume(start)||!waterDetails.volume(end)||end<start||
+         !waterDetails.volume(invoice)||invoice<=0||
+         !waterDetails.date(startDate)||!waterDetails.date(endDate)||startDate>endDate)
+        return toast('Bitte gültige Hauszählerstände, Ablesedaten und Rechnungsverbrauch eingeben.');
+      data.houseWater=invoice;
+      data.waterSettings={houseMeterNumber:form.elements.houseMeterNumber.value.trim().slice(0,60),
+        houseStart:start,houseEnd:end,houseStartDate:startDate,houseEndDate:endDate,
+        invoiceNote:form.elements.invoiceNote.value.trim().slice(0,2000)};
+    }
     else if(type==='water-decision'){let note=form.elements.reason.value.trim();if(note.length<5)return toast('Bitte eine fachliche Begründung erfassen.');data.waterDecision={fingerprint:waterFingerprint(),note,created:new Date().toISOString()};msg='Musterentscheidung dokumentiert.';}
     else if(type==='heat-evidence'){if(!form.elements.confirmed.checked)return toast('Bitte die Musterprüfung ausdrücklich bestätigen.');data.heatingEvidence=true;data.heatingEvidenceFingerprint=heatFingerprint();msg='Musterbeleg bestätigt.';}
     else good=false;
@@ -268,7 +323,8 @@
   function doAction(action,id){
     if(action==='new-cost'){openDrawer('new-cost');return}if(action==='edit-cost'){openDrawer('cost',id);return}if(action==='edit-water'){openDrawer('water',id);return}if(action==='edit-house'){openDrawer('house');return}
     if(action==='edit-advance'){openDrawer('advance',id);return}if(action==='edit-unit'){openDrawer('unit',id);return}if(action==='show-unit-result'){openDrawer('result',id);return}
-    if(action==='check-water'){if(waterGap()===0){toast('Keine Wasserdifferenz.');return}openDrawer('water-decision');return}
+    if(action==='check-water'){const r=waterReport();if(!r.canReview){navigate('billing','water');toast('Bitte fehlende Zählerstände und Ablesedaten ergänzen.');return}if(r.exactMatch){toast('Beide Wasserabgleiche stimmen überein.');return}openDrawer('water-decision');return}
+    if(action==='edit-water-price'){openDrawer('cost','water');return}
     if(action==='go-water'){navigate('billing','water');return}if(action==='go-advance'){navigate('billing','advance');return}if(action==='check-heat'){openDrawer('heat-evidence');return}if(action==='go-costs'){navigate('billing','costs');return}if(action==='go-review'){navigate('billing','review');return}if(action==='go-letter'){navigate('billing','letters');return}
     if(action==='mark-letter'){if(letterResolved()){data.letterChecked=false;data.letterFingerprint=null}else{data.letterChecked=true;data.letterFingerprint=letterFingerprint()}stateChange();toast(letterResolved()?'Musterlayout als geprüft markiert.':'Musterprüfung zurückgesetzt.');return}
     if(action==='print-letter'){window.print();return}
