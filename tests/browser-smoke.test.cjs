@@ -48,7 +48,7 @@ function browser(){
     source:()=>node("appMain").innerHTML,
     drawer:()=>node("drawerBody").innerHTML};
 }
-test("synthetic 0.5 UI initializes without runtime errors and uses seven tenancy cases",()=>{
+test("synthetic 0.6 UI initializes without runtime errors and uses seven tenancy cases",()=>{
  const app=browser(),state=app.getState();
  assert.equal(state.tenancies.length,7);
  assert.equal(state.units.length,7);
@@ -69,13 +69,13 @@ test("synthetic case editor saves start/end, and new cases cannot be silently me
  const app=browser(),first=app.getState().tenancies[0];
  app.click("[data-action]",{action:"edit-tenancy",id:first.id});
  assert.match(app.drawer(),/Verbrauch bei Mieterwechsel/);
- app.save({tenantName:first.name,unitId:first.unitId,role:"Mieter",
+ app.save({firstName:first.firstName,lastName:first.lastName,salutation:"neutral",customSalutation:"",recipientStreet:"",recipientPostalCode:"",recipientCity:"",unitId:first.unitId,role:"Mieter",
    start:"2025-01-01",end:"2025-06-30",persons:1,advance:1000,
    consumptionCold:"",consumptionHot:"",tenantNote:"Demo"});
  let state=app.getState();
  assert.equal(state.tenancies[0].end,"2025-06-30");
  app.click("[data-action]",{action:"new-tenancy",id:""});
- app.save({tenantName:"Zweite Musterperson",unitId:first.unitId,role:"Privatanteil",
+ app.save({firstName:"Zweite",lastName:"Musterperson",salutation:"neutral",customSalutation:"",recipientStreet:"",recipientPostalCode:"",recipientCity:"",unitId:first.unitId,role:"Privatanteil",
    start:"2025-07-01",end:"2025-12-31",persons:2,advance:800,
    consumptionCold:"",consumptionHot:"",tenantNote:"Test"});
  state=app.getState();
@@ -115,5 +115,5 @@ test("Techem costs live in consumption workspace not general invoices",()=>{
  const app=browser();app.click("[data-view]",{view:"billing"});
  app.click("[data-step]",{step:"water"});app.click("[data-consumption-tab]",{consumptionTab:"techem"});
  assert.match(app.source(),/Heizung/);
- assert.match(app.source(),/Einzelkosten/);
+ assert.match(app.source(),/Kosten laut Techem/);
 });
