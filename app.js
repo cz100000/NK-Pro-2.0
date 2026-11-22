@@ -160,6 +160,50 @@
       `</tbody></table></div><div class="table-caption">Klicken Sie auf eine Kostenart. Alle Einstellungen öffnen rechts – die Übersicht bleibt bestehen.</div></section><p class="footnote">Funktionsmuster: Sechs Originalverfahren werden für synthetische Ein-Mieter-Wohnungen berechnet. Kein Produktivbetrieb, keine Mieterwechsel, keine vollständige Techem-Einzelabrechnung.</p>`;
   }
   function water(){
+    const tabs=[['water','Wasser · KW / WW'],['techem','Heizung & Warmwasser · Techem'],['other','Weitere Verbräuche']];
+    const chooser='<div class="object-switch" role="tablist" aria-label="Verbrauchsarten">'+
+      tabs.map(([id,label])=>'<button role="tab" type="button" aria-selected="'+(ui.consumptionTab===id)+'" data-consumption-tab="'+id+'" class="'+(ui.consumptionTab===id?'active':'')+'">'+label+'</button>').join('')+'</div>';
+    return chooser+(ui.consumptionTab==='techem'?techemConsumption():
+      ui.consumptionTab==='other'?otherConsumption():waterMeters());
+  }
+  function techemConsumption(){
+    const costs=data.costs.filter(c=>c.active!==false&&c.method==='Externe Einzelabrechnung');
+    if(!costs.length)return '<div class="empty"><h3>Keine externen Einzelkostenarten</h3><p>Eine externe Heizkostenabrechnung wird unter Gesamtkosten als Abrechnungsart „Externe Einzelabrechnung“ hinterlegt. Hier erscheinen dann ihre Einzelwerte.</p></div>';
+    return costs.map(cost=>{
+      const source=data.externalValues?.[cost.id]||{},rows=source.rows||{};
+      let sum=0,missing=0;
+      const items=data.tenancies.map(t=>{
+        const r=rows[t.id],unit=data.units.find(u=>u.id===t.unitId)?.label||t.unitId;
+        if(r&&Number.isFinite(Number(r.amount)))sum+=Number(r.amount);else missing++;
+        return '<tr><td><strong>'+safeText(t.name)+'</strong><span class="water-unit-sub">'+safeText(unit)+' · '+safeText(t.id)+'</span></td>'+
+         '<td class="money">'+(r?fmt(r.amount):'Nicht erfasst')+'</td>'+
+         '<td class="money">'+(r?.units==null?'–':fmtVolume(r.units))+'</td>'+
+         '<td>'+iconButton('edit-external',cost.id+'|'+t.id,'Techem-Einzelwerte eingeben')+'</td></tr>';
+      }).join('');
+      const bill=Number(cost.amount)-Number(cost.landlordShare||0);
+      return '<section class="section" style="margin-bottom:18px"><div class="section-header"><div><h2>'+safeText(cost.name)+'</h2>'+
+       '<p>Externe Einzelabrechnung · Rechnungsbetrag nur in Gesamtkosten bearbeiten</p></div>'+
+       labelStatus(missing===0&&Math.abs(bill-sum)<0.005,'Abgestimmt','Prüfen')+'</div>'+
+       '<div class="stat-inline"><div><small>Rechnungsbetrag</small><strong>'+fmt(cost.amount)+'</strong></div>'+
+       '<div><small>Belegter Vermieterposten</small><strong>'+fmt(cost.landlordShare||0)+'</strong></div>'+
+       '<div><small>Summe Einzelwerte</small><strong>'+fmt(sum)+'</strong></div>'+
+       '<div><small>Ungeklärte Differenz</small><strong>'+fmt(bill-sum)+'</strong></div></div>'+
+       '<div class="table-wrap"><table class="data-table"><thead><tr><th>Abrechnungsfall · Wohnung</th><th class="money">Kosten laut Techem</th><th class="money">Einheiten (optional)</th><th>Aktion</th></tr></thead><tbody>'+
+       items+'</tbody></table></div><div class="table-caption">Die extern ausgewiesenen Eurobeträge werden exakt übernommen – nicht aus Verbrauchseinheiten erneut berechnet. Fehlende Fälle oder Summendifferenzen bleiben kritisch.</div></section>';
+    }).join('');
+  }
+  function otherConsumption(){
+    const costs=data.costs.filter(c=>c.active!==false&&c.method==='Verbrauch'&&c.id!=='water');
+    if(!costs.length)return '<div class="empty"><h3>Keine weiteren Verbrauchskostenarten</h3><p>Wenn eine Kostenart nach Verbrauch umgelegt wird, werden hier ihre eigenen Mengen erfasst.</p></div>';
+    return '<section class="section"><div class="section-header"><h2>Weitere Verbrauchseinheiten</h2></div>'+
+      '<div class="table-wrap"><table class="data-table"><thead><tr><th>Kostenart</th><th>Einheit</th><th class="money">Gesamtmenge</th><th>Einzelwerte</th><th>Aktion</th></tr></thead><tbody>'+
+      costs.map(c=>'<tr><td><strong>'+safeText(c.name)+'</strong></td><td>'+safeText(c.consumptionUnit||'Einheiten')+'</td>'+
+       '<td class="money">'+(c.consumptionTotal==null?'–':fmtVolume(c.consumptionTotal))+'</td>'+
+       '<td>'+Object.keys(c.consumptionByTenant||{}).length+' / '+data.tenancies.length+'</td>'+
+       '<td>'+iconButton('edit-other-consumption',c.id,'Verbräuche je Mietverhältnis bearbeiten')+'</td></tr>').join('')+
+      '</tbody></table></div></section>';
+  }
+  function waterMeters(){
     const report=waterReport(),units=report.totals.units,house=report.house.valid?report.house.consumption:null;
     const waterCost=data.costs.find(c=>c.id==='water');
     const price=waterDetails.priceFor(waterCost,data.houseWater);
@@ -431,6 +475,28 @@
       }
       else if(type==='advance')body=`<form id="editForm" data-type="advance"><div class="form-row"><label for="d-advance">Jahresvorauszahlung (€)</label><input id="d-advance" name="advance" type="number" step="0.01" min="0" value="${u.advance}" required></div><div class="drawer-note">Musterjahreswert. Keine tatsächlichen Zahlungseingänge hinterlegt.</div></form>`;
       else body=`<form id="editForm" data-type="unit"><div class="form-row"><label for="d-label">Wohnungsbezeichnung</label><input id="d-label" name="label" required value="${safeText(u.label)}"></div><div class="form-row"><label for="d-position">Lage</label><input id="d-position" name="position" required value="${safeText(u.position)}"></div><div class="form-row"><label for="d-area">Wohnfläche (m²)</label><input id="d-area" name="area" type="number" min="1" step="0.01" required value="${u.area}"></div><div class="form-row"><label><input name="active" type="checkbox" style="width:auto;margin-right:8px" ${u.active!==false?'checked':''}>Aktive Musterwohnung</label></div><div class="drawer-note">Wohnfläche und Status gelten dauerhaft. Personen und Miettage werden aus den einzelnen Mietverhältnissen ermittelt; bitte dort bearbeiten.</div></form>`;
+    }else if(type==='external'){
+      const sep=String(id).indexOf('|'),costId=String(id).slice(0,sep),caseId=String(id).slice(sep+1);
+      const c=data.costs.find(x=>x.id===costId),t=data.tenancies.find(x=>x.id===caseId);
+      if(!c||!t)return;
+      const r=data.externalValues?.[costId]?.rows?.[caseId]||{};
+      title=t.name+' · '+(data.units.find(u=>u.id===t.unitId)?.label||t.unitId);
+      eyebrow='EXTERNE EINZELABRECHNUNG · '+safeText(c.name);
+      body='<form id="editForm" data-type="external">'+
+        '<div class="drawer-note">Rechnungsbetrag und belegter Vermieterposten sind unter Gesamtkosten schreibbar. Hier ausschließlich externe Einzelwerte.</div>'+
+        '<div class="form-row"><label>Einzelkosten laut Techem (€)<input name="externalAmount" type="number" min="0" step="0.01" required value="'+safeText(r.amount??'')+'"></label></div>'+
+        '<div class="form-row"><label>Verbrauchseinheiten (optional)<input name="externalUnits" type="number" min="0" step="0.001" value="'+safeText(r.units??'')+'"></label></div>'+
+        '<div class="form-row"><label>Notiz / externer Beleg<input name="externalNote" maxlength="2000" value="'+safeText(r.note||'')+'"></label></div>'+
+        '<div class="drawer-note">Die übernommene Einzelkostenhöhe wird nicht aus den Einheiten hochgerechnet. Alle Fälle müssen vor einer fachlichen Freigabe abgestimmt werden.</div></form>';
+    }else if(type==='other-consumption'){
+      const c=data.costs.find(x=>x.id===id);if(!c)return;
+      title=c.name+' · Verbrauchseinheiten';eyebrow='VERBRÄUCHE · 2025';
+      body='<form id="editForm" data-type="other-consumption">'+
+        '<div class="water-form-grid"><div class="form-row"><label>Gesamtverbrauch<input name="consumptionTotal" min="0.001" step="0.001" type="number" required value="'+safeText(c.consumptionTotal??'')+'"></label></div>'+
+        '<div class="form-row"><label>Einheit<input name="consumptionUnit" maxlength="12" value="'+safeText(c.consumptionUnit||'Einheit')+'"></label></div></div>'+
+        data.tenancies.map(t=>'<div class="form-row"><label>'+safeText(t.name)+' · '+safeText(data.units.find(u=>u.id===t.unitId)?.label||t.unitId)+
+        '<input data-case-consumption="'+safeText(t.id)+'" type="number" min="0" step="0.001" value="'+safeText(c.consumptionByTenant?.[t.id]??'')+'"></label></div>').join('')+
+        '<div class="drawer-note">Gesamtmenge und Mengen der Einzelabrechnungsfälle werden getrennt geprüft. Fehlt ein Wert, gilt er nicht automatisch als null.</div></form>';
     }else if(type==='meter-replacement'){
       const parts=String(id||'').split('|'),channel=parts.pop(),unitId=parts.join('|');
       const u=data.units.find(x=>x.id===unitId),m=u?.waterMeters?.[channel];
@@ -567,6 +633,26 @@
     }
     else if(type==='advance'){const val=parseField(form.elements.advance);if(!Number.isFinite(val)||val<0)return toast('Ungültige Vorauszahlung.');const matches=data.tenancies.filter(t=>t.unitId===id);if(matches.length!==1)return toast('Bitte Vorauszahlungen je Abrechnungsfall bearbeiten.');matches[0].advance=round(val);data.units.find(x=>x.id===id).advance=round(val);}
     else if(type==='unit'){const u=data.units.find(x=>x.id===id);const area=parseField(form.elements.area);if(!Number.isFinite(area)||area<1||area>1000000)return toast('Bitte gültige Fläche, Personenzahl und Miettage eingeben.');const label=form.elements.label.value.trim(),position=form.elements.position.value.trim();if(!label||!position)return toast('Bezeichnung und Lage fehlen.');Object.assign(u,{label,position,area,active:form.elements.active.checked});}
+    else if(type==='external'){
+      const sep=String(id).indexOf('|'),costId=String(id).slice(0,sep),caseId=String(id).slice(sep+1);
+      const units=String(form.elements.externalUnits.value).trim();
+      try{data=workflow.setExternal(data,costId,caseId,
+        parseField(form.elements.externalAmount),units===''?null:parseField(form.elements.externalUnits),
+        form.elements.externalNote.value);}
+      catch(e){return toast('Externe Einzelwerte prüfen: '+e.message)}
+      msg='Techem-Einzelwerte gespeichert.';
+    }
+    else if(type==='other-consumption'){
+      const c=data.costs.find(x=>x.id===id),total=parseField(form.elements.consumptionTotal);
+      if(!c||!Number.isFinite(total)||total<=0)return toast('Ungültiger Gesamtverbrauch.');
+      const by={};
+      for(const el of form.querySelectorAll('[data-case-consumption]')){
+        const raw=String(el.value).trim();
+        if(raw!==''){const n=Number(raw);if(!Number.isFinite(n)||n<0)return toast('Ungültiger Einzelverbrauch.');by[el.dataset.caseConsumption]=n;}
+      }
+      c.consumptionTotal=total;c.consumptionUnit=form.elements.consumptionUnit.value.trim()||'Einheit';
+      c.consumptionByTenant=by;msg='Verbrauchswerte je Abrechnungsfall gespeichert.';
+    }
     else if(type==='meter-replacement'){
       const parts=String(id||'').split('|'),channel=parts.pop(),unitId=parts.join('|');
       try{
@@ -604,6 +690,8 @@
       if(c.active===false)c.active=true;else data=workflow.deactivate(data,id);
       stateChange();toast('Kostenstatus geändert.');return
     }
+    if(action==='edit-external'){openDrawer('external',id);return}
+    if(action==='edit-other-consumption'){openDrawer('other-consumption',id);return}
     if(action==='edit-property'){openDrawer('property');return}
     if(action==='replace-meter'){openDrawer('meter-replacement',id);return}
     if(action==='new-tenancy'){openDrawer('new-tenancy');return}
@@ -625,6 +713,7 @@
     const st=e.target.closest('[data-step]');if(st){ui.step=st.dataset.step;ui.filter='';render();return}
     const an=e.target.closest('[data-analytics]');if(an){ui.analytics=an.dataset.analytics;render();return}
     const objectTab=e.target.closest('[data-object-tab]');if(objectTab){ui.objectTab=objectTab.dataset.objectTab;render();return}
+    const consumptionTab=e.target.closest('[data-consumption-tab]');if(consumptionTab){ui.consumptionTab=consumptionTab.dataset.consumptionTab;render();return}
     const action=e.target.closest('[data-action]');if(action){doAction(action.dataset.action,action.dataset.id||'')}
   });
   document.addEventListener('submit',e=>{if(e.target.id==='editForm'){e.preventDefault();saveDrawer(e.target)}});
