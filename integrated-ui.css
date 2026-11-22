@@ -44,3 +44,7 @@
 .nk-live-tree-children button{border:0;background:transparent;text-align:left;color:#bdcde0;padding:10px 14px 10px 23px;font-size:12px;cursor:pointer}
 .nk-live-tree-children button:hover,.nk-live-tree:hover{background:#ffffff10}
 @media(max-width:700px){.nk-live-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.nk-live-page h1{font-size:24px}.nk-cloud-card{padding:17px}.nk-cloud-panel{padding:10px}.nk-live-section{padding:16px}}
+
+/* Explain guarded first import when encrypted local state exists. */
+.nk-cloud-callout[hidden]{display:none!important}
+.nk-cloud-callout{margin:14px 0 4px;padding:13px 15px;border-radius:9px;border:1px solid #b5d3ed;background:#eff7ff;color:#194c77;font-size:12px;font-weight:600;line-height:1.65}
