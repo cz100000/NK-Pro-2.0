@@ -124,3 +124,7 @@ Der [aktualisierte Gesamtentwicklungsplan mit allen 41 Änderungswünschen](docs
 ## Fachtest 0.6 · Stufen 3 und 4 zusammengeführt
 
 Die [veröffentlichte Integrationsversion 0.6](https://cz100000.github.io/NK-Pro-2.0/?v=0.6) verbindet erstmals die schrittweise Erfassung von Mietverhältnissen, Vorauszahlungen, Rechnungen, Wasser- und Techem-Einzelwerten mit einer vorgelagerten Qualitätssicht, vorläufigen reinen Ergebnissen und Mieterbrief-Entwürfen. [Aktueller Fertigstellungsgrad, noch offene Fach-/Druck-/Qualitätsgates](docs/STAGES_3_4_INTEGRATED_2026-11-22.md). **Noch kein vollständiger Abschluss der beiden Stufen, keine Echtdaten.**
+
+## Fachtest 0.7 – drei echte synthetische Objekt-/Jahreskontexte
+
+Die [0.7-Web-Demo](https://cz100000.github.io/NK-Pro-2.0/?v=0.7) zeigt drei fiktive Objekte mit **7/3/2 Wohnungen** und **2023/2024** je Objekt sowie einen offenen Entwurf 2025 für Objekt A. Dauerhafte Stammdaten werden zentral gepflegt und in kontrollierte Jahres-Snapshots projiziert. Der [Architektur-, Test- und Freigabebericht](docs/STAGE_0_7_OBJECT_EXPLORER_2026-11-22.md) dokumentiert offene Alt-App-Funktionslücken und das explizite Verbot von echten Daten im öffentlichen Test.

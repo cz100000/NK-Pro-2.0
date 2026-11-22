@@ -64,3 +64,17 @@ Siehe [STAGES_3_4_INTEGRATED_2026-11-22.md](STAGES_3_4_INTEGRATED_2026-11-22.md)
 - [ ] **P2:** Gesamt-Übersichtsseite ausdrücklich Work in Progress; finale konzeptionelle UX-Kritik **erst am Ende**.
 
 Quellcodevergleich, konkrete Regeln und Abnahmefälle: [FEEDBACK_2026-11-22_STAMMDATEN_JAHRESABRECHNUNGEN.md](FEEDBACK_2026-11-22_STAMMDATEN_JAHRESABRECHNUNGEN.md).
+
+## Fachtest 0.7 · Objekt-Explorer und Jahresabrechnungen (22.11.2026)
+
+- [x] Drei ausschließlich fiktive Objekte mit **7 / 3 / 2 Wohnungen**, jeweils eigenem dauerhaften Objekt-, Wohnungs-, Mietverhältnis- und Zählerstamm.
+- [x] Sechs historische Musterabrechnungen **2023 und 2024 je Objekt** plus der vorhandene offene Entwurf **2025 für Objekt A**. **Historisch ist nicht „fachlich abgeschlossen“**: die Musterdaten sind nur schreibgeschützt.
+- [x] Linker hierarchischer Objekt-Explorer; globale Jahresabrechnungsübersicht, Objektfilter, Wohnungs-Drilldown, eindeutige Breadcrumbs, mobile Menü-Navigation.
+- [x] Jahresabrechnungen ziehen Vertragsfälle aus permanenten Stammdaten nach Ein-/Auszugsdatum; **ohne Auszug fortlaufende Mietverhältnisse**. Mieterwechsel- und Leerstand-Szenario B/2024 mit 14-tägigem Leerstand.
+- [x] Änderungen an Stammdaten überschreiben **niemals** historische oder offene Jahressnapshots ungefragt. Offene Entwürfe verwenden eine geprüfte Vorschau und kontrollierten Rebase mit Sperren.
+- [x] Formular für Objekt, Wohnung und Mietverhältnis mit expliziter Anrede und optional abweichender Postanschrift. Vorauszahlung bleibt ausschließlich im Jahresbereich; Mietverhältnisse aus Jahres-Tabs entfernt.
+- [x] Isolierter Demo-Speicherschlüssel \`nkpro2_synthetic_portfolio_0_7_v1\`; vorhandene 0.6- und 1.0-Schlüssel werden **nicht verändert**. Bestehende 0.6-Demoänderungen sind **nicht** automatisch migriert.
+- [x] Node-Tests und echte Chromium-Klick-/Layoutprüfungen auf Desktop und Mobilgerät, neun prüfbare Screenshots als Actions-Artefakt.
+- [ ] Vollständige Parität zur alten NK-Pro-1.0-App, echte sichere Datenmigration, fachlich abgeschlossene Jahresarchive, 19 fehlende Originalregeln, Briefe/A4-/Druckfreigabe, Jahresanlage außerhalb der synthetischen 2023–25-Beispiele und Betriebsfreigabe weiterhin offen.
+
+Ausführlicher Bericht: [STAGE_0_7_OBJECT_EXPLORER_2026-11-22.md](STAGE_0_7_OBJECT_EXPLORER_2026-11-22.md).

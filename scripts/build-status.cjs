@@ -27,13 +27,13 @@ function manifest(tap,revision){
   inventory:{legacyPages:coverage.pages.length,qualityRules:catalog.rules.length,
     experimentalQualityRules:implemented.size,notPortedRules:catalog.rules.length-implemented.size},
   features:[
-   ["Neue Benutzeroberfläche","Synthetischer Fachtest 0.6","Fünf Bereiche, durchgehender Datenerfassungs- und Prüfprozess"],
+   ["Objekt-/Jahresverwaltung","Synthetischer Fachtest 0.7","Drei getrennte Objekte mit 12 Wohnungen, sieben Jahresständen und Objekt-Explorer"],
    ["Umlageberechnung","Interaktiver Referenztest","Sechs Originalmethoden im Musterworkflow, ohne echte Datenübernahme"],
    ["Wasser 2025","Teilweise getestet","KW/WW, Messperioden, Zwischenablesungen und belegter Leerstandsverbrauch"],
    ["Techem-Einzelabrechnung","Teilweise getestet","Externe Eurobeträge pro Mietverhältnis statt künstlicher Einheitspreisverteilung"],
    ["Qualitätsmanagement","Teilweise getestet","44 erfasst; 25 synthetische Teilprüfungen ausführbar, 19 noch offen"],
    ["Abrechnungsbriefe","Synthetische Vorschau","Einzel- und Sammelentwürfe mit Briefvorlage; kein fachlich freigegebener A4/PDF-Druck"],
-   ["Schema-5-Überleitung","Testadapter","Nur In-memory-Musterdaten, kein Echtdatenimport"],
+   ["Stammdaten/Jahresfälle","Synthetisches Datenmodell","Permanente Mietverhältnisse und abgeleitete, isolierte Jahresfälle; kein Echtdatenimport"],
    ["Integrierter Prüflauf","Testlabor","Teilnehmer, tatsächliche Zahlungen, externes Techem, Prüfung und Briefwerte verbunden"],
    ["Archiv und endgültiger Abschluss","Offen","Keine produktive Finalisierung"]
   ],
