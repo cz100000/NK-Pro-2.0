@@ -407,3 +407,54 @@ test("0.11 new objects automatically inherit list layout, shared edit buttons an
  assert.equal((x.html().match(/class="button edit-action"/g)||[]).length,5);
  assert.doesNotMatch(x.html(),/data-action="delete-master-meter"|data-action="retire-master-meter"/);
 });
+
+test("0.13 all statuses have their own column immediately before the edit/action column",()=>{
+ const x=browser();x.act("open-year","SYN-A|2025");
+ for(const step of ["advance","costs","water"]){
+   x.click("[data-step]",{step});
+   const markup=x.html();
+   assert.match(markup,/<th[^>]*>Status<\/th><th[^>]*>Aktion<\/th>/,
+     "Status/action headings must be separate in "+step);
+   assert.match(markup,/<\/td><td class="action-cell">/,
+     "Action must occupy its own TD in "+step);
+   assert.doesNotMatch(markup,/<th>Status \/ Aktion<\/th>/);
+ }
+ x.click("[data-consumption-tab]",{consumptionTab:"techem"});
+ assert.match(x.html(),/<th[^>]*>Status<\/th><th[^>]*>Aktion<\/th>/);
+ assert.match(x.html(),/<\/td><td class="action-cell">/);
+});
+test("0.13 meter addition is ONLY inside the selected unit accordion and uses primary button",()=>{
+ const x=browser();x.act("select-property","SYN-A");x.act("open-object-tab","meters");
+ const h=x.html();
+ const buttons=[...h.matchAll(/class="button button-primary"[^>]*data-action="new-master-meter"[^>]*data-id="([^"]+)"/g)];
+ assert.equal(buttons.length,7);
+ assert.deepEqual(buttons.map(m=>m[1]),x.portfolio().objects[0].units.map(u=>u.id));
+ assert.doesNotMatch(h,/Zähler für diese Wohnung/);
+ assert.equal((h.match(/Zähler hinzufügen<\/button>/g)||[]).length,7);
+ assert.doesNotMatch(h,/data-action="new-master-meter"[^>]*>[^<]*<\/button>/);
+});
+test("0.13 cost editor displays original catalog name and stores canonical label",()=>{
+ const x=browser();x.act("open-year","SYN-A|2025");
+ const before=JSON.stringify(x.portfolio().objects[0].settlements["2025"]);
+ x.click("[data-step]",{step:"costs"});
+ assert.match(x.html(),/<strong>Wasserversorgung<\/strong>/);
+ assert.equal(JSON.stringify(x.portfolio().objects[0].settlements["2025"]),before);
+ x.act("edit-cost","water");
+ assert.match(x.drawer(),/value="Wasserversorgung" readonly/);
+});
+test("0.13 new original letter workspace renders A4 and internal landlord features",()=>{
+ const x=browser();x.act("open-year","SYN-A|2025");
+ x.click("[data-step]",{step:"letters"});
+ const h=x.html();
+ for(const marker of ["letter-workspace","letter-list-panel","letter-settings-panel",
+  "letter-preview-panel","letterConfigForm","letter-main-sheet",
+  "abrechnung-table","letter-print","letter-print-all","letter-internal-all",
+  "legacyLetterCanvas","Druck prüfen"]){
+   assert.ok(h.includes(marker),"Missing feature: "+marker);
+ }
+ assert.equal((h.match(/class="letter-recipient(?: selected)?"/g)||[]).length,7);
+ assert.match(h,/width:210mm;height:297mm/);
+ assert.doesNotMatch(h,/class="doc-paper letter-a4-draft"/);
+ x.act("letter-print-check");
+ assert.match(x.toast(),/Brief|Prüf|Pflichtangaben|AP13/);
+});
