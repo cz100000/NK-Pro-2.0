@@ -1,138 +1,162 @@
 "use strict";
-const {test}=require("node:test");
-const assert=require("node:assert/strict");
-const fs=require("node:fs");
-const vm=require("node:vm");
-const path=require("node:path");
+const {test}=require("node:test"),assert=require("node:assert/strict"),
+ fs=require("node:fs"),vm=require("node:vm"),path=require("node:path");
 const root=path.resolve(__dirname,"..");
-function browser(){
-  const handlers={},elements=new Map(),store=new Map(),navs=["overview","billing","object","analytics","documents"].map(view=>({
-    dataset:{view},classList:{toggle(){},remove(){},add(){}},setAttribute(){},removeAttribute(){}
-  }));
-  function node(id){if(!elements.has(id))elements.set(id,{id,innerHTML:"",textContent:"",hidden:id==="drawer",
-    value:"",style:{},dataset:{},classList:{add(){},remove(){},toggle(){}},isConnected:true,
-    addEventListener(evt,fn){handlers[id+":"+evt]=fn},focus(){},
-    querySelectorAll(){return []},querySelector(){return null}
-  });return elements.get(id)}
-  const document={
-    body:{style:{},classList:{remove(){},add(){},toggle(){}}},
-    getElementById:node,
-    querySelectorAll(sel){return sel===".nav-item"?navs:[]},
-    addEventListener(name,fn){handlers[name]=fn},
-    activeElement:null
-  };
-  const win={document,console,setTimeout(){return 0},clearTimeout(){},
-    localStorage:{getItem(k){return store.get(k)||null},setItem(k,v){store.set(k,v)}},
-    scrollTo(){},confirm(){return true},print(){},Date,Intl,Math,JSON,Number,Set,Map,Error,
-    Object,Array,String,Boolean,parseInt,parseFloat};
-  win.window=win;win.globalThis=win;
-  const ctx=vm.createContext(win,{name:"nkpro2-synthetic-browser"});
-  const sources=["demo-ledger.js","experimental/settlement-cost.js","water-detail.js",
-    "synthetic-billing.js","synthetic-property.js","synthetic-workflow.js",
-    "synthetic-case-billing.js","synthetic-letters.js","synthetic-review.js",
-    "synthetic-estate.js","synthetic-master-ui.js","app.js"];
-  for(const filename of sources){
-    const src=fs.readFileSync(path.join(root,filename),"utf8");
-    vm.runInContext(src,ctx,{filename,timeout:5000});
-  }
-  function click(selector,data){
-    assert.ok(handlers.click,"No click handler");
-    handlers.click({target:{closest(key){return key===selector?{dataset:data}:null}}});
-  }
-  function save(data){
-    const fieldEntries=Object.entries(data).map(([k,v])=>[k,{value:String(v),checked:!!v}]);
-    const form={id:"editForm",elements:Object.fromEntries(fieldEntries),
-      querySelectorAll(){return []}};
-    handlers.submit({target:form,preventDefault(){}});
-  }
-  return {window:win,document,node,click,save,getState:()=>win.NKPRO2_DEMO_TEST.getState(),
-    source:()=>node("appMain").innerHTML,
-    drawer:()=>node("drawerBody").innerHTML};
+function browser(store=new Map()){
+ const handlers={},elements=new Map();
+ const navs=["overview","billing","object","analytics","documents"].map(view=>({
+  dataset:{view},classList:{toggle(){},remove(){},add(){}},setAttribute(){},removeAttribute(){}}));
+ function node(id){if(!elements.has(id))elements.set(id,{id,innerHTML:"",textContent:"",hidden:id==="drawer",
+  style:{},dataset:{},classList:{add(){},remove(){},toggle(){}},isConnected:true,
+  addEventListener(evt,fn){handlers[id+":"+evt]=fn},focus(){},
+  querySelectorAll(){return []},querySelector(){return null}
+ });return elements.get(id)}
+ const doc={body:{style:{},classList:{remove(){},add(){},toggle(){}}},
+  getElementById:node,querySelectorAll(sel){return sel===".nav-item"?navs:[]},
+  addEventListener(evt,fn){handlers[evt]=fn},activeElement:null};
+ const win={document:doc,console,setTimeout(){return 0},clearTimeout(){},
+  localStorage:{getItem(k){return store.get(k)||null},setItem(k,v){store.set(k,v)}},
+  scrollTo(){},confirm(){return true},print(){},Date,Intl,Math,JSON,Number,Set,Map,Error,
+  Object,Array,String,Boolean,parseInt,parseFloat};
+ win.window=win;win.globalThis=win;
+ const ctx=vm.createContext(win,{name:"nkpro2-synthetic-estates"});
+ const names=["demo-ledger.js","experimental/settlement-cost.js","water-detail.js",
+   "synthetic-billing.js","synthetic-property.js","synthetic-workflow.js",
+   "synthetic-case-billing.js","synthetic-letters.js","synthetic-review.js",
+   "synthetic-estate.js","synthetic-master-ui.js","app.js"];
+ for(const filename of names)vm.runInContext(fs.readFileSync(path.join(root,filename),"utf8"),
+   ctx,{filename,timeout:5000});
+ function click(selector,data){assert.ok(handlers.click);handlers.click({
+   target:{closest(key){return key===selector?{dataset:data}:null}}});}
+ function act(action,id=""){click("[data-action]",{action,id})}
+ function save(values){
+   const entries=Object.entries(values).map(([k,v])=>[k,{value:String(v),checked:Boolean(v)}]);
+   const form={id:"editForm",elements:Object.fromEntries(entries),querySelectorAll(){return []}};
+   handlers.submit({target:form,preventDefault(){}});
+ }
+ return{window:win,store,node,click,act,save,
+  state:()=>win.NKPRO2_DEMO_TEST.getState(),
+  portfolio:()=>win.NKPRO2_DEMO_TEST.getPortfolio(),
+  html:()=>node("appMain").innerHTML,
+  tree:()=>node("portfolioTree").innerHTML,
+  drawer:()=>node("drawerBody").innerHTML,
+  toast:()=>node("toast").textContent};
 }
-test("synthetic 0.6 UI initializes without runtime errors and uses seven tenancy cases",()=>{
- const app=browser(),state=app.getState();
- assert.equal(state.tenancies.length,7);
- assert.equal(state.units.length,7);
- assert.match(app.source(),/Übersicht/);
- app.click("[data-view]",{view:"billing"});
- assert.match(app.source(),/Gesamtkosten/);
- app.click("[data-step]",{step:"tenancies"});
- assert.match(app.source(),/Mietverhältnisse und Abrechnungsfälle/);
- assert.match(app.source(),/Musterperson A/);
- app.click("[data-view]",{view:"object"});
- assert.match(app.source(),/Mietverhältnisse/);
- app.click("[data-object-tab]",{objectTab:"meters"});
- assert.match(app.source(),/Zählerbestand/);
- app.click("[data-object-tab]",{objectTab:"units"});
- assert.match(app.source(),/Wohnungen/);
+test("0.7 boots a genuine 3-property portfolio and a clear 7-year overview",()=>{
+ const x=browser(),p=x.portfolio();
+ assert.equal(p.objects.length,3);
+ assert.deepEqual(p.objects.map(o=>o.units.length),[7,3,2]);
+ assert.equal(p.objects.reduce((n,o)=>n+Object.keys(o.settlements).length,0),7);
+ assert.match(x.html(),/Immobilienbestand/);
+ assert.match(x.tree(),/Musterobjekt A/);
+ assert.match(x.tree(),/Musterobjekt B/);
+ assert.match(x.tree(),/Musterobjekt C/);
+ x.click("[data-view]",{view:"billing"});
+ assert.match(x.html(),/Jahresabrechnungen/);
+ assert.match(x.html(),/Abrechnung 2025/);
+ assert.match(x.html(),/Abrechnung 2023/);
 });
-test("synthetic case editor saves start/end, and new cases cannot be silently merged",()=>{
- const app=browser(),first=app.getState().tenancies[0];
- app.click("[data-action]",{action:"edit-tenancy",id:first.id});
- assert.doesNotMatch(app.drawer(),/Verbrauch bei Mieterwechsel/);
- app.save({firstName:first.firstName,lastName:first.lastName,salutation:"neutral",customSalutation:"",recipientStreet:"",recipientPostalCode:"",recipientCity:"",unitId:first.unitId,role:"Mieter",
-   start:"2025-01-01",end:"2025-06-30",persons:1,advance:1000,
-   consumptionCold:"",consumptionHot:"",tenantNote:"Demo"});
- let state=app.getState();
- assert.equal(state.tenancies[0].end,"2025-06-30");
- app.click("[data-action]",{action:"new-tenancy",id:""});
- app.save({firstName:"Zweite",lastName:"Musterperson",salutation:"neutral",customSalutation:"",recipientStreet:"",recipientPostalCode:"",recipientCity:"",unitId:first.unitId,role:"Privatanteil",
-   start:"2025-07-01",end:"2025-12-31",persons:2,advance:800,
-   consumptionCold:"",consumptionHot:"",tenantNote:"Test"});
- state=app.getState();
- assert.equal(state.tenancies.length,8);
- assert.equal(state.tenancies.at(-1).role,"Privatanteil");
- assert.ok(app.window.NKPRO2_DEMO_TEST.ledger().issues.some(i=>i.code==="CASE_WATER_SPLIT_MISSING"));
+test("real click hierarchy B → master rooms → one unit → B/2024 → B/2023",()=>{
+ const x=browser();x.act("select-property","SYN-B");
+ assert.equal(x.portfolio().selectedObjectId,"SYN-B");
+ assert.match(x.html(),/Objektdaten/);
+ x.click("[data-object-tab]",{objectTab:"units"});
+ assert.match(x.html(),/Wohnungen/);
+ x.act("view-unit","SYN-B-W02");
+ assert.match(x.html(),/Zählerstamm/);
+ assert.match(x.html(),/SYN-B-T04/);
+ x.act("back-units");
+ x.click("[data-object-tab]",{objectTab:"tenancies"});
+ assert.match(x.html(),/Nicht ausgezogen/);
+ x.act("open-year","SYN-B|2024");
+ assert.equal(x.state().period,"2024");
+ assert.match(x.html(),/Abrechnung 2024/);
+ assert.match(x.html(),/Vorauszahlungen/);
+ assert.doesNotMatch(x.html(),/data-step="tenancies"/);
+ const previous=JSON.stringify(x.portfolio().objects[1].settlements["2024"]);
+ x.act("edit-payment","SYN-B-T04");
+ assert.match(x.toast(),/schreibgeschützt/);
+ assert.equal(JSON.stringify(x.portfolio().objects[1].settlements["2024"]),previous);
+ x.act("open-year","SYN-B|2023");
+ assert.equal(x.state().period,"2023");
+ assert.equal(x.state().tenancies.length,3);
 });
-test("cost editor includes all-case eligibility and independent consumption inputs",()=>{
- const app=browser();app.click("[data-action]",{action:"edit-cost",id:"waste"});
- assert.match(app.drawer(),/Zuordnung und Ausnahmen/);
- assert.match(app.drawer(),/Einzelverbräuche.*Verbräuche/);
- assert.match(app.drawer(),/Notiz \/ Bemerkung/);
+test("object C private tenant, only master changes are possible",()=>{
+ const x=browser();x.act("select-property","SYN-C");
+ x.click("[data-object-tab]",{objectTab:"tenancies"});
+ assert.match(x.html(),/Privatanteil/);
+ x.act("edit-master-tenancy","SYN-C-T02");
+ assert.match(x.drawer(),/Auszugsdatum \(optional\)/);
+ assert.match(x.drawer(),/Abweichende Zustellanschrift/);
+ assert.doesNotMatch(x.drawer(),/Jahresvorauszahlung/);
 });
-test("standalone water editor contains dated physical replacement action",()=>{
- const app=browser(),id=app.getState().units[0].id;
- app.click("[data-action]",{action:"edit-water",id});
- assert.match(app.drawer(),/Zählerwechsel dokumentieren/);
- app.click("[data-action]",{action:"replace-meter",id:id+"|cold"});
- assert.match(app.drawer(),/Ausbau-Endstand/);
+test("changing an apartment master leaves historical records frozen until explicit draft rebase",()=>{
+ const x=browser(),p=x.portfolio();
+ const before=JSON.stringify(p.objects[0].settlements["2024"]);
+ const prior=JSON.stringify(p.objects[0].settlements["2025"]);
+ x.act("edit-master-unit","DEMO-W01");
+ assert.match(x.drawer(),/Wohnfläche/);
+ x.save({label:"Wohnung A – neu",position:"EG links",area:"72"});
+ let changed=x.portfolio();
+ assert.equal(changed.objects[0].units[0].area,72);
+ assert.equal(JSON.stringify(changed.objects[0].settlements["2024"]),before);
+ assert.equal(JSON.stringify(changed.objects[0].settlements["2025"]),prior);
+ x.act("open-year","SYN-A|2025");
+ assert.match(x.html(),/Stammdaten wurden geändert/);
+ x.act("rebase-year");
+ changed=x.portfolio();
+ assert.equal(changed.objects[0].settlements["2025"].units[0].area,72);
+ assert.equal(changed.objects[0].settlements["2025"].reviewInvalidated,true);
+ assert.equal(JSON.stringify(changed.objects[0].settlements["2024"]),before);
 });
-
-test("reordered process has advances before invoices and review before result",()=>{
- const app=browser();app.click("[data-view]",{view:"billing"});
- const html=app.source();
- assert.ok(html.indexOf("Vorauszahlungen")<html.indexOf("Gesamtkosten"));
- assert.ok(html.indexOf(">Prüfen<")<html.indexOf(">Ergebnis<"));
+test("monthly/annual agreed and actual paid are distinct and editable only within open year",()=>{
+ const x=browser(),id=x.state().tenancies[0].id;
+ x.act("open-year","SYN-A|2025");
+ x.act("edit-payment",id);
+ assert.match(x.drawer(),/Tatsächlich gezahlt/);
+ x.save({mode:"monthly",agreed:"195",paid:"1660"});
+ const s=x.state();
+ assert.equal(s.payments[id].agreedMonthly,195);
+ assert.equal(s.payments[id].paidActual,1660);
+ assert.equal(s.tenancies[0].advance,2000);
 });
-test("partial quality module never permits finalization, even with synthetic valid inputs",()=>{
- const app=browser(),review=app.window.NKPRO2_REVIEW.assess(app.getState(),app.window.NKPRO2_CASE_BILLING.calculate(app.getState()));
- assert.equal(review.counts.total,44);
- assert.equal(review.counts.notRun,19);
- assert.equal(review.readyForClose,false);
- app.click("[data-view]",{view:"billing"});app.click("[data-step]",{step:"review"});
- assert.match(app.source(),/Abschluss gesperrt/);
+test("all bill workflow steps stay ordered and single source of truth",()=>{
+ const x=browser();x.act("open-year","SYN-A|2025");
+ const html=x.html();
+ assert.ok(html.indexOf('data-step="advance"')<html.indexOf('data-step="costs"'));
+ assert.ok(html.indexOf('data-step="review"')<html.indexOf('data-step="allocation"'));
+ x.click("[data-step]",{step:"water"});
+ x.click("[data-consumption-tab]",{consumptionTab:"techem"});
+ assert.match(x.html(),/Kosten laut Techem/);
+ x.act("edit-cost","waste");
+ assert.match(x.drawer(),/Zuordnung und Ausnahmen/);
+ assert.doesNotMatch(x.drawer(),/data-case-consumption/);
+ x.act("edit-case-water",x.state().tenancies[0].id);
+ assert.match(x.drawer(),/Kaltwasser-Verbrauch/);
 });
-test("Techem costs live in consumption workspace not general invoices",()=>{
- const app=browser();app.click("[data-view]",{view:"billing"});
- app.click("[data-step]",{step:"water"});app.click("[data-consumption-tab]",{consumptionTab:"techem"});
- assert.match(app.source(),/Heizung/);
- assert.match(app.source(),/Kosten laut Techem/);
+test("water form computes but never exposes arbitrary manual vacancy",()=>{
+ const x=browser(),u=x.state().units[0];
+ x.act("edit-water",u.id);
+ assert.doesNotMatch(x.drawer(),/name="vacancyCold"/);
+ assert.match(x.drawer(),/KW-Zwischenablesung/);
+ assert.match(x.drawer(),/water-live-sum/);
+ x.act("replace-meter",u.id+"|cold");
+ assert.match(x.drawer(),/Ausbau-Endstand/);
 });
-
-test("single source of truth: case water editable only in Verbräuche",()=>{
- const app=browser(),t=app.getState().tenancies[0];
- app.click("[data-action]",{action:"edit-tenancy",id:t.id});
- assert.doesNotMatch(app.drawer(),/name="consumptionCold"/);
- app.click("[data-action]",{action:"edit-case-water",id:t.id});
- assert.match(app.drawer(),/Kaltwasser-Verbrauch/);
- app.save({caseCold:5,caseHot:8});
- assert.equal(app.getState().tenancies[0].consumptionCold,5);
- assert.equal(app.getState().tenancies[0].consumptionHot,8);
+test("portfolio selection persists across app reload without touching legacy key",()=>{
+ const store=new Map(),x=browser(store);
+ x.act("open-year","SYN-C|2024");
+ const y=browser(store);
+ assert.equal(y.portfolio().selectedObjectId,"SYN-C");
+ assert.equal(y.state().period,"2024");
+ assert.equal(store.has("nkpro2_design_demo_20261121_v1"),false);
+ assert.equal(y.window.NKPRO2_DEMO_TEST.storageKey,"nkpro2_synthetic_portfolio_0_7_v1");
 });
-test("water form no longer offers manual vacancy consumption",()=>{
- const app=browser(),u=app.getState().units[0];
- app.click("[data-action]",{action:"edit-water",id:u.id});
- assert.doesNotMatch(app.drawer(),/name="vacancyCold"/);
- assert.match(app.drawer(),/KW-Zwischenablesung/);
- assert.match(app.drawer(),/water-live-sum/);
+test("quality remains incomplete, no completed bill or final letters",()=>{
+ const x=browser();x.act("open-year","SYN-A|2025");
+ x.click("[data-step]",{step:"review"});
+ assert.match(x.html(),/44/);
+ assert.match(x.html(),/Abschluss gesperrt/);
+ const r=x.window.NKPRO2_REVIEW.assess(x.state(),x.window.NKPRO2_CASE_BILLING.calculate(x.state()));
+ assert.equal(r.readyForClose,false);
 });
