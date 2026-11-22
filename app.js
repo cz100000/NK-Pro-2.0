@@ -264,10 +264,19 @@
       '<td colspan="2"></td><td class="money"><strong>'+show(report.totals.hot)+'</strong></td>'+
       '<td class="money"><strong>'+show(units)+'</strong></td><td colspan="3"></td></tr></tfoot></table></div>'+
       '<div class="table-caption">Zwei getrennte Musterzähler je Wohnung, insgesamt 14. Die Originalversion hat weitere Funktionen wie Zählerwechsel, historischen Ableseverlauf und kontrollierte Vorjahresübernahme; diese sind noch nicht migriert.</div></section>';
+    const split='<section class="section" style="margin-top:18px"><div class="section-header"><div><h2>Wasserverbräuche je Mietverhältnis</h2>'+
+      '<p>Insbesondere bei Mieterwechseln und Leerständen: dokumentierte Einzelmengen, keine geschätzte Verteilung.</p></div></div>'+
+      '<div class="table-wrap"><table class="data-table"><thead><tr><th>Teilnehmer · Wohnung</th><th>Zeitraum</th><th class="money">Kaltwasser</th><th class="money">Warmwasser</th><th>Aktion</th></tr></thead><tbody>'+
+      data.tenancies.map(t=>'<tr><td>'+safeText(t.name)+' · '+safeText(data.units.find(u=>u.id===t.unitId)?.label||t.unitId)+'</td>'+
+       '<td>'+safeText(t.start)+' bis '+safeText(t.end)+'</td>'+
+       '<td class="money">'+(t.consumptionCold==null?'Automatisch bei Einzelbelegung':fmtVolume(t.consumptionCold)+' m³')+'</td>'+
+       '<td class="money">'+(t.consumptionHot==null?'Automatisch bei Einzelbelegung':fmtVolume(t.consumptionHot)+' m³')+'</td>'+
+       '<td>'+iconButton('edit-case-water',t.id,'Verbrauch des Abrechnungsfalls erfassen')+'</td></tr>').join('')+
+      '</tbody></table></div><div class="table-caption">Werte werden hier einmalig eingegeben. Im Mietverhältnis bleiben sie ausschließlich Ergebnisinformationen.</div></section>';
     return '<div class="inline-toolbar"><div><h2>Wasser · Kalt- und Warmwasser</h2>'+
       '<p class="small muted">Erfassung und Kontrolle · 2025 · nur synthetische Musterdaten</p></div>'+
       button('Hauszähler & Rechnung bearbeiten','edit-house',null,'button-primary')+'</div>'+
-      KPIs+differences+table+
+      KPIs+differences+table+split+
       (data.units.some(u=>u.waterSourceNotice)?'<p class="footnote"><strong>Ältere Demowerte:</strong> Die früheren Ein-Zähler-Daten bleiben als KW-Entwurf erhalten. Warmwasser wurde nicht erfunden. Bitte vervollständigen oder die Demo zurücksetzen.</p>':'');
   }
   function advances(){
@@ -467,10 +476,6 @@
           '<div class="form-row"><label>Auszug / Ende<input type="date" name="end" value="'+safeText(t.end)+'" required></label></div>'+
           '<div class="form-row"><label>Personen<input type="number" name="persons" min="0" max="1000" step="1" value="'+safeText(t.persons)+'" required></label></div>'+
           '<div class="form-row"><label>Vorauszahlung (nur Anzeige)<input readonly value="'+safeText(data.payments?.[t.id]?.paidActual??t.advance)+' € – unter Vorauszahlungen ändern"></label></div></div>'+
-        '<fieldset class="water-fieldset"><legend>Verbrauch bei Mieterwechsel</legend>'+
-          '<div class="water-form-grid"><div class="form-row"><label>Kaltwasser (m³)<input type="number" name="consumptionCold" min="0" step="0.001" value="'+safeText(t.consumptionCold??'')+'"></label></div>'+
-          '<div class="form-row"><label>Warmwasser (m³)<input type="number" name="consumptionHot" min="0" step="0.001" value="'+safeText(t.consumptionHot??'')+'"></label></div></div>'+
-          '<p class="form-help">Bei mehreren Fällen pro Wohnung alle KW-/WW-Mengen eingeben. Die Summe muss exakt mit den Wohnungszählern übereinstimmen. Keine automatische Schätzung.</p></fieldset>'+
         '<div class="form-row"><label>Notizen<textarea name="tenantNote" maxlength="2000" rows="3">'+safeText(t.note||'')+'</textarea></label></div>'+
         '<div class="drawer-note">Nur fiktive Musterpersonen erfassen – keine echten Mieterdaten. Überlappungen oder fehlende Verbrauchsaufteilungen verhindern die Musterabrechnung.</div></form>';
     }else if(type==='letter-settings'){
@@ -554,6 +559,16 @@
       }
       else if(type==='advance')body=`<form id="editForm" data-type="advance"><div class="form-row"><label for="d-advance">Jahresvorauszahlung (€)</label><input id="d-advance" name="advance" type="number" step="0.01" min="0" value="${u.advance}" required></div><div class="drawer-note">Musterjahreswert. Keine tatsächlichen Zahlungseingänge hinterlegt.</div></form>`;
       else body=`<form id="editForm" data-type="unit"><div class="form-row"><label for="d-label">Wohnungsbezeichnung</label><input id="d-label" name="label" required value="${safeText(u.label)}"></div><div class="form-row"><label for="d-position">Lage</label><input id="d-position" name="position" required value="${safeText(u.position)}"></div><div class="form-row"><label for="d-area">Wohnfläche (m²)</label><input id="d-area" name="area" type="number" min="1" step="0.01" required value="${u.area}"></div><div class="form-row"><label><input name="active" type="checkbox" style="width:auto;margin-right:8px" ${u.active!==false?'checked':''}>Aktive Musterwohnung</label></div><div class="drawer-note">Wohnfläche und Status gelten dauerhaft. Personen und Miettage werden aus den einzelnen Mietverhältnissen ermittelt; bitte dort bearbeiten.</div></form>`;
+    }else if(type==='case-water'){
+      const t=data.tenancies.find(x=>x.id===id);if(!t)return;
+      title='Verbrauch · '+t.name;eyebrow='METER-FALLZUORDNUNG · 2025';
+      body='<form id="editForm" data-type="case-water">'+
+        '<div class="drawer-note">Abrechnungsfall: '+safeText(t.name)+' · '+safeText(data.units.find(u=>u.id===t.unitId)?.label||t.unitId)+
+         ' · '+safeText(t.start)+' bis '+safeText(t.end)+'. Mieter- und Zeitraumdaten sind nur lesend.</div>'+
+        '<div class="water-form-grid">'+
+        '<div class="form-row"><label>Kaltwasser-Verbrauch (m³)<input name="caseCold" type="number" min="0" step="0.001" value="'+safeText(t.consumptionCold??'')+'"></label></div>'+
+        '<div class="form-row"><label>Warmwasser-Verbrauch (m³)<input name="caseHot" type="number" min="0" step="0.001" value="'+safeText(t.consumptionHot??'')+'"></label></div></div>'+
+        '<div class="drawer-note">Die Summe der Einzelfälle und belegten Leerstandsmengen muss je KW/WW zum Wohnungszähler passen. Fehlende Werte sind nicht null.</div></form>';
     }else if(type==='external'){
       const sep=String(id).indexOf('|'),costId=String(id).slice(0,sep),caseId=String(id).slice(sep+1);
       const c=data.costs.find(x=>x.id===costId),t=data.tenancies.find(x=>x.id===caseId);
@@ -635,19 +650,17 @@
         city:form.elements.propertyCity.value.trim().slice(0,100),
         note:form.elements.propertyNote.value.trim().slice(0,2000)};
     }else if(type==='tenancy'||type==='new-tenancy'){
-      const cold=String(form.elements.consumptionCold.value).trim(),hot=String(form.elements.consumptionHot.value).trim();
+      // Individual consumptions are exclusively edited in the Verbräuche step.
       const prior=data.tenancies.find(t=>t.id===ui.draftTenancyId);
       const base={id:ui.draftTenancyId,unitId:form.elements.unitId.value,
         name:[form.elements.firstName.value.trim(),form.elements.lastName.value.trim()].filter(Boolean).join(' '),role:form.elements.role.value,
         start:form.elements.start.value,end:form.elements.end.value,
         persons:Number(form.elements.persons.value),advance:Number(prior?.advance??0),
-        consumptionCold:cold===''?null:Number(cold),consumptionHot:hot===''?null:Number(hot),
+        consumptionCold:prior?.consumptionCold??null,consumptionHot:prior?.consumptionHot??null,
         note:form.elements.tenantNote.value.trim().slice(0,2000)};
       if(!base.name||!propertyModel.date(base.start)||!propertyModel.date(base.end)||
         base.end<base.start||!Number.isSafeInteger(base.persons)||base.persons<0||
-        !Number.isFinite(base.advance)||base.advance<0||
-        (cold!==''&&(!Number.isFinite(base.consumptionCold)||base.consumptionCold<0))||
-        (hot!==''&&(!Number.isFinite(base.consumptionHot)||base.consumptionHot<0)))
+        !Number.isFinite(base.advance)||base.advance<0)
         return toast('Bitte Mietzeitraum, Personenzahl, Beträge und KW/WW prüfen.');
       try{
         data=propertyModel.updateTenancy(data,base);
@@ -724,6 +737,19 @@
     }
     else if(type==='advance'){const val=parseField(form.elements.advance);if(!Number.isFinite(val)||val<0)return toast('Ungültige Vorauszahlung.');const matches=data.tenancies.filter(t=>t.unitId===id);if(matches.length!==1)return toast('Bitte Vorauszahlungen je Abrechnungsfall bearbeiten.');matches[0].advance=round(val);data.units.find(x=>x.id===id).advance=round(val);}
     else if(type==='unit'){const u=data.units.find(x=>x.id===id);const area=parseField(form.elements.area);if(!Number.isFinite(area)||area<1||area>1000000)return toast('Bitte gültige Fläche, Personenzahl und Miettage eingeben.');const label=form.elements.label.value.trim(),position=form.elements.position.value.trim();if(!label||!position)return toast('Bezeichnung und Lage fehlen.');Object.assign(u,{label,position,area,active:form.elements.active.checked});}
+    else if(type==='case-water'){
+      const t=data.tenancies.find(x=>x.id===id);
+      if(!t)return toast('Mietverhältnis fehlt.');
+      const rawCold=String(form.elements.caseCold.value).trim(),rawHot=String(form.elements.caseHot.value).trim();
+      const cold=rawCold===''?null:parseField(form.elements.caseCold),
+         hot=rawHot===''?null:parseField(form.elements.caseHot);
+      if((cold!==null&&(!Number.isFinite(cold)||cold<0))||
+         (hot!==null&&(!Number.isFinite(hot)||hot<0)))
+         return toast('Bitte zulässige KW-/WW-Mengen eingeben.');
+      try{data=propertyModel.updateTenancy(data,{...t,consumptionCold:cold,consumptionHot:hot});}
+      catch(e){return toast('Fallverbrauch ungültig: '+e.message)}
+      msg='Verbrauchswerte für den Abrechnungsfall gespeichert.';
+    }
     else if(type==='external'){
       const sep=String(id).indexOf('|'),costId=String(id).slice(0,sep),caseId=String(id).slice(sep+1);
       const units=String(form.elements.externalUnits.value).trim();
@@ -789,6 +815,7 @@
       stateChange();toast('Kostenstatus geändert.');return
     }
     if(action==='edit-letter-settings'){openDrawer('letter-settings');return}
+    if(action==='edit-case-water'){openDrawer('case-water',id);return}
     if(action==='edit-external'){openDrawer('external',id);return}
     if(action==='edit-other-consumption'){openDrawer('other-consumption',id);return}
     if(action==='edit-property'){openDrawer('property');return}
