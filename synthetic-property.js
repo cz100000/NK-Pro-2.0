@@ -93,10 +93,13 @@
      if(cursor<=TO)vacancy.push({unitId,start:cursor,end:TO,days:days(cursor,TO)});
      const meter=meterRows.get(unitId);
      if(!meter||!meter.cold.valid||!meter.hot.valid)continue;
-     if(rows.length===1){
+     const unit=units.get(unitId);
+     const vacant=vacancy.some(v=>v.unitId===unitId);
+     const needsSplit=rows.length>1||vacant;
+     if(!needsSplit&&rows.length===1){
        const r=rows[0];r.cold=meter.cold.consumption;r.hot=meter.hot.consumption;
        r.consumption=r.cold+r.hot;
-     }else if(rows.length>1){
+     }else{
        let coldSum=0,hotSum=0,complete=true;
        for(const row of rows){
          const t=row.caseInput;
@@ -108,14 +111,27 @@
          row.consumption=row.cold+row.hot;
          coldSum+=row.cold;hotSum+=row.hot;
        }
-       if(!complete)err("CASE_WATER_SPLIT_MISSING",
-         "Bei Mieterwechsel sind KW-/WW-Mengen je Abrechnungsfall erforderlich: "+unitId,unitId);
-       else if(Math.abs(coldSum-meter.cold.consumption)>0.000001||
-         Math.abs(hotSum-meter.hot.consumption)>0.000001)
-         err("CASE_WATER_MISMATCH","Einzelverbräuche stimmen nicht mit KW-/WW-Zählern überein: "+unitId,unitId);
+       let vacantCold=0,vacantHot=0;
+       if(vacant){
+         if(!number(unit.vacancyCold)||Number(unit.vacancyCold)<0||
+            !number(unit.vacancyHot)||Number(unit.vacancyHot)<0){
+           complete=false;
+           err("VACANCY_WATER_ATTRIBUTION_REQUIRED",
+             "Bei Leerstand sind KW-/WW-Mengen von Mietern und Leerstand separat nachzuweisen: "+unitId,unitId);
+         }else{
+           vacantCold=Number(unit.vacancyCold);vacantHot=Number(unit.vacancyHot);
+           for(const v of vacancy.filter(v=>v.unitId===unitId))
+             v.waterSource="explicit-unit-vacancy";
+         }
+       }
+       if(!complete&&rows.length)
+         err("CASE_WATER_SPLIT_MISSING","KW-/WW-Mengen je Abrechnungsfall sind erforderlich: "+unitId,unitId);
+       else if(complete&&(Math.abs(coldSum+vacantCold-meter.cold.consumption)>0.000001||
+         Math.abs(hotSum+vacantHot-meter.hot.consumption)>0.000001))
+         err("CASE_WATER_MISMATCH","Einzelverbräuche plus Leerstand weichen von KW-/WW-Zählern ab: "+unitId,unitId);
      }
      if(rows.length===0)warn("VACANT_METER_CONSUMPTION",
-       "Wohnungsverbrauch ohne Abrechnungsfall: "+unitId,unitId);
+       "Zählerverbrauch ohne Mietverhältnis: nur expliziter Leerstandsanteil: "+unitId,unitId);
    }
    return {cases,vacancy,issues:errors,warnings,valid:errors.length===0,
        occupiedDays:cases.reduce((s,c)=>s+c.days,0),
