@@ -74,7 +74,7 @@
               '" data-action="open-year" data-id="'+safeText(o.id)+'|'+year+'"'+
               (selected?' aria-current="page"':'')+'>'+
               '<span class="tree-year-name"><span class="tree-icon">'+icon('calendar')+'</span>'+
-              year+'</span><small>'+safeText(a.navigationLabel ?? (a.settlement?.status==='draft'?'In Bearbeitung':'Musterstand'))+
+              safeText(year)+'</span><small>'+safeText(a.navigationLabel ?? (a.settlement?.status==='draft'?'In Bearbeitung':'Musterstand'))+
               '</small></button>';
           }).join('');
         return '<div class="tree-property'+(expanded?' expanded':'')+'">'+
@@ -91,7 +91,7 @@
             group('years','Jahresabrechnungen',years.length,yearItems)+
             '</div>':'')+'</div>';
       }).join('')+
-      (options.mode==='real'?'':'<p class="tree-footnote">Ausschließlich fiktive Musterobjekte.</p>');
+      (options.mode==='real'?'<p class="tree-footnote">Objekt ARB5: Echtdaten · B und C: Musterobjekte.</p>':'<p class="tree-footnote">Ausschließlich fiktive Musterobjekte.</p>');
   }
   return Object.freeze({icon,render});
 });
