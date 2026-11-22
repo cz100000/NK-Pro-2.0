@@ -1,6 +1,6 @@
 "use strict";
 /* NK-Pro 2.0 offline shell only: no personal data or Google API response caching. */
-const NAME="nkpro2-integrated-shell-2026-11-22-v1";
+const NAME="nkpro2-integrated-shell-2026-11-22-v2";
 const ASSETS=["./","./index.html","./styles.css","./integrated-ui.css",
  "./demo-ledger.js","./experimental/settlement-cost.js","./water-detail.js",
  "./synthetic-billing.js","./synthetic-property.js","./synthetic-workflow.js",
