@@ -115,6 +115,13 @@ const chromeBinary=()=>{
   await click('.tree-property-button[data-id="SYN-B"]');
   await waitFor("return document.querySelector('#breadcrumbView').textContent.includes('Musterobjekt B');");
   await click('[data-action="toggle-tree-section"][data-id="master"]');
+  const alignment=await evalJS("return{master:Array.from(document.querySelectorAll('.tree-subitem>.tree-icon')).map(x=>x.getBoundingClientRect().left),"+
+    "years:Array.from(document.querySelectorAll('.tree-year-name>.tree-icon')).map(x=>x.getBoundingClientRect().left)};");
+  assert.equal(alignment.master.length,4,"All four master subpages must share one icon column");
+  assert.equal(alignment.years.length,2,"Both B yearly records must share one icon column");
+  assert.ok(Math.max(...alignment.master,...alignment.years)-
+    Math.min(...alignment.master,...alignment.years)<=2,
+    "Misaligned navigation sibling icons: "+JSON.stringify(alignment));
   await click('[data-action="open-object-tab"][data-id="units"]');
   assert.equal(await evalJS("return document.querySelectorAll('.data-table tbody tr').length;"),3);
   assert.equal(await evalJS("return document.querySelectorAll('[data-action=view-unit]').length;"),0);
