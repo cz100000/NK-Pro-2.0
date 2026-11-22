@@ -14,3 +14,13 @@ jobs:
         with:
           node-version: "22"
       - run: npm test
+      - name: Chromium real-click and responsive visual acceptance
+        run: node tests/browser-visual-e2e.cjs
+      - name: Preserve nine desktop/mobile screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nkpro07-visual-acceptance
+          path: _visual-test-artifacts/*.png
+          if-no-files-found: warn
+          retention-days: 14

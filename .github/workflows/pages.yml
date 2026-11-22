@@ -38,6 +38,7 @@ jobs:
           node --check water-detail.js
           node --check experimental/settlement-cost.js
           node --test --test-reporter=tap tests/*.test.cjs > /tmp/nkpro2-tests.tap
+          node tests/browser-visual-e2e.cjs
           tail -n 24 /tmp/nkpro2-tests.tap
           if grep -Eq 'nkpro_browser_v85_qualitaets_cockpit_data|/drive/v3/files' app.js; then
             echo 'Prohibited production-storage/Drive integration detected'; exit 1
