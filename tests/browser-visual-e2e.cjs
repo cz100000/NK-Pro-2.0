@@ -103,6 +103,7 @@ const chromeBinary=()=>{
   assert.equal(d.tree,3);assert.ok(d.sw<=d.vw+1&&d.sbRight<=d.mainLeft+4);
   assert.match(d.h,/Startseite/);assert.ok(d.sbRight>=285);
   await snap("01-desktop-portfolio");
+  await click('[data-action="select-property"][data-id="SYN-A"]');
   await click('[data-action="object-billings"][data-id="SYN-A"]');
   await waitFor("return document.querySelectorAll('.annual-row').length===3;");
   d=await layout();assert.ok(d.sw<=d.vw+1);assert.match(d.h,/Jahresabrechnungen/);
