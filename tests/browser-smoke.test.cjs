@@ -22,7 +22,7 @@ function browser(store=new Map()){
  const ctx=vm.createContext(win,{name:"nkpro2-synthetic-estates"});
  const names=["demo-ledger.js","experimental/settlement-cost.js","water-detail.js",
    "synthetic-billing.js","synthetic-property.js","synthetic-workflow.js",
-   "synthetic-case-billing.js","synthetic-letters.js","synthetic-review.js",
+   "synthetic-case-billing.js","synthetic-letters.js","legacy-letter-engine.js","letter-workspace-ui.js","synthetic-review.js",
    "synthetic-estate.js","synthetic-master-ui.js","app.js"];
  for(const filename of names)vm.runInContext(fs.readFileSync(path.join(root,filename),"utf8"),
    ctx,{filename,timeout:5000});
