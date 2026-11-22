@@ -64,11 +64,23 @@
    sourceKind:"real",sourceArchiveCount:o.archives.length,sourceCode:o.code,
    sourceIntegrityId:live.source.snapshotId,sourceYear2025Empty:true};
  }
- function compose(demo,live){
+ const LOCKED_ID="NKPRO2-LOCKED-REAL";
+ function compose(demo,live,options={}){
   need(demo?.schema==="nkpro2-estates-synthetic-v1"&&demo.fixture===true&&
    Array.isArray(demo.objects),"DEMO_PORTFOLIO_INVALID");
   const synthetic=copy(demo);
-  if(!live)return synthetic;
+  if(!live&&!options.locked)return synthetic;
+  if(!live&&options.locked){
+   const a=synthetic.objects.find(o=>o.id==="SYN-A");
+   need(a,"SAMPLE_A_MISSING");
+   // Never substitute invented sample A data when a real encrypted portfolio exists.
+   const locked={...a,id:LOCKED_ID,name:"Privater Datenbestand – gesperrt",
+    street:"",postalCode:"",city:"",units:[],tenancies:[],meterRegistry:[],
+    settlements:{},sourceKind:"locked"};
+   synthetic.objects=[locked,...synthetic.objects.filter(o=>o.id!=="SYN-A")];
+   synthetic.selectedObjectId=LOCKED_ID;synthetic.selectedYear=null;
+   return synthetic;
+  }
   const real=genuineObject(live);
   const b=synthetic.objects.find(o=>o.id==="SYN-B");
   const c=synthetic.objects.find(o=>o.id==="SYN-C");
@@ -78,5 +90,5 @@
   need(p.objects.length===3&&p.objects[0].id===real.id,"DISPLAY_OBJECT_COUNT");
   return p;
  }
- return Object.freeze({genuineObject,compose});
+ return Object.freeze({genuineObject,compose,LOCKED_ID});
 });
