@@ -12,7 +12,7 @@ Der Echtdatenmodus ist derzeit noch ein lesender Fachdatennavigator mit 2025-Neu
 
 ## Verbindlich migrierter Umfang
 
-**Stammdaten eines einzigen Objekts:** Source-ID OBJ-001, Nutzer-Kurzcode ARB5, Originalbezeichnung \`Objekt Am Rauhen Biehl 5\`, Anschrift \`Am Rauhen Biehl 5, 55774 Baumholder\`. Die ursprüngliche Objektnummer bleibt unverändert; es werden **keine erfundenen weiteren Objekte** übernommen.
+**Stammdaten eines einzigen Objekts:** Quellobjekt-ID OBJ-001 und Nutzer-Kurzcode ARB5. Objektbezeichnung, Straße, Postleitzahl und Ort werden ausschließlich aus dem privaten Quell-Snapshot gelesen und sind nicht in öffentlichen Quelldateien hinterlegt. Die ursprüngliche Objektnummer bleibt unverändert; es werden **keine erfundenen weiteren Objekte** übernommen.
 
 - 7 Wohnungen (Wohnfläche zusammen 391,5 m²)
 - 5 Mietverhältnisse; M000 als regulärer Abrechnungsteilnehmer mit korrigiertem, bestätigtem Einzug am 01.01.2010
