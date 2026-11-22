@@ -114,7 +114,7 @@ const chromeBinary=()=>{
   await snap("03-desktop-three-units");
   await click('[data-action="view-unit"][data-id="SYN-B-W02"]');
   await waitFor("return document.querySelector('#appMain h1')?.textContent==='Wohnung 2';");
-  assert.match(await evalJS("return document.querySelector('#appMain').innerText;"),/SYN-B-T04/);
+  assert.match(await evalJS("return document.querySelector('#appMain').innerText;"),/Lea Hoffmann/);
   await snap("04-desktop-unit-detail");
   await click('[data-action="open-year"][data-id="SYN-B|2024"]');
   await waitFor("return document.querySelector('#appMain h1')?.textContent==='Abrechnung 2024';");
