@@ -73,7 +73,7 @@
   // The synthetic portfolio remains independent. Sample objects B/C keep their
   // original records and all existing 0.13 business/test interactions.
   function displayPortfolio(){
-   const shown=viewModel.compose(portfolio,realState);
+   const shown=viewModel.compose(portfolio,realState,{locked:!realState&&!!window.NKPRO2_INTEGRATED_APP?.hasLocalData()});
    if(realObject){shown.selectedObjectId=selectedReal?realObject.id:portfolio.selectedObjectId;
     shown.selectedYear=selectedReal?realYear:portfolio.selectedYear;}
    return shown;
@@ -164,7 +164,7 @@
     const listing=(items,isArchived)=>{
       const row=o=>{
         const years=Object.keys(o.settlements).length;
-        const menu=o.sourceKind==='real'?'<span class="status neutral">Echtdaten</span>':
+        const menu=['real','locked'].includes(o.sourceKind)?'<span class="status neutral">'+(o.sourceKind==='real'?'Echtdaten':'Gesperrt')+'</span>':
           '<details class="estate-menu"><summary aria-label="Weitere Aktionen für '+safeText(o.name)+
           '" title="Objektaktionen">'+icon('more')+'</summary><div class="estate-menu-items">'+
           (isArchived?button('Wiederherstellen','restore-object',o.id,'button-quiet'):
@@ -1398,6 +1398,10 @@
     if(good){closeDrawer();stateChange();toast(msg)}
   }
   function doAction(action,id){
+    if(id===viewModel.LOCKED_ID){
+      window.NKPRO2_INTEGRATED_APP?.showSync();
+      return;
+    }
     if(selectedReal&&!new Set(['select-property','toggle-tree-section',
        'open-object-tab','object-billings','all-billings','back-billings',
        'open-year']).has(action)){
