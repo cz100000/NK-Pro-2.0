@@ -1,0 +1,46 @@
+/* Integrated NK-Pro 2.0 cloud control and real-object workspace. */
+.system-sync-button{width:100%;border:1px solid #d7e4f0;border-radius:9px;padding:10px 9px;background:#f3f8ff;color:#236497;display:flex;align-items:center;gap:9px;text-align:left;font-size:12px;font-weight:700;cursor:pointer}
+.system-sync-button:hover{background:#eaf4fe;border-color:#9cc8ec}
+.system-sync-button .signal-dot{flex:none}
+.signal-dot.signal-on{background:#20a373;box-shadow:0 0 0 3px #20a37317}
+.nk-cloud-panel[hidden]{display:none!important}.nk-cloud-panel{position:fixed;inset:0;z-index:1500;display:grid;place-items:center;padding:20px}
+.nk-cloud-shade{position:absolute;inset:0;background:rgba(7,22,45,.48)}
+.nk-cloud-card{position:relative;z-index:1;width:min(710px,100%);max-height:calc(100dvh - 30px);overflow:auto;background:#fff;border-radius:15px;box-shadow:0 22px 70px #04193133;padding:24px;color:#233d5f}
+.nk-cloud-card header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid #e6ecf2;padding-bottom:12px}
+.nk-cloud-card header h2{font-size:20px;margin:7px 0}.nk-cloud-card p{font-size:13px;color:#657b91;line-height:1.55}
+.nk-cloud-card h3{font-size:15px}.nk-cloud-card label{font-size:12px;font-weight:700;display:block;margin-top:18px;margin-bottom:7px}
+.nk-cloud-card input[type=password],.nk-cloud-card input[type=file]{display:block;width:100%;background:#fff;border:1px solid #cbd8e8;border-radius:8px;padding:10px;color:#253e5a;font-size:13px}
+.nk-cloud-card button{font-size:12px;font-weight:700;border:1px solid #0874bf;border-radius:8px;padding:9px 13px;cursor:pointer;background:#0874bf;color:#fff;min-height:36px}
+.nk-cloud-card button.secondary{color:#0874bf;background:#eef7ff;border-color:#b8d8f0}
+.nk-cloud-card button:disabled{opacity:.44;cursor:not-allowed}
+.nk-cloud-card #nkSyncClose{font-size:23px;line-height:25px;color:#506c84;background:none;border:none;padding:0 4px}
+.nk-cloud-divider{border-top:1px solid #e5edf5;margin:21px 0}
+.nk-live-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:13px 0}
+.nk-cloud-message{margin-top:13px;color:#206b56;font-size:12px;line-height:1.5;min-height:25px}
+.nk-cloud-message.error{color:#a33c3c}.nk-live-muted{color:#73869d;font-size:12px}
+.nk-live-eyebrow{color:#537fa6;font-size:11px;letter-spacing:1.4px;font-weight:750}
+.nk-live-page{width:100%;max-width:1100px;margin:0 auto;padding:16px 0 65px}
+.nk-live-page h1{font-size:28px;line-height:1.25;color:#19365b;letter-spacing:-.5px;margin:14px 0}
+.nk-live-page h2{font-size:17px;margin:0 0 12px;color:#284363}
+.nk-live-page p{font-size:13px;color:#687c90;line-height:1.6}
+.nk-live-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:24px 0}
+.nk-live-card{border:1px solid #dfe9f2;border-radius:12px;padding:18px;background:#fff;min-height:90px}
+.nk-live-card b{display:block;font-size:23px;color:#145a91;margin-bottom:9px}
+.nk-live-card span{font-size:12px;color:#647c95}
+.nk-live-section{border:1px solid #e1e8f0;border-radius:12px;background:#fff;padding:21px;margin:20px 0}
+.nk-live-page button.nk-live-primary,.nk-live-back{border:1px solid #b0d7f0;background:#f0f8ff;color:#0869b3;border-radius:8px;padding:10px 13px;font-weight:700;font-size:12px;cursor:pointer}
+.nk-live-back{margin-bottom:10px}
+.nk-live-archive{display:flex;width:100%;justify-content:space-between;align-items:center;gap:14px;border:0;border-top:1px solid #ecf1f6;background:#fff;text-align:left;padding:15px 8px;color:#34526d;font-size:12px;cursor:pointer}
+.nk-live-archive:hover{background:#f7fbff}.nk-live-archive:last-child{border-bottom:1px solid #ecf1f6}
+.nk-live-scroll{overflow:auto;border-radius:10px;border:1px solid #e0e8f1;background:white}
+.nk-live-table{border-collapse:collapse;min-width:600px;width:100%;font-size:12px}
+.nk-live-table th{text-align:left;background:#f2f6fa;color:#57718a;padding:12px;font-weight:700;white-space:nowrap}
+.nk-live-table td{padding:12px;border-top:1px solid #ebf0f5;color:#35516e;white-space:nowrap}
+.nk-live-table th:last-child,.nk-live-table td:last-child{text-align:right}
+.nk-live-notice{background:#fff9ed;border-left:3px solid #d9a548;padding:17px 18px;margin:20px 0;font-size:13px;color:#7f5b2a}
+.nk-live-notice p{margin:7px 0 0}
+.nk-live-tree{width:100%;text-align:left;border:0;background:transparent;color:#ddeafa;font-size:13px;font-weight:700;padding:12px 14px;cursor:pointer}
+.nk-live-tree-children{display:flex;flex-direction:column;gap:2px;margin-left:8px}
+.nk-live-tree-children button{border:0;background:transparent;text-align:left;color:#bdcde0;padding:10px 14px 10px 23px;font-size:12px;cursor:pointer}
+.nk-live-tree-children button:hover,.nk-live-tree:hover{background:#ffffff10}
+@media(max-width:700px){.nk-live-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.nk-live-page h1{font-size:24px}.nk-cloud-card{padding:17px}.nk-cloud-panel{padding:10px}.nk-live-section{padding:16px}}
