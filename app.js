@@ -163,7 +163,7 @@
     let q=ui.filter.toLowerCase();const c=data.costs.filter(x=>(x.name+' '+x.category+' '+(x.note||'')).toLowerCase().includes(q));
     return `<div class="inline-toolbar"><h2>Gesamtkosten</h2><div class="filterbar"><input class="search" id="tableSearch" aria-label="Kosten durchsuchen" placeholder="Kostenarten suchen …" value="${safeText(ui.filter)}"></div></div>`+
       `<section class="section"><div class="stat-inline"><div><small>Gesamtkosten</small><strong>${fmt(allCost())}</strong></div><div><small>Kostenarten</small><strong>${data.costs.length}</strong></div><div><small>Vermieteranteile</small><strong>${fmt(ledger().totals.landlordCostsCents/100)}</strong></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Kostenart</th><th>Bereich</th><th>Rechnungsdatum</th><th>Umlageschlüssel</th><th class="money">Preis je Einheit</th><th class="money">Gesamtbetrag</th><th>Notiz</th><th>Status</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
-      (c.length?c.map(x=>`<tr><td><strong>${safeText(x.name)}</strong></td><td>${safeText(x.category)}</td><td>${safeText(x.invoiceDate||'–')}</td><td>${safeText(x.method)}</td><td class="money">${x.method==='Verbrauch'?(waterDetails.priceFor(x,x.id==='water'?data.houseWater:x.consumptionTotal).valid?fmtPrice(waterDetails.priceFor(x,x.id==='water'?data.houseWater:x.consumptionTotal).effective,x.consumptionUnit||'m³'):'Preis fehlt'):'–'}</td><td class="money">${fmt(x.amount)}</td><td class="cost-note-cell">${x.note?safeText(x.note):'<span class="soft">–</span>'}</td><td>${x.active===false?labelStatus(false,'Aktiv','Inaktiv'):labelStatus(x.amount>0,'Betrag erfasst','Betrag fehlt')}</td><td><button class="link" type="button" data-action="toggle-cost" data-id="${safeText(x.id)}">${x.active===false?'Aktivieren':'Deaktivieren'}</button> ${iconButton('edit-cost',x.id,'Kostenart bearbeiten')}</td></tr>`).join(''):`<tr><td colspan="9" class="muted">Keine Treffer.</td></tr>`)+
+      (c.length?c.map(x=>`<tr><td><strong>${safeText(x.name)}</strong></td><td>${safeText(x.category)}</td><td>${safeText(x.invoiceDate||'–')}</td><td>${safeText(x.method)}</td><td class="money">${x.method==='Verbrauch'?(waterDetails.priceFor(x,x.id==='water'?data.houseWater:x.consumptionTotal).valid?fmtPrice(waterDetails.priceFor(x,x.id==='water'?data.houseWater:x.consumptionTotal).effective,x.consumptionUnit||'m³'):'Preis fehlt'):'–'}</td><td class="money">${fmt(x.amount)}</td><td class="cost-note-cell">${x.note?safeText(x.note):'<span class="soft">–</span>'}</td><td>${x.active===false?labelStatus(false,'Aktiv','Inaktiv'):labelStatus(x.amount>0,'Betrag erfasst','Betrag fehlt')}</td><td><button class="link" type="button" data-action="toggle-cost" data-id="${safeText(x.id)}">${x.active===false?'Aktivieren':'Deaktivieren'}</button> ${x.id.startsWith('SYN-K-')?'<button class="link" type="button" data-action="delete-unused-cost" data-id="'+safeText(x.id)+'">Löschen</button>':''} ${iconButton('edit-cost',x.id,'Kostenart bearbeiten')}</td></tr>`).join(''):`<tr><td colspan="9" class="muted">Keine Treffer.</td></tr>`)+
       `</tbody></table></div><div class="table-caption">Klicken Sie auf eine Kostenart. Alle Einstellungen öffnen rechts – die Übersicht bleibt bestehen.</div></section><p class="footnote">Funktionsmuster: Sechs Originalverfahren werden für synthetische Ein-Mieter-Wohnungen berechnet. Kein Produktivbetrieb, keine Mieterwechsel, keine vollständige Techem-Einzelabrechnung.</p>`;
   }
   function water(){
@@ -810,6 +810,12 @@
     if(good){closeDrawer();stateChange();toast(msg)}
   }
   function doAction(action,id){
+    if(action==='delete-unused-cost'){
+      if(!window.confirm('Diese nur in der synthetischen Jahresdemo angelegte Kostenart endgültig löschen?'))return;
+      try{data=workflow.removeUnused(data,id);stateChange();toast('Unbenutzte Demo-Kostenart gelöscht.');}
+      catch(e){toast('Löschen gesperrt: '+e.message)}
+      return
+    }
     if(action==='toggle-cost'){
       const c=data.costs.find(x=>x.id===id);if(!c)return;
       if(c.active===false)c.active=true;else data=workflow.deactivate(data,id);

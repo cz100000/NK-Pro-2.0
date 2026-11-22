@@ -127,9 +127,9 @@
  }
  function removeUnused(state,id){
    const x=upgrade(state),c=x.costs.find(v=>v.id===id);
-   if(!c||!String(id).startsWith("SYN-K-")||c.amount>0||
-     x.externalValues[id]||c.usedInArchive)
-     throw new RangeError("Only unused synthetic custom cost with 0 amount may be deleted");
+   if(!c||!String(id).startsWith("SYN-K-")||
+     x.settlement.status!=="draft"||x.externalValues[id]||c.usedInArchive)
+     throw new RangeError("Only draft, unarchived synthetic custom costs without external individual values may be deleted");
    x.costs=x.costs.filter(v=>v.id!==id);return x;
  }
  function setExternal(state,costId,caseId,amount,units,note){

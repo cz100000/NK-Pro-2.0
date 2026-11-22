@@ -54,3 +54,16 @@ test("rejects actual dataset or invalid payments",()=>{
  assert.throws(()=>w.upgrade({...base(),fixture:false}),/Synthetic/);
  assert.throws(()=>w.setPayment(base(),"T1",{mode:"monthly",agreed:-1,paid:1}),/Invalid/);
 });
+
+test("unused synthetic custom cost may be deleted only in draft and only without external values",()=>{
+ const x=w.upgrade(base());
+ x.costs.push({id:"SYN-K-TEST",name:"Versehen",amount:22,method:"Fläche"});
+ const y=w.removeUnused(x,"SYN-K-TEST");
+ assert.equal(y.costs.some(c=>c.id==="SYN-K-TEST"),false);
+ assert.equal(x.costs.some(c=>c.id==="SYN-K-TEST"),true);
+ const z=w.upgrade(x);z.settlement.status="closed";
+ assert.throws(()=>w.removeUnused(z,"SYN-K-TEST"),/Only draft/);
+ assert.throws(()=>w.removeUnused(x,"heat"),/Only draft/);
+ z.settlement.status="draft";z.externalValues["SYN-K-TEST"]={rows:{}};
+ assert.throws(()=>w.removeUnused(z,"SYN-K-TEST"),/Only draft/);
+});
