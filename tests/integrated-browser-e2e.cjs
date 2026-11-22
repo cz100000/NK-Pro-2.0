@@ -110,7 +110,7 @@ const chromeBinary=()=>{
   await evalJS("document.querySelector('#portfolioTree button[data-nk-view=archives]').click();");
   await until("return document.querySelectorAll('#appMain .nk-live-archive').length===5;");
   assert.equal(await evalJS("return document.querySelectorAll('#appMain .nk-live-archive b').length;"),5);
-  await evalJS("document.querySelector('#appMain .nk-live-archive[data-id="2023full"]').click();");
+  await evalJS("[...document.querySelectorAll('#appMain .nk-live-archive')].find(e=>e.dataset.id==='2023full').click();");
   await until("return document.querySelector('#appMain h1')?.textContent==='Archiv 2023';");
   assert.equal(await evalJS("return document.querySelectorAll('#appMain .nk-live-table tbody tr').length;"),3);
   await shot("integrated-04-original-2023-archive");
