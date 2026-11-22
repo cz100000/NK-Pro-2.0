@@ -184,5 +184,7 @@
  window.addEventListener("focus",()=>automatic().catch(fail));
  $("oauthClient").value=localStorage.getItem(CONFIG)||DEFAULT_OAUTH_CLIENT_ID;
  enableActions();
+ if("serviceWorker" in navigator)navigator.serviceWorker.register("./private-sw.js",{scope:"./"})
+   .catch(()=>status("Offline-App-Speicherung konnte nicht aktiviert werden."));
  status("Privaten Datenbestand lokal importieren oder verschlüsselten Stand öffnen. Cloud-Zugriff erfordert Google-Anmeldung.");
 })();
