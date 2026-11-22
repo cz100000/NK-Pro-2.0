@@ -13,7 +13,7 @@ test("published version label and both synthetic and integrated asset versions",
  }
  for(const asset of ["app.js","integrated-data.js","integrated-app.js","integrated-ui.css",
   "private/private-model.js","private/vault-crypto.js","private/drive-adapter.js"])
-   assert.ok(html.includes("./"+asset+"?v=0.14"),asset+" integration asset not versioned");
+   assert.ok(html.includes("./"+asset+"?v=0.15"),asset+" integration asset not versioned");
  assert.ok(html.includes('href="./nkpro2.webmanifest"'));
  assert.ok(html.indexOf("water-detail.js")<html.indexOf("synthetic-billing.js"));
  assert.ok(html.indexOf("synthetic-property.js")<html.indexOf("synthetic-case-billing.js"));
