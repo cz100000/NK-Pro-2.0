@@ -61,3 +61,26 @@
 
 /* 0.5 · focused contextual cost and meter editing */
 .cost-exceptions{border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin:12px 0}.cost-exceptions summary{color:var(--blue);font-size:12px;font-weight:650;cursor:pointer}.cost-exceptions[open] summary{margin-bottom:14px}.case-checkbox{display:flex;align-items:center;gap:9px;margin:7px 0;font-size:12px}.case-checkbox input{width:auto;margin:0}.meter-history{display:grid;gap:5px;margin:12px 0}.meter-history>div{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;border-bottom:1px solid var(--line);padding:7px 0;font-size:11px}.meter-history>div span{color:var(--sub)}.tab-bar{overflow-x:auto;scrollbar-width:thin}
+
+/* NK-Pro 0.6 · joint stages 3+4 */
+.letter-picker{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:16px 22px}
+.letter-picker button{font:inherit;font-size:12px;background:#f7f9fb;border:1px solid var(--border);border-radius:6px;padding:9px 12px;cursor:pointer;color:var(--ink)}
+.letter-picker button.active{background:#eaf3ff;border-color:#6ba4f4;color:#115bae}
+.letter-paper-stack{display:grid;gap:23px;justify-items:center;padding:20px;background:#f4f7fa}
+.letter-a4-draft{box-sizing:border-box;width:100%;max-width:210mm;min-height:270mm;background:white;position:relative;padding:18mm 16mm;border:1px solid #e2e7ed}
+.letter-meta{font-size:10px;color:var(--muted);text-align:right;margin-bottom:18px}
+.letter-cost-table{width:100%;border-collapse:collapse;font-size:11px;margin:20px 0}
+.letter-cost-table th{padding:9px 7px;text-align:left;border-bottom:2px solid #ccd6df}
+.letter-cost-table td{padding:9px 7px;border-bottom:1px solid #e5ebf0}
+.letter-cost-table th:last-child,.letter-cost-table td:last-child{text-align:right}
+.letter-annex{font-size:10px;color:var(--sub);margin-top:20px}
+.review-remaining{border-top:1px solid var(--border);margin:0 16px;padding:15px 2px}
+.review-remaining summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--blue)}
+.review-remaining>.check-item{padding:12px 12px}
+@media print{
+ .letter-picker,.print-note,.inline-toolbar,.review-remaining{display:none!important}
+ .printable>.section-body{display:block!important;background:#fff!important;padding:0!important}
+ .printable>.section-body .doc-paper{page-break-after:always;break-after:page;border:0!important;box-shadow:none!important;max-width:none;width:210mm;min-height:297mm;padding:18mm 17mm}
+ .printable>.section-body .doc-paper:last-child{page-break-after:auto;break-after:auto}
+ .letter-cost-table{font-size:9pt}
+}

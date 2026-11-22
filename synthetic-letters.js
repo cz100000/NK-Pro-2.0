@@ -46,7 +46,7 @@ function html(letter,config={}){
  safe(letter.postalCode)+' '+safe(letter.city)+'</div>'+
  '<div class="letter-meta">'+escape(config.senderStreet||"")+' · '+escape(config.senderCity||"")+
  ' · '+escape(config.letterDate||"Datum fehlt")+'</div>'+
- '<h2 class="doc-title">Nebenkostenabrechnung 2025 · '+escape(letter.unit)+'</h2>'+
+ '<h2 class="doc-title">'+escape(config.subject||'Nebenkostenabrechnung 2025')+' · '+escape(letter.unit)+'</h2>'+
  '<div class="doc-prose">'+escape(letter.salutation)+'<br><br>'+escape(intro)+'</div>'+
  '<table class="letter-cost-table"><thead><tr><th>Kostenposition</th><th>Verteilung</th><th>Mein Anteil</th></tr></thead><tbody>'+
  letter.items.map(i=>'<tr><td>'+escape(i.name)+'</td><td>'+escape(i.method)+'</td>'+
@@ -54,8 +54,11 @@ function html(letter,config={}){
  '<div class="doc-results"><div><small>Kostenanteil</small><b>'+money(letter.costCents)+'</b></div>'+
  '<div><small>Geleistete Vorauszahlungen</small><b>'+money(letter.paidCents)+'</b></div>'+
  '<div><small>'+saldo+'</small><b>'+money(Math.abs(letter.balanceCents))+'</b></div></div>'+
+ '<div class="doc-prose">'+escape(letter.balanceCents>0?(config.paymentText||''):(config.creditText||''))+
+ (letter.balanceCents>0&&config.paymentDue?' Zahlungsziel: '+escape(config.paymentDue):'')+
+ (config.bankAccount?' · Bankverbindung: '+escape(config.bankAccount):'')+'</div>'+
  '<div class="doc-prose">'+escape(config.closingText||"")+'</div>'+
- '<div class="doc-sign">Mit freundlichen Grüßen<strong>'+safe(config.signature)+'</strong></div>'+
+ '<div class="doc-sign">'+escape(config.greeting||'Mit freundlichen Grüßen')+'<strong>'+safe(config.signature)+'</strong></div>'+
  '<div class="letter-annex">'+escape(config.annexText||"")+'</div>'+
  '<div class="demo-watermark">FACHTEST · NICHT VERSENDEN</div></article>';
 }
