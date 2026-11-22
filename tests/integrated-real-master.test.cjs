@@ -13,9 +13,9 @@ function source(){
   id:"M00"+i,wohnung:u.id,name:"Synthetic Tenant "+i,
   einzug:i===0?"2024-01-01":"2020-01-01",
   auszug:"",abrechnungRolle:i===0?"Eigentümer/Privat":"Mieter",personen:1}));
- const costs=[{id:"K002",gesamtbetrag:1642.31,kostenart:"Wasserversorgung",inNK:"Ja"},
-  {id:"K006",gesamtbetrag:9965.97,kostenart:"Heiz- und Warmwasserkosten",inNK:"Ja"},
-  {id:"K009",gesamtbetrag:1503,kostenart:"Müllbeseitigung",inNK:"Ja"}];
+ const costs=[{id:"K002",gesamtbetrag:1234.56,kostenart:"Wasserversorgung",inNK:"Ja"},
+  {id:"K006",gesamtbetrag:7890.12,kostenart:"Heiz- und Warmwasserkosten",inNK:"Ja"},
+  {id:"K009",gesamtbetrag:1111,kostenart:"Müllbeseitigung",inNK:"Ja"}];
  const archive=(year,id,full=false)=>({
   year,snapshotId:id,snapshotStatus:full?"complete":"legacy-partial",
   snapshotCompleteness:full?"complete":"historical-not-fully-reconstructable",
@@ -37,9 +37,9 @@ function source(){
    archive("2023","2023full",true),archive("2022","2022a"),
    archive("2021/2022","2021_2022")],
   umlageInputs:{K006:{caseValues:{
-   "tenant:1":{amount:9962.09,source:"Techem Gesamtabrechnung 2025"}},
-   externalBilling:{includedOwnerShare:3.88,totalCost:9965.97}}},
-  waterMeters:{settings:{houseMeterStart:911,houseMeterEnd:1186,houseWaterTotal:275}},
+   "tenant:1":{amount:7886.24,source:"Techem Gesamtabrechnung 2025"}},
+   externalBilling:{includedOwnerShare:3.88,totalCost:7890.12}}},
+  waterMeters:{settings:{houseMeterStart:100,houseMeterEnd:150,houseWaterTotal:50}},
   vorauszahlungen:[{kostenId:"K002",werte:[240,240]}]
  };
  const unsigned=copy(d);delete unsigned.meta.storageIntegrityAlgorithm;
@@ -57,8 +57,8 @@ test("Real master and 5 historical archives migrate into one object; 2025 billin
  assert.deepEqual(s.years,["2024","2023","2023","2022","2021/2022"]);
  assert.equal(o.tenancies.find(x=>x.id==="M000").leaseStart,"2010-01-01");
  assert.equal(o.tenancies.find(x=>x.id==="M000").billingParticipant,true);
- assert.equal(o.archives[2].snapshot.data.kostenarten[0].gesamtbetrag,1642.31);
- assert.equal(o.archives[1].snapshot.data.kostenarten[0].gesamtbetrag,1642.31);
+ assert.equal(o.archives[2].snapshot.data.kostenarten[0].gesamtbetrag,1234.56);
+ assert.equal(o.archives[1].snapshot.data.kostenarten[0].gesamtbetrag,1234.56);
  assert.equal(o.annual["2025"].importedFromLegacy,false);
  assert.equal(o.annual["2025"].costs.length,0);
  assert.equal(o.annual["2025"].meterReadings.length,0);
