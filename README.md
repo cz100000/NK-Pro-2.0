@@ -8,6 +8,18 @@ Interaktive, veröffentlichte Design-Demo: **https://cz100000.github.io/NK-Pro-2
 
 Die Anwendung ist ein interaktiver Entwurf für eine minimalistische Benutzerführung. Sie enthält eine **Startseite** mit hierarchisch aufklappbaren Immobilien, pro Objekt **Stammdaten** und **Jahresabrechnungen**, und darunter die getrennten objektübergreifenden Bereiche **Analysen** sowie **Dokumente & Archiv**. Die sechs Schritte einer Jahresabrechnung bleiben innerhalb der Arbeitsfläche.
 
+## Fachtest 0.10 – Konsistente Navigation und zentraler Zählerstamm (22.11.2026)
+
+Die Startseite ist eigenständig und durch eine Linie von der Objekt-Navigation getrennt. Die Überschriften heißen **OBJEKTBEZOGEN** und **OBJEKTÜBERGREIFEND**. Alle Icons und Texte unter „Stammdaten“ bzw. „Jahresabrechnungen“ haben auf derselben Hierarchieebene eine identische horizontale Ausrichtung.
+
+**Wohnungen:** Eine einzige Stammdatenliste mit Wohnungs-ID, Lage, Fläche und „Bearbeiten“; keine zusätzliche Detailseite, keine Querverlinkungen zu Mietern, Zählern oder Abrechnungsjahren. **Zähler:** Wohnungen als aufklappbare Tabellen innerhalb der Zählerverwaltung (ohne Seitenwechsel) mit Kaltwasser-, Warmwasser-, Strom- und Techem-Heizkostenverteiler-Datensätzen. Strom hat einen und Techem zwei **ausdrücklich fiktive Platzhalter pro Wohnung** – reale Zimmer-/Heizkörperzahlen werden nicht behauptet. Einzelne Zähler können angelegt und bearbeitet, unbenutzte gelöscht und historisch relevante außer Betrieb gesetzt werden.
+
+Die neue **`meterRegistry[]` ist die bearbeitbare Single Source of Truth** für physische Zähler. Die alte `unit.meters`-Struktur bleibt nur als automatisch abgeleitete Kompatibilitätsprojektion für synthetische 0.7/0.9-Abrechnungsstände. Jahresablesungen bleiben jahresgebunden, physische Zählernummern im Jahresformular sind schreibgeschützt; Zählerwechsel können nur mit einem bereits im Zählerstamm vorhandenen neuen Zähler dokumentiert werden. Historische Jahresstände bleiben unverändert.
+
+**Keine Echtdaten, keine produktiven Jahresabrechnungen, keine Cloud-Synchronisierung.** Die spätere Google-Drive-/Google-Cloud-Anbindung und kontrollierte Umstellung bleiben in den Stufen 3–7.
+
+Details: [Fachtest 0.10 – Navigation und Zählerstamm](docs/STAGE_0_10_NAVIGATION_AND_METER_MASTER_2026-11-22.md).
+
 ## Fachtest 0.9 – Immobilienverwaltung und Cloudvorbereitung
 
 Die linke Navigation ist auf **288 px Desktop / 295 px Mobil** verbreitert und zeigt einheitliche SVG-Icons sowie grafische Aufklapppfeile. Auf der neu gestalteten Startseite stehen Immobilienkarten mit Anlegen, Archivieren, Wiederherstellen und sicherem Entfernen **ausschließlich völlig leerer Objekte**. Wohnungen und fiktive Jahresabrechnungen können im neuen Objekt angelegt werden. Die Jahresübersicht ist **strikt objektbezogen**, ohne Objektfilter.

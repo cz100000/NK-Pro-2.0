@@ -1,5 +1,20 @@
 # Roadmap für NK-Pro 2.0
 
+## Fachtest 0.10 · Navigationskonsistenz und Single-Source-of-Truth-Zählerstamm (22.11.2026)
+
+- [x] Startseite eigener Bereich mit Trenner; „OBJEKTBEZOGEN“ und „OBJEKTÜBERGREIFEND“ in einheitlicher Typografie.
+- [x] Untereinträge (Icons, Texte, Zähler) konsistent linksbündig und je Baumebene einheitlich eingerückt.
+- [x] Einheitliche primäre Bearbeitungsbuttons; Objektkarte lässt sich ausschließlich im Stammdatenbereich pflegen.
+- [x] Wohnungsdetails zu einer Liste zusammengeführt; ausschließlich Wohnungsstammdaten und eine Bearbeiten-Aktion je Zeile, keine Querverweise auf andere Stammdaten-/Jahresabschnitte.
+- [x] Zähler pro Wohnung gruppiert in eigener Arbeitsfläche, keine Navigation zurück zur Wohnung bei Auswahl.
+- [x] Zählerstamm als dauerhafte `meterRegistry[]` mit stabiler Meter-ID, Wohnung, Typ, Nummer, Raum, Heizkörper, Status und Ein-/Ausbaudaten; Kalt-/Warmwasser, Strom und Techem-Heizkostenverteiler.
+- [x] Fiktive Platzhalter je Wohnung: ein Stromzähler, zwei Techem-Verteiler; echte Meterdaten werden nicht fingiert.
+- [x] Zähler anlegen/bearbeiten; unreferenzierte löschen; historisch verwendete Wasserzähler nur außer Betrieb setzen. Revisionierung, Datenisolierung, Syncrecord des Objektstamms.
+- [x] Jahresablesungsformular darf Zählernummern nicht verändern. Zählerwechsel benötigt einen registrierten neuen Stammdatenzähler.
+- [ ] Echte Cloud-Synchronisierung, historische Zählermigrationsabnahme, vollständige Techem-Einzelmessungen und Produktivfreigabe weiterhin ausstehend.
+
+Details: [STAGE_0_10_NAVIGATION_AND_METER_MASTER_2026-11-22.md](STAGE_0_10_NAVIGATION_AND_METER_MASTER_2026-11-22.md).
+
 ## Fachtest 0.9 · Objektverwaltung und Cloud-Vorbereitung (22.11.2026)
 
 - [x] Einheitliche SVG-Icons und grafische Chevrons im Objektbaum; Sidebar Desktop 288 px, Mobil 295 px.
