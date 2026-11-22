@@ -79,12 +79,19 @@
   const letterResolved=()=>!!data.letterChecked&&data.letterFingerprint===letterFingerprint();
   const waterResolved=()=>{const d=waterReport();return d.exactMatch||!!(d.canReview&&data.waterDecision&&data.waterDecision.fingerprint===waterFingerprint()&&data.waterDecision.note.trim().length>=5)};
   const heatResolved=()=>data.heatingEvidence&&data.heatingEvidenceFingerprint===heatFingerprint();
-  const checks=()=>ledger().issues.map((issue,i)=>({id:'model-'+i,title:'Eingabe oder Umlagegrundlage prüfen',note:issue.message,done:false,action:issue.action||'go-costs'})).concat([
-    {id:'water',title:'Rechnung, Hauszähler und Wohnungen abgleichen',note:waterReport().issues.length?'Es fehlen Zählerwerte oder Ablesedaten.':waterReport().exactMatch?'Beide Abgleiche stimmen.':`Rechnung–Haus ${int(waterReport().delta.invoiceHouse)} m³ · Haus–Wohnungen ${int(waterGap())} m³`,done:waterResolved(),action:'check-water'},
-    {id:'heat',title:'Externen Heizkostenbeleg bestätigen',note:'Beleglage der Beispielkosten ausdrücklich dokumentieren.',done:heatResolved(),action:'check-heat'},
-    {id:'letter',title:'Musterbrief visuell kontrollieren',note:'Dokumentdarstellung und Seitenlayout bestätigen.',done:letterResolved(),action:'go-letter'},
-    {id:'costs',title:'Gesamtkosten sind erfasst',note:'Alle Kostenbeträge sind größer als null.',done:data.costs.length>0&&data.costs.every(c=>c.amount>0),action:'go-costs'}
-  ]);
+  const checks=()=>{
+    const q=qualityReport();
+    const tasks=[
+      {id:'quality',title:'Original-Prüfregeln noch nicht vollständig umgesetzt',
+       note:q.counts.notRun+' von 44 Regeln nicht ausgeführt. Abschluss bleibt gesperrt.',
+       done:false,action:'go-review'},
+      ...q.dynamic.map((d,i)=>({id:d.id||'dynamic-'+i,title:'Berechnungs- oder Briefmangel',
+       note:d.title,done:false,action:d.route||'go-review'})),
+      ...q.rows.filter(x=>x.status==='critical').map(x=>({id:x.id,title:x.title,
+       note:'Kritische Vorprüfung',done:false,action:x.route}))
+    ];
+    return tasks;
+  };
   const unresolved=()=>checks().filter(x=>!x.done);
   const allCost=()=>round(data.costs.filter(c=>c.active!==false).reduce((s,c)=>s+num(c.amount),0));
   const allAdvance=()=>round(ledger().totals.advancesCents/100);
@@ -95,7 +102,7 @@
   const button=(label,action,id,cls='')=>`<button class="button ${cls}" type="button" data-action="${action}"${id?` data-id="${safeText(id)}"`:''}>${label}</button>`;
   const section=(title,inner,extra='',classes='')=>`<section class="section ${classes}"><div class="section-header"><div><h2>${title}</h2></div>${extra}</div>${inner}</section>`;
   const head=(kicker,title,description,action='')=>`<div class="page-heading"><div><div class="eyebrow">${safeText(kicker)}</div><h1>${title}</h1><p>${description}</p></div>${action?`<div class="heading-actions">${action}</div>`:''}</div>`;
-  function progress(){const done=checks().filter(c=>c.done).length;let html='<div class="flow-track">';for(let i=0;i<7;i++)html+=`<div class="flow-segment ${i<done?'complete':i===done?'current':''}"></div>`;return html+`</div><div class="flow-labels">${['Mietverhältnisse','Vorauszahlungen','Gesamtkosten','Verbräuche','Prüfen','Ergebnis','Briefe'].map((x,i)=>`<span class="${i===Math.min(done,6)?'highlight':''}">${x}</span>`).join('')}</div>`}
+  function progress(){const done=Math.min(6,qualityReport().counts.executed===44?6:4);let html='<div class="flow-track">';for(let i=0;i<7;i++)html+=`<div class="flow-segment ${i<done?'complete':i===done?'current':''}"></div>`;return html+`</div><div class="flow-labels">${['Mietverhältnisse','Vorauszahlungen','Gesamtkosten','Verbräuche','Prüfen','Ergebnis','Briefe'].map((x,i)=>`<span class="${i===Math.min(done,6)?'highlight':''}">${x}</span>`).join('')}</div>`}
   function overview(){
     const done=checks().length-unresolved().length;
     const tasks=unresolved();
@@ -103,7 +110,7 @@
       `<div class="metric-row"><div class="metric"><span class="metric-label">Aktive Abrechnung</span><div class="metric-number">2025</div><span class="metric-helper">Entwurf · 7 Wohnungen</span></div><div class="metric"><span class="metric-label">Noch zu erledigen</span><div class="metric-number">${tasks.length} <small>Prüfpunkte</small></div><span class="metric-helper">Direkt aus dem Workflow</span></div><div class="metric"><span class="metric-label">Abrechnungsvolumen</span><div class="metric-number" style="font-size:23px">${fmt(allCost())}</div><span class="metric-helper">Synthetische Musterwerte</span></div></div>`+
       `<div class="two-col"><div class="section"><div class="section-header"><div><h2>Als Nächstes</h2><p>${tasks.length?'Diese Punkte verhindern aktuell die Musterfreigabe.':'Alle Musterprüfpunkte wurden bearbeitet.'}</p></div></div>`+
       (tasks.length?tasks.slice(0,4).map((x,i)=>`<div class="task-row"><div class="task-icon">${icon(i===0?'alert':'file')}</div><div class="task-copy"><strong>${safeText(x.title)}</strong><span>${safeText(x.note)}</span></div><button class="link" type="button" data-action="${x.action}">Bearbeiten →</button></div>`).join(''):`<div class="empty" style="padding:35px"><div class="empty-icon">${icon('check')}</div><h3>Keine offenen Prüfpunkte</h3><p>Der Musterablauf ist für eine simulierte Freigabe vorbereitet.</p></div>`)+
-      `</div><div class="section"><div class="section-header"><div><h2>Bearbeitungsstand</h2><p>${done} von ${checks().length} Kontrollen erledigt</p></div>${labelStatus(tasks.length===0,'Bereit','In Bearbeitung')}</div><div class="section-body">${progress()}<p class="note" style="margin:24px 0 0">Ein Schritt führt direkt zu den betroffenen Daten. Technische Prüflisten bleiben im Hintergrund.</p></div><div class="progress-foot">${button('Prüfcockpit öffnen','go-review',null,'button-quiet')}</div></div></div>`+
+      `</div><div class="section"><div class="section-header"><div><h2>Bearbeitungsstand</h2><p>${done} von ${checks().length} Kontrollen erledigt</p></div>${labelStatus(false,'Bereit','Nicht freigegeben')}</div><div class="section-body">${progress()}<p class="note" style="margin:24px 0 0">34 Originalregeln sind noch nicht ausgeführt. Das Prüfcockpit zeigt sämtliche Regeln und dynamischen Fehler ausdrücklich an.</p></div><div class="progress-foot">${button('Prüfcockpit öffnen','go-review',null,'button-quiet')}</div></div></div>`+
       `<div class="divider-title">FINANZIELLE MOMENTAUFNAHME</div><div class="section"><div class="stat-inline"><div><small>Umlagefähige Musterkosten</small><strong>${fmt(ledger().totals.allocableCostsCents/100)}</strong></div><div><small>Vorauszahlungen</small><strong>${fmt(allAdvance())}</strong></div><div><small>Saldo Gesamt (Muster)</small><strong>${fmt(ledger().totals.balanceCents/100)}</strong></div></div><p class="section-note">Illustrative Werte. Bruttokosten: ${fmt(ledger().totals.grossCostsCents/100)}; davon Muster-Vermieteranteil: ${fmt(ledger().totals.landlordCostsCents/100)}. Kein produktiver Abrechnungsstand.</p></div>`;
   }
   const steps=[['tenancies','Mietverhältnisse'],['advance','Vorauszahlungen'],['costs','Gesamtkosten'],['water','Verbräuche'],['review','Prüfen'],['allocation','Ergebnis'],['letters','Briefe']];
