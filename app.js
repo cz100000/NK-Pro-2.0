@@ -4,7 +4,8 @@
   const STORAGE_KEY = 'nkpro2_design_demo_20261121_v1'; // Never use NK-Pro 1.x keys.
   const demoLedger = window.NKPRO2_DEMO_LEDGER;
   const functionalBilling = window.NKPRO2_SYNTHETIC_BILLING;
-  if (!demoLedger || !functionalBilling || typeof functionalBilling.calculate !== 'function') throw new Error('Synthetic billing modules missing.');
+  const waterDetails = window.NKPRO2_WATER_DETAIL;
+  if (!demoLedger || !functionalBilling || !waterDetails || typeof functionalBilling.calculate !== 'function') throw new Error('Synthetic billing modules missing.');
   const icons = {
     overview:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
     bill:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
@@ -27,7 +28,7 @@
     file:'<path d="M6 2h8l5 5v14H6zM14 2v6h5M9 12h7M9 16h7"/>'
   };
   const icon=(name)=>`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icons[name]||icons.info}</svg>`;
-  const initial=()=>({
+  const initial=()=>waterDetails.example({
     fixture:true,period:'2025',houseWater:266,waterDecision:null,heatingEvidence:false,heatingEvidenceFingerprint:null,letterChecked:false,demoFinalized:false,
     costs:[
       {id:'water',name:'Wasser & Abwasser',category:'Verbrauch',amount:1850,method:'Verbrauch',label:'Zählerdaten'},
@@ -53,23 +54,25 @@
   const num=v=>Number.isFinite(Number(v))?Number(v):0;
   const euroNum=n=>Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
   const round=n=>Math.round(n*100)/100;
+  const fmtPrice=n=>Number.isFinite(n)?n.toLocaleString('de-DE',{minimumFractionDigits:4,maximumFractionDigits:4})+' €/m³':'–';
   const parseField=(field)=>{const raw=String(field.value||'').trim().replace(/\s/g,'').replace(',','.');const val=Number(raw);return Number.isFinite(val)?val:NaN};
-  function load(){try{const v=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(v&&v.fixture===true&&Array.isArray(v.units)&&v.units.length===7&&Array.isArray(v.costs))return v;}catch(_){/* standalone file localStorage might be blocked */}return initial()}
+  function load(){try{const v=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(v&&v.fixture===true&&v.period==='2025'&&Array.isArray(v.units)&&v.units.length===7&&Array.isArray(v.costs))return waterDetails.upgrade(v);}catch(_){/* standalone file localStorage might be blocked */}return initial()}
   let data=load();const ui={view:'overview',step:'costs',analytics:'nk',filter:'',drawer:null,lastFocus:null};
   function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch(_){/* safe in-memory fallback; never touch real NK-Pro keys */}}
   function stateChange(){data.demoFinalized=false;persist();render()}
   const ledger=()=>functionalBilling.calculate(data);
-  const consumption=u=>Math.max(0,num(u.waterEnd)-num(u.waterStart));
-  const unitConsumption=()=>data.units.reduce((s,u)=>s+consumption(u),0);
-  const waterGap=()=>num(data.houseWater)-unitConsumption();
+  const waterReport=()=>waterDetails.diagnostics(data);
+  const consumption=u=>{const kw=waterDetails.meterResult(u.waterMeters?.cold),ww=waterDetails.meterResult(u.waterMeters?.hot);return kw.valid&&ww.valid?kw.consumption+ww.consumption:0};
+  const unitConsumption=()=>waterReport().totals.units??0;
+  const waterGap=()=>waterReport().delta.houseUnits;
   const waterFingerprint=()=>demoLedger.fingerprintWater(data);
   const heatFingerprint=()=>{const c=data.costs.find(x=>x.id==='heat');return JSON.stringify([c?.id,c?.amount,c?.method,c?.landlordShare??0]);};
   const letterFingerprint=()=>demoLedger.fingerprintLetter(data);
   const letterResolved=()=>!!data.letterChecked&&data.letterFingerprint===letterFingerprint();
-  const waterResolved=()=>waterGap()===0||!!(data.waterDecision&&data.waterDecision.fingerprint===waterFingerprint()&&data.waterDecision.note.trim().length>=5);
+  const waterResolved=()=>{const d=waterReport();return d.exactMatch||!!(d.canReview&&data.waterDecision&&data.waterDecision.fingerprint===waterFingerprint()&&data.waterDecision.note.trim().length>=5)};
   const heatResolved=()=>data.heatingEvidence&&data.heatingEvidenceFingerprint===heatFingerprint();
   const checks=()=>ledger().issues.map((issue,i)=>({id:'model-'+i,title:'Eingabe oder Umlagegrundlage prüfen',note:issue.message,done:false,action:issue.action||'go-costs'})).concat([
-    {id:'water',title:'Haus- und Wohnungsverbrauch abgleichen',note:waterGap()===0?'Verbrauch stimmt überein.':`Abweichung ${int(waterGap())} m³ · Prüfung und Begründung notwendig.`,done:waterResolved(),action:'check-water'},
+    {id:'water',title:'Rechnung, Hauszähler und Wohnungen abgleichen',note:waterReport().issues.length?'Es fehlen Zählerwerte oder Ablesedaten.':waterReport().exactMatch?'Beide Abgleiche stimmen.':`Rechnung–Haus ${int(waterReport().delta.invoiceHouse)} m³ · Haus–Wohnungen ${int(waterGap())} m³`,done:waterResolved(),action:'check-water'},
     {id:'heat',title:'Externen Heizkostenbeleg bestätigen',note:'Beleglage der Beispielkosten ausdrücklich dokumentieren.',done:heatResolved(),action:'check-heat'},
     {id:'letter',title:'Musterbrief visuell kontrollieren',note:'Dokumentdarstellung und Seitenlayout bestätigen.',done:letterResolved(),action:'go-letter'},
     {id:'costs',title:'Gesamtkosten sind erfasst',note:'Alle Kostenbeträge sind größer als null.',done:data.costs.length>0&&data.costs.every(c=>c.amount>0),action:'go-costs'}

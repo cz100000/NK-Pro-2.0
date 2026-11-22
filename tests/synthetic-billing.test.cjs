@@ -2,12 +2,17 @@
 const {test}=require("node:test");
 const assert=require("node:assert/strict");
 const calc=require("../synthetic-billing.js");
-const make=()=>({fixture:true,period:"2025",houseWater:70,
+const makeBase=()=>({fixture:true,period:"2025",houseWater:70,
   units:[
     {id:"A",area:40,people:2,days:365,active:true,waterStart:10,waterEnd:40,advance:20},
     {id:"B",area:60,people:1,days:365,active:true,waterStart:40,waterEnd:80,advance:30}
   ],
   costs:[{id:"K",name:"Muster",amount:201.01,landlordShare:3.88,method:"Fläche"}]});
+const make=()=>{const x=makeBase();x.waterSettings={houseStart:0,houseEnd:70,houseStartDate:"2025-01-01",houseEndDate:"2025-12-30"};
+ for(const u of x.units)u.waterMeters={
+   cold:{start:u.waterStart,end:u.waterEnd-10,startDate:"2025-01-01",endDate:"2025-12-30"},
+   hot:{start:0,end:10,startDate:"2025-01-01",endDate:"2025-12-30"}
+ };return x;};
 test("reject untagged real objects and other years",()=>{
   assert.throws(()=>calc.calculate({period:"2025",units:[],costs:[]}),/Synthetic/);
   assert.throws(()=>calc.calculate({...make(),period:"2024"}),/Synthetic/);
