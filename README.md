@@ -116,3 +116,7 @@ Die [vollständige, priorisierte Funktions-Tiefenanalyse vom 22.11.2026](docs/LE
 ## Fachtest 0.5: gemeinsame Entwicklung von Stufe 1 und Stufe 2
 
 Die Funktionen werden auf einem **gemeinsamen synthetischen Datenmodell** entwickelt: Objektstamm, Wohnungen, mehrere Mietverhältnisse je Wohnung, Leerstands-/Privatanteilslogik, Vorauszahlungen je Abrechnungsfall, fallbasierte Umlagen, gesonderte Verbrauchsmengen und Kostenberechtigungen, getrennte KW/WW-Messperioden, Zählerwechsel und unveränderte Rohablesungen. Der neue, schlanke Fünf-Bereiche-Entwurf wird beibehalten. Die neue Anwendung ist noch nicht produktionsreif und noch nicht vollständig fachparitätisch. [Siehe Scope und Abnahmegates](docs/STAGES_1_2_INTEGRATED_2026-11-22.md).
+
+## Verbindlicher Stufenplan 3–7 nach dem Fachtest 0.5
+
+Der [aktualisierte Gesamtentwicklungsplan mit allen 41 Änderungswünschen](docs/ENTWICKLUNGSPLAN_3_BIS_7_FEEDBACK_41_2026-11-22.md) ist die maßgebliche Vorlage für weitere Arbeiten an Stufe 3–7. Bestehende Stufen-1/2-Lücken werden mit Stufe 3 geschlossen. Dieser Planungsstand bedeutet **keine Implementierung der 41 Änderungen**; der öffentlich verfügbare Fachtest bleibt 0.5.

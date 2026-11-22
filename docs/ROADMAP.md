@@ -1,5 +1,10 @@
 # Roadmap für NK-Pro 2.0
 
+## Maßgeblicher Entwicklungsplan für Stufen 3–7 (konsolidiertes Feedback 41 Punkte, 22.11.2026)
+
+**Für alle neuen Entwicklungsaufträge ist [ENTWICKLUNGSPLAN_3_BIS_7_FEEDBACK_41_2026-11-22.md](ENTWICKLUNGSPLAN_3_BIS_7_FEEDBACK_41_2026-11-22.md) der verbindliche Arbeitsplan.** Er ordnet sämtliche 41 Nutzeranforderungen einzeln den überarbeiteten Stufen 3 bis 7 zu, mit übergreifenden UX-/Datenregeln, fachlichen Abhängigkeiten und Stufen-Abnahmegates. Frühere Stufenpläne unten dienen als historische Grundlage, nicht als widersprechende Umsetzungspriorität. Stufe 1+2 ist synthetisch angebunden, aber noch nicht fachlich vollständig abgenommen. **Diese Änderung ist Planung, nicht App-Funktionalität; keine produktive Abnahme.**
+
+
 1. Vollständige Ist-/Soll-Funktionsmatrix der bestehenden Version V99.4.86.
 2. Design-/UX-Gate für alle Kernjourneys und die fünf neuen Hauptbereiche.
 3. Komponentenbasiertes neues PWA-Fundament mit klaren Schnittstellen.
