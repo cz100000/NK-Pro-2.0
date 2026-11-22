@@ -427,7 +427,8 @@
   }
   function otherConsumption(){
     const costs=data.costs.filter(c=>c.active!==false&&c.method==='Verbrauch'&&c.id!=='water');
-    if(!costs.length)return '<div class="empty"><h3>Keine weiteren Verbrauchskostenarten</h3><p>Wenn eine Kostenart nach Verbrauch umgelegt wird, werden hier ihre eigenen Mengen erfasst.</p></div>';
+    if(!costs.length)return '<div class="empty"><h3>Keine weiteren Verbrauchskostenarten</h3>'+
+      '<p>Hier erscheinen zusätzliche verbrauchsabhängige Kostenarten, z. B. gesondert abgerechneter, einzeln gemessener Strom. Voraussetzung ist eine Kostenart mit Umlageschlüssel „Verbrauch“ und separaten Mengen je Mietverhältnis. Bereits in Wasser, Techem oder Allgemeinstrom enthaltene Kosten dürfen nicht doppelt berechnet werden.</p></div>';
     return '<section class="section"><div class="section-header"><h2>Weitere Verbrauchseinheiten</h2></div>'+
       '<div class="table-wrap"><table class="data-table"><thead><tr><th>Kostenart</th><th>Einheit</th><th class="money">Gesamtmenge</th><th>Einzelwerte</th><th>Aktion</th></tr></thead><tbody>'+
       costs.map(c=>'<tr><td><strong>'+safeText(c.name)+'</strong></td><td>'+safeText(c.consumptionUnit||'Einheiten')+'</td>'+
@@ -478,7 +479,7 @@
         '<div><span>Rechnung ↔ Hauszähler</span><strong class="'+(report.delta.invoiceHouse===0?'is-ok':'is-open')+'">'+diff(report.delta.invoiceHouse)+'</strong></div>'+
         '<div><span>Hauszähler ↔ Wohnungen</span><strong class="'+(report.delta.houseUnits===0?'is-ok':'is-open')+'">'+diff(report.delta.houseUnits)+'</strong></div>'+
         '<div><span>KW / WW gesamt</span><strong>'+show(report.totals.cold)+' / '+show(report.totals.hot)+'</strong></div></div>'+
-      '<div class="water-actions">'+button('Preis je m³ bearbeiten','edit-water-price',null,'button-quiet')+
+      '<div class="water-actions">'+editAction('edit-water-price',null,'Preis je m³')+
         (!report.exactMatch&&report.canReview?button('Abweichungen begründen','check-water',null,'button-quiet'):'')+'</div>'+
       (report.issues.length?'<div class="water-issues"><strong>Offene Zähler- oder Rechnungsangaben</strong><ul>'+
         report.issues.slice(0,12).map(x=>'<li>'+safeText((x.unitId?x.unitId+' · ':'')+x.reason)+'</li>').join('')+
@@ -503,14 +504,18 @@
        '<td>'+safeText(t.start)+' bis '+safeText(t.end)+'</td>'+
        '<td class="money">'+(t.consumptionCold==null?'Automatisch bei Einzelbelegung':fmtVolume(t.consumptionCold)+' m³')+'</td>'+
        '<td class="money">'+(t.consumptionHot==null?'Automatisch bei Einzelbelegung':fmtVolume(t.consumptionHot)+' m³')+'</td>'+
-       '<td>'+actionCell(statusFor(t.consumptionCold!=null&&t.consumptionHot!=null,
-         t.consumptionCold!=null||t.consumptionHot!=null),
+       '<td>'+actionCell(statusFor(
+           (t.consumptionCold!=null&&t.consumptionHot!=null)||
+           (data.tenancies.filter(other=>other.unitId===t.unitId).length===1&&
+            t.start===activeYear()+'-01-01'&&t.end===activeYear()+'-12-31'&&
+            waterReport().rows.find(row=>row.id===t.unitId)?.valid),
+           t.consumptionCold!=null||t.consumptionHot!=null),
          annualLocked()?viewAction('view-case-water',t.id,'Wasserverbrauch'):
            editAction('edit-case-water',t.id,'Wasserverbrauch'))+'</td></tr>').join('')+
       '</tbody></table></div><div class="table-caption">Werte werden hier einmalig eingegeben. Im Mietverhältnis bleiben sie ausschließlich Ergebnisinformationen.</div></section>';
     return '<div class="inline-toolbar"><div><h2>Wasser · Kalt- und Warmwasser</h2>'+
       '<p class="small muted">Erfassung und Kontrolle · 2025 · nur synthetische Musterdaten</p></div>'+
-      button('Hauszähler & Rechnung bearbeiten','edit-house',null,'button-primary')+'</div>'+
+      editAction('edit-house',null,'Hauszähler und Wasserwerksrechnung')+'</div>'+
       KPIs+differences+table+split+
       (data.units.some(u=>u.waterSourceNotice)?'<p class="footnote"><strong>Ältere Demowerte:</strong> Die früheren Ein-Zähler-Daten bleiben als KW-Entwurf erhalten. Warmwasser wurde nicht erfunden. Bitte vervollständigen oder die Demo zurücksetzen.</p>':'');
   }
