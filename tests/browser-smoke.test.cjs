@@ -29,7 +29,8 @@ function browser(){
   const ctx=vm.createContext(win,{name:"nkpro2-synthetic-browser"});
   const sources=["demo-ledger.js","experimental/settlement-cost.js","water-detail.js",
     "synthetic-billing.js","synthetic-property.js","synthetic-workflow.js",
-    "synthetic-case-billing.js","synthetic-letters.js","synthetic-review.js","app.js"];
+    "synthetic-case-billing.js","synthetic-letters.js","synthetic-review.js",
+    "synthetic-estate.js","synthetic-master-ui.js","app.js"];
   for(const filename of sources){
     const src=fs.readFileSync(path.join(root,filename),"utf8");
     vm.runInContext(src,ctx,{filename,timeout:5000});

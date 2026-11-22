@@ -5,18 +5,20 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#F7F9FA" />
   <meta name="description" content="NK-Pro 2.0 – synthetischer Funktionstest mit getrennter Kalt-/Warmwassererfassung und Kostenbemerkungen." />
-  <title>NK-Pro 2.0 · Synthetischer Fachtest 2025</title>
-  <link rel="stylesheet" href="./styles.css?v=0.6">
-  <script defer src="./demo-ledger.js?v=0.6"></script>
-  <script defer src="./experimental/settlement-cost.js?v=0.6"></script>
-  <script defer src="./water-detail.js?v=0.6"></script>
-  <script defer src="./synthetic-billing.js?v=0.6"></script>
-  <script defer src="./synthetic-property.js?v=0.6"></script>
-  <script defer src="./synthetic-workflow.js?v=0.6"></script>
-  <script defer src="./synthetic-case-billing.js?v=0.6"></script>
-  <script defer src="./synthetic-letters.js?v=0.6"></script>
-  <script defer src="./synthetic-review.js?v=0.6"></script>
-  <script defer src="./app.js?v=0.6"></script>
+  <title>NK-Pro 2.0 · Synthetischer Mehrjahres-Fachtest</title>
+  <link rel="stylesheet" href="./styles.css?v=0.7">
+  <script defer src="./demo-ledger.js?v=0.7"></script>
+  <script defer src="./experimental/settlement-cost.js?v=0.7"></script>
+  <script defer src="./water-detail.js?v=0.7"></script>
+  <script defer src="./synthetic-billing.js?v=0.7"></script>
+  <script defer src="./synthetic-property.js?v=0.7"></script>
+  <script defer src="./synthetic-workflow.js?v=0.7"></script>
+  <script defer src="./synthetic-case-billing.js?v=0.7"></script>
+  <script defer src="./synthetic-letters.js?v=0.7"></script>
+  <script defer src="./synthetic-review.js?v=0.7"></script>
+  <script defer src="./synthetic-estate.js?v=0.7"></script>
+  <script defer src="./synthetic-master-ui.js?v=0.7"></script>
+  <script defer src="./app.js?v=0.7"></script>
 </head>
 <body>
   <div class="shell">
@@ -33,17 +35,18 @@
         <button class="nav-item" data-view="analytics" type="button"><span data-icon="chart"></span><span>Analysen</span></button>
         <button class="nav-item" data-view="documents" type="button"><span data-icon="folder"></span><span>Dokumente & Archiv</span></button>
       </nav>
+      <nav id="portfolioTree" class="portfolio-tree" aria-label="Immobilien-Explorer"></nav>
       <div class="sidebar-bottom">
         <div class="system-label">SYSTEMSTATUS</div>
         <div class="system-row"><span class="signal-dot"></span><span>Lokale Demo · keine Cloud</span></div>
         <button class="sidebar-link" id="resetDemo" type="button"><span data-icon="reset"></span>Demo zurücksetzen</button>
-        <div class="sidebar-version">Fachtest 0.6 · 22.11.2026</div>
+        <div class="sidebar-version">Fachtest 0.7 · 22.11.2026</div>
       </div>
     </aside>
     <div class="workspace">
       <header class="topbar">
         <button class="icon-button mobile-menu" id="openMenu" type="button" aria-label="Menü öffnen"><span data-icon="menu"></span></button>
-        <div class="breadcrumbs"><span>Musterobjekt</span><span class="slash">/</span><strong id="breadcrumbView">Übersicht</strong></div>
+        <div class="breadcrumbs"><span class="topbar-path-label">Aktueller Bereich</span><span class="slash">/</span><strong id="breadcrumbView">Übersicht</strong></div>
         <div class="topbar-right"><span class="demo-badge">NUR MUSTERDATEN</span><span class="top-divider"></span><span class="avatar">NK</span></div>
       </header>
       <main class="page" id="appMain" aria-live="polite"></main>
