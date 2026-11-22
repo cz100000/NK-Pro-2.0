@@ -109,17 +109,32 @@
      weekly:round(weekly),expected:target};
  }
  function expected(t,p){return agreementPreview(t,p).expected;}
- function actualPreview(p){
+ function actualPreview(p,t=null){
    const mode=p?.paidMode==="monthly"?"monthly":"annual";
+   let actual,monthlyInput=null,months=null;
    if(mode==="monthly"){
-     const monthly=Number(p?.paidMonthly),months=Number(p?.paidMonths);
-     if(!money(p?.paidMonthly)||p?.paidMonths===null||p?.paidMonths===undefined||
-       p?.paidMonths===""||!Number.isInteger(months)||months<0||months>12)
-       return{valid:false,actual:null,monthly:null,months:null};
-     return{valid:true,actual:round(monthly*months),monthly,months};
+     const raw=p?.paidMonthly,rawMonths=p?.paidMonths;
+     const count=Number(rawMonths);
+     if(!money(raw)||rawMonths===null||rawMonths===undefined||rawMonths===""||
+       !Number.isInteger(count)||count<0||count>12)
+       return{valid:false,actual:null,monthly:null,months:null,annual:null,weekly:null};
+     monthlyInput=Number(raw);months=count;
+     actual=round(monthlyInput*months);
+   }else{
+     if(!money(p?.paidActual))
+       return{valid:false,actual:null,monthly:null,months:null,annual:null,weekly:null};
+     actual=Number(p.paidActual);
    }
-   if(!money(p?.paidActual))return{valid:false,actual:null,monthly:null,months:null};
-   return{valid:true,actual:Number(p.paidActual),monthly:null,months:null};
+   let annual=null,monthly=null,weekly=null;
+   // An average over actual residency duration, not proof of payments on those dates.
+   if(t&&date(t.start)&&date(t.end)&&t.start<=t.end&&t.start.slice(0,4)===t.end.slice(0,4)){
+     const y=t.start.slice(0,4),yearDays=days(y+"-01-01",y+"-12-31");
+     const residencyDays=days(t.start,t.end);
+     annual=round(actual*yearDays/residencyDays);
+     monthly=round(annual/12);
+     weekly=round(actual*7/residencyDays);
+   }
+   return{valid:true,actual,monthly,months,annual,weekly,monthlyInput};
  }
  function setPayment(state,id,{mode,agreed,paid,paidMode="annual",paidMonthly=null,paidMonths=null}){
    const x=upgrade(state),t=x.tenancies.find(t=>t.id===id);
