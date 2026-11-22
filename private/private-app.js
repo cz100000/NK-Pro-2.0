@@ -4,6 +4,7 @@
  const model=globalThis.NKPRO2_PRIVATE_MODEL,cryptoBox=globalThis.NKPRO2_VAULT_CRYPTO,
   driveAPI=globalThis.NKPRO2_PRIVATE_DRIVE;
  if(!model||!cryptoBox||!driveAPI)throw new Error("PRIVATE_MODULES_MISSING");
+ const DEFAULT_OAUTH_CLIENT_ID="603460345425-d6b85th20j9vnvj38lmrr9ndbordguo7.apps.googleusercontent.com";
  const KEY="nkpro2_private_encrypted_local_v1",OLD="nkpro2_private_previous_encrypted_v1",
   CONFIG="nkpro2_private_oauth_client_id_v1";
  const $=id=>document.getElementById(id);
@@ -136,12 +137,18 @@
   if(!drive.isConnected())throw new Error("Erst mit Google verbinden.");
   const h=await drive.history();
   if(!h.head)throw new Error("Noch keine privaten NK-Pro-2.0-Cloud-Daten gefunden.");
+  if(!vault&&cachedRevision)throw new Error("Verschlüsselten lokalen Stand zuerst entsperren. Cloud darf gesperrte lokale Daten nicht überschreiben.");
   if(dirty)throw new Error("Lokale Änderungen vorhanden. Vor einem Cloud-Laden bitte Konflikt manuell klären; es wird nichts überschrieben.");
   if(!manual&&(!vault||!remoteId))return;
   if(!manual&&h.head.id===remoteId)return;
   const envelope=await drive.read(h.head.id);
-  if(envelope.parentId!==(remoteId||null)&&remoteId!==h.head.id)
-   throw new Error("DRIVE_PARENT_CHAIN_CONFLICT");
+  if(remoteId&&remoteId!==h.head.id){
+   let parent=envelope.parentId,depth=0;
+   while(parent&&parent!==remoteId&&depth++<250){
+    const previous=await drive.read(parent);parent=previous.parentId;
+   }
+   if(parent!==remoteId)throw new Error("DRIVE_PARENT_CHAIN_CONFLICT");
+  }
   const data=await cryptoBox.decrypt(envelope,requirePass());
   model.validatePortfolio(data);
   if(vault){
@@ -175,7 +182,7 @@
  }
  setInterval(()=>automatic().catch(fail),45000);
  window.addEventListener("focus",()=>automatic().catch(fail));
- $("oauthClient").value=localStorage.getItem(CONFIG)||"";
+ $("oauthClient").value=localStorage.getItem(CONFIG)||DEFAULT_OAUTH_CLIENT_ID;
  enableActions();
  status("Privaten Datenbestand lokal importieren oder verschlüsselten Stand öffnen. Cloud-Zugriff erfordert Google-Anmeldung.");
 })();
