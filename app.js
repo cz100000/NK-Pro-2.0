@@ -176,10 +176,10 @@
           safeText(o.postalCode)+' '+safeText(o.city)+'</span></td>'+
           '<td class="estate-count">'+o.units.length+'</td>'+
           '<td class="estate-count">'+years+'</td>'+
-          '<td class="estate-row-actions">'+(isArchived?
+          '<td><div class="estate-row-actions">'+(isArchived?
             '<span class="status neutral">Archiviert</span>':
             button('Öffnen '+icon('arrow'),'select-property',o.id,'button-quiet estate-open'))+
-          menu+'</td></tr>';
+          menu+'</div></td></tr>';
       };
       return '<div class="table-wrap"><table class="data-table estate-table"><thead><tr>'+
         '<th>Immobilie</th><th>Anschrift</th><th>Wohnungen</th>'+
@@ -619,9 +619,9 @@
             '<td>'+safeText(where)+'</td>'+
             '<td><span class="status '+(m.status==='active'?'green':'neutral')+'">'+
               safeText(estates.meterStatus[m.status])+'</span></td>'+
-            '<td class="meter-actions">'+
+            '<td><div class="meter-actions">'+
               editAction('edit-master-meter',m.id,estates.METER_TYPES[m.type]+' '+(m.number||m.id))+
-              '</td></tr>';
+              '</div></td></tr>';
         };
         return '<details class="meter-unit"'+(i===0?' open':'')+'>'+
           '<summary class="meter-unit-head"><span class="meter-unit-title">'+
