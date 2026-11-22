@@ -251,7 +251,7 @@ test("0.9 end-to-end: new property + unit + tenancy + first draft year stays in 
  o=x.portfolio().objects.find(v=>v.name==="Musterobjekt E");
  assert.equal(o.units.length,1);
  x.act("new-master-tenancy");
- assert.match(x.drawer(),/Muster-Mietverhältnis hinzufügen/);
+ assert.match(x.node("drawerTitle").textContent,/Muster-Mietverhältnis hinzufügen/);
  x.save({firstName:"Julia",lastName:"Demo",unitId:o.units[0].id,role:"Mieter",
    leaseStart:"2024-01-01",leaseEnd:"",persons:"1",salutation:"neutral",
    customSalutation:"",postalStreet:"",postalCode:"",postalCity:"",note:"Nur Test"});
