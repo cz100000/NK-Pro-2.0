@@ -433,7 +433,7 @@
         report.issues.slice(0,12).map(x=>'<li>'+safeText((x.unitId?x.unitId+' · ':'')+x.reason)+'</li>').join('')+
         '</ul></div>':'')+'</section>';
     const table='<section class="section" style="margin-top:18px"><div class="section-header"><div><h2>Wohnungszähler</h2>'+
-      '<p>Anfangs- und Endstände, Datum, Zählernummer und Notiz werden je Wohnung im Detailpanel bearbeitet.</p></div></div>'+
+      '<p>Jahresablesungen und Ablesedaten werden hier erfasst. Die physische Zählernummer stammt unveränderbar aus den Stammdaten.</p></div></div>'+
       '<div class="table-wrap"><table class="data-table water-table"><thead><tr><th rowspan="2">Wohnung</th>'+
       '<th colspan="3">Kaltwasser (m³)</th><th colspan="3">Warmwasser (m³)</th>'+
       '<th rowspan="2" class="money">Gesamt</th><th rowspan="2" class="money">Kostenanteil</th>'+
@@ -879,7 +879,7 @@
           const segments=Array.isArray(meter.segments)?meter.segments:[];
           const readOnly=segments.length>1;
           return '<fieldset class="water-fieldset"><legend>'+label+'</legend>'+
-            '<div class="form-row"><label>Zählernummer<input name="'+key+'Number" maxlength="60" '+(readOnly?'readonly ':'')+'value="'+safeText(meter.number||'')+'"></label></div>'+
+            '<div class="form-row"><label>Zählernummer (Stammdatum)<input name="'+key+'Number" maxlength="60" readonly value="'+safeText(meter.number||'')+'"></label></div>'+
             '<div class="water-form-grid">'+
             '<div class="form-row"><label>Anfangsstand (m³)<input name="'+key+'Start" type="number" min="0" step="0.001" '+(readOnly?'readonly ':'')+'value="'+safeText(meter.start??'')+'"></label></div>'+
             '<div class="form-row"><label>Endstand (m³)<input name="'+key+'End" type="number" min="0" step="0.001" '+(readOnly?'readonly ':'')+'value="'+safeText(meter.end??'')+'"></label></div>'+
@@ -961,7 +961,12 @@
           ' m³. Ein Ausbau- und ein Einbauzähler werden zu getrennten Messperioden.</div>'+
         '<div class="form-row"><label>Wechseldatum<input type="date" name="at" required value="2025-06-01"></label></div>'+
         '<div class="form-row"><label>Ausbau-Endstand alter Zähler (m³)<input type="number" step="0.001" min="0" name="oldEnd" required></label></div>'+
-        '<div class="form-row"><label>Nummer des neuen Zählers<input name="newNumber" maxlength="60" required placeholder="DEMO-WECHSEL-01"></label></div>'+
+        '<div class="form-row"><label>Neuer Zähler aus den Stammdaten<select name="newNumber" required>'+
+        '<option value="">Bitte zuerst im Zählerstamm anlegen</option>'+
+        master().meterRegistry.filter(x=>x.unitId===unitId&&x.type===channel&&
+          x.status==='active'&&x.number&&x.number!==last.number).map(x=>
+            '<option value="'+safeText(x.number)+'">'+safeText(x.number)+'</option>').join('')+
+        '</select></label></div>'+
         '<div class="water-form-grid">'+
           '<div class="form-row"><label>Einbau-Anfang (m³)<input name="newStart" type="number" step="0.001" min="0" value="0" required></label></div>'+
           '<div class="form-row"><label>Neuer Endstand 2025 (m³)<input name="newEnd" type="number" step="0.001" min="0" required></label></div></div>'+
@@ -1120,7 +1125,9 @@
           (startDate&&!waterDetails.date(startDate))||(endDate&&!waterDetails.date(endDate))||
           (startDate&&endDate&&startDate>endDate))
           return toast('Bitte gültige Zählerstände und Ablesedaten eingeben.');
-        next[channel]={...(u.waterMeters?.[channel]||{}),number:form.elements[channel+'Number'].value.trim().slice(0,60),
+        next[channel]={...(u.waterMeters?.[channel]||{}),
+          // Never allow a yearly reading form to rewrite a permanent meter identity.
+          number:u.waterMeters?.[channel]?.number||"",
           start,end,startDate,endDate};
       }
       u.waterMeters=next;u.waterNote=form.elements.waterNote.value.trim().slice(0,2000);
@@ -1171,9 +1178,13 @@
     else if(type==='meter-replacement'){
       const parts=String(id||'').split('|'),channel=parts.pop(),unitId=parts.join('|');
       try{
+        const nextNumber=form.elements.newNumber.value.trim();
+        if(!master().meterRegistry.some(m=>m.unitId===unitId&&m.type===channel&&
+          m.status==='active'&&m.number===nextNumber))
+          throw new RangeError('Der neue Zähler muss zuvor im Zählerstamm angelegt und aktiviert werden');
         data=waterDetails.registerReplacement(data,unitId,channel,{
           at:form.elements.at.value,oldEnd:parseField(form.elements.oldEnd),
-          newNumber:form.elements.newNumber.value.trim(),
+          newNumber:nextNumber,
           newStart:parseField(form.elements.newStart),
           newEnd:parseField(form.elements.newEnd),
           note:form.elements.note.value.trim()
