@@ -41,7 +41,7 @@
    const tenants=occupancy.cases.map(t=>{
      const row={id:t.id,unitId:t.unitId,name:t.name,role:t.role,start:t.start,end:t.end,
        days:t.days,persons:t.persons,personDays:t.personDays,area:t.area,
-       advanceCents:cents(t.advance),cold:t.cold,hot:t.hot,consumption:t.consumption,
+       advanceCents:cents(data.payments?.[t.id]?.paidActual??t.advance),cold:t.cold,hot:t.hot,consumption:t.consumption,
        costCents:0,balanceCents:0,entries:[]};
      if(row.advanceCents===null)issues.push({code:"INVALID_ADVANCE",message:"Ungültige Vorauszahlung: "+t.id,action:"go-tenancies"});
      caseIndex.set(t.id,row);
@@ -66,6 +66,42 @@
      }
      grossCostsCents+=gross;landlordCostsCents+=directOwner;
      const eligible=gross-directOwner;allocableCostsCents+=eligible;
+     if(c.method==="Externe Einzelabrechnung"){
+       const source=data.externalValues?.[id],values=source?.rows||{};
+       const entries=[],parts=[],missing=[];
+       let distributed=0;
+       for(const t of tenants){
+         const raw=values[t.id]?.amount,amount=cents(raw);
+         if(amount===null)missing.push(t.id);
+         const share=amount??0;
+         // A missing Euro amount is not automatically zero. The review blocks.
+         distributed+=share;t.costCents+=share;
+         const u=unitIndex.get(t.unitId);if(u)u.costCents+=share;
+         const entry={costId:id,name:c.name,method:c.method,cents:share,
+           tenantId:t.id,unitId:t.unitId,weight:null};
+         t.entries.push(entry);if(u)u.entries.push(entry);
+         entries.push({tenantId:t.id,unitId:t.unitId,cents:share,
+            weight:null,totalWeight:null,referenceExact:amount===null?null:share/100});
+       }
+       if(missing.length)issues.push({code:"EXTERNAL_CASES_MISSING",
+         message:"Externe Einzelkosten fehlen für "+missing.length+" Fall/Fälle bei "+c.name+".",
+         action:"go-water"});
+       const remainder=eligible-distributed;
+       if(remainder!==0)issues.push({code:"EXTERNAL_TOTAL_MISMATCH",
+         message:"Techem-/Einzelkosten "+c.name+": "+(remainder/100).toFixed(2)+
+         " € Differenz zur umlagefähigen Rechnung. Keine automatische Verteilung.",
+         action:"go-water"});
+       if(distributed>eligible)issues.push({code:"EXTERNAL_OVERALLOCATED",
+         message:"Externe Einzelkosten übersteigen den umlagefähigen Rechnungsbetrag: "+c.name,
+         action:"go-water"});
+       ownerResidualCents+=Math.max(0,remainder);
+       costRows.push({id,name:c.name,method:c.method,grossCents:gross,
+         landlordCents:directOwner,eligibleCents:eligible,distributedCents:distributed,
+         notAllocatedCents:remainder,referenceOwnerCents:0,referenceStatus:"Externe Einzelabrechnung",
+         allocated:!missing.length&&remainder===0,rows:entries,price:null,
+         consumptionTotal:null,externalSource:source?.source||""});
+       continue;
+     }
      if(!limited.includes(c.method))
        issues.push({code:"UNKNOWN_METHOD",message:"Unbekannter Umlageschlüssel: "+id,action:"go-costs"});
      const basis=canon(c.method);
