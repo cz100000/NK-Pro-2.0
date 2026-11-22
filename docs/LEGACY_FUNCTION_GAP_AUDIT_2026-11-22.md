@@ -15,7 +15,7 @@
 ### Status-Legende
 **Fehlt**: keine echte 2.0-Funktion; **UI/Simulation**: Ansicht vorhanden, echte Funktion nicht migriert; **Teilweise synthetisch**: Funktion interaktiv, aber nur für Musterdaten mit reduziertem Modell; **Experimentell**: Quellportierung in Node-Tests, nicht in allgemeiner Browser-Domäne; **Vorhanden**: produktionsähnliche 2.0-Funktion (derzeit nur Gestaltungs-/Demoaspekte). Keine Zeile gilt als fachlich abgenommen.
 
-## A. Detaillierte Fachlücken – 57 Arbeitselemente
+## A. Detaillierte Fachlücken – 68 Arbeitselemente
 
 | ID | 1.0-Quellfunktion | 2.0-Stand | Sollfunktion in schlanker 2.0-UX | Priorität / Originalquelle |
 | --- | --- | --- | --- | --- |
