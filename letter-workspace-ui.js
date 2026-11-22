@@ -125,6 +125,9 @@
        '<div class="letter-output-bar">'+
        controls('letter-copy','Brieftext kopieren')+
        controls('letter-print-check','Druck prüfen')+
+       controls('letter-internal-overview','Vermieter · Objektübersicht')+
+       controls('letter-internal-unit','Vermieter · Wohnungsblatt')+
+       controls('letter-internal-all','Vermieter · Alle Blätter')+
        controls('letter-print-all','Alle Briefe / PDF')+
        '<button type="button" class="button button-primary" data-action="letter-print">Drucken / PDF</button>'+
        '</div><div class="letter-preflight"><div class="letter-preflight-summary">'+message+'</div>'+
