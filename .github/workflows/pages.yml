@@ -47,6 +47,8 @@ jobs:
           node --check private/private-sw.js
           node --check integrated-data.js
           node --check integrated-app.js
+          node --check navigation-tree.js
+          node --check portfolio-view-model.js
           node --check nkpro2-sw.js
           node --test --test-reporter=tap tests/*.test.cjs > /tmp/nkpro2-tests.tap
           node tests/browser-visual-e2e.cjs
@@ -65,10 +67,10 @@ jobs:
           # Explicit allowlist. The private *client source* is public; no private records.
           mkdir -p _site/private
           cp private/private-model.js private/vault-crypto.js private/drive-adapter.js _site/private/
-          cp integrated-data.js integrated-app.js integrated-ui.css nkpro2-sw.js nkpro2.webmanifest _site/
+          cp integrated-data.js integrated-app.js integrated-ui.css navigation-tree.js portfolio-view-model.js nkpro2-sw.js nkpro2.webmanifest _site/
           touch _site/.nojekyll
           # Allowlist publishes only the synthetic reference formula, never pinned originals or tenant fixtures.
-          test "$(find _site -type f | wc -l)" -eq 29
+          test "$(find _site -type f | wc -l)" -eq 31
           # Essential release gate: do not publish a site whose HTML points to missing JS/CSS.
           node -e 'const fs=require("node:fs"),path=require("node:path");
             for(const page of ["_site/index.html"]){

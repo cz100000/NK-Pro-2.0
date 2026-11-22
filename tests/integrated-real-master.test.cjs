@@ -29,7 +29,7 @@ function source(){
   stammdaten:{wohnungen:units,mieter:tenants},wohnungen:units,mieter:tenants,
   kostenarten:costs,
   zaehlerDaten:{zaehler:Array.from({length:16},(_,i)=>({
-   zaehlerId:"MTR-"+i,einheitId:units[i%7].id,
+   zaehlerId:"MTR-"+i,einheitId:i===15?null:units[i%7].id,
    zaehlerTyp:i===15?"house-water-control":i%2?"hot-water":"cold-water",
    zaehlernummer:"SYN-"+i,status:"aktiv"})),
    messwerte:[{zaehlerId:"MTR-0",wert:123}],messperioden:[]},

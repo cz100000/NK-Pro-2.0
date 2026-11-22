@@ -79,11 +79,13 @@ const chromeBinary=()=>{
   await cmd("Page.enable");await cmd("Runtime.enable");
   await cmd("Emulation.setDeviceMetricsOverride",{width:1400,height:850,deviceScaleFactor:1,mobile:false});
   await cmd("Page.navigate",{url:base+"/index.html"});
-  await until("return !!document.querySelector('#nkSyncButton') && !!window.NKPRO2_INTEGRATED_APP;");
-  assert.equal(await evalJS("return document.querySelector('#nkSyncPanel').hidden;"),true);
+  await until("return !!window.NKPRO2_DEMO_TEST&&!!document.querySelector('#nkSyncPanel');");
+  const demoBefore=await evalJS("const p=window.NKPRO2_DEMO_TEST.getPortfolio();"+
+   "return p.objects.map(o=>o.id);");
+  assert.deepEqual(demoBefore,["SYN-A","SYN-B","SYN-C"]);
+  assert.equal(await evalJS("return document.querySelectorAll('#portfolioTree .tree-property-button').length;"),3);
+  await shot("canonical-01-original-v013-demo-tree");
   await evalJS("document.querySelector('#nkSyncButton').click();");
-  assert.equal(await evalJS("return document.querySelector('#nkSyncPanel').hidden;"),false);
-  await shot("integrated-01-systemstatus-cloud");
   const json=JSON.stringify(source());
   const code="const dt=new DataTransfer();dt.items.add(new File(["+
    JSON.stringify(json)+"],'synthetic-source.json',{type:'application/json'}));"+
@@ -91,105 +93,102 @@ const chromeBinary=()=>{
    "document.querySelector('#nkSyncPassword').value='Synthetic Long Passphrase 2026';"+
    "document.querySelector('#nkImport').click();return true;";
   assert.equal(await evalJS(code),true);
-  await until("return !!document.querySelector('#nkOpenLocked');");
-  // Regression: a valid local encrypted import disables repeat-import for safety.
-  // The UI must explain why and explicitly lead the user to unlock + sync.
-  const guarded=await evalJS("return {disabled:document.querySelector('#nkImportDrive').disabled,"+
-   "unlock:!document.querySelector('#nkUnlock').disabled,"+
-   "callout:document.querySelector('#nkSyncCallout').textContent};");
-  assert.equal(guarded.disabled,true);
-  assert.equal(guarded.unlock,true);
-  assert.match(guarded.callout,/Lokale Daten öffnen/);
-  assert.match(guarded.callout,/gesperrt/);
-  assert.equal(await evalJS("return !!document.querySelector('.tree-property-button');"),false,
-   "Synthetic portfolio must not remain active when real state was imported");
-  let storage=await evalJS("const raw=localStorage.getItem('nkpro2_live_cloud_encrypted_v1');"+
-   "return {exists:!!raw,plaintext:raw?.includes('Synthetic Tenant'),format:JSON.parse(raw||'{}').format};");
-  assert.equal(storage.exists,true);assert.equal(storage.plaintext,false);
-  assert.equal(storage.format,"nkpro2-encrypted-vault-v1");
-  await evalJS("document.querySelector('#nkSyncButton').click();"+
-   "document.querySelector('#nkSyncPassword').value='Synthetic Long Passphrase 2026';"+
-   "document.querySelector('#nkUnlock').click();");
-  await until("return document.querySelector('#appMain h1')?.textContent.includes('Synthetisches Haus');");
-  assert.ok(await evalJS("return document.querySelector('#nkSyncMessage').textContent.includes('5 historische Archive');"));
-  assert.equal(await evalJS("return document.querySelectorAll('#portfolioTree button[data-nk-view]').length;"),6);
-  assert.equal(await evalJS("return document.querySelectorAll('#appMain .nk-live-archive').length;"),5);
+  await until("return document.querySelector('#appMain h1')?.textContent==='Synthetisches Haus';");
+  const tree=await evalJS("const t=document.querySelector('#portfolioTree');return {"+
+   "names:[...t.querySelectorAll('.tree-property-label')].map(e=>e.textContent),"+
+   "icons:t.querySelectorAll('.tree-property-button .tree-icon svg').length,"+
+   "groups:[...t.querySelectorAll('.tree-group-label')].map(e=>e.textContent),"+
+   "years:[...t.querySelectorAll('.tree-year-name')].map(e=>e.textContent.trim())};");
+  assert.deepEqual(tree.names,["Synthetisches Haus","Musterobjekt B","Musterobjekt C"]);
+  assert.equal(tree.icons,3);
+  assert.deepEqual(tree.groups,["Stammdaten","Jahresabrechnungen"]);
+  assert.deepEqual(tree.years,["2025","2024","2023","2022","2021/2022"]);
+  const stored=await evalJS("const r=localStorage.getItem('nkpro2_live_cloud_encrypted_v1');"+
+   "return {has:!!r,plain:r.includes('Synthetic Tenant'),format:JSON.parse(r).format};");
+  assert.deepEqual(stored,{has:true,plain:false,format:"nkpro2-encrypted-vault-v1"});
+  const unchanged=await evalJS("const p=window.NKPRO2_DEMO_TEST.getPortfolio();"+
+   "return p.objects.map(o=>({id:o.id,years:Object.keys(o.settlements)}));");
+  assert.deepEqual(unchanged.slice(1),[
+   {id:"SYN-B",years:["2023","2024"]},{id:"SYN-C",years:["2023","2024"]}]);
   await evalJS("document.querySelector('#nkSyncClose').click();");
-  await shot("integrated-02-real-one-object-historical-overview");
-  await evalJS("document.querySelector('#portfolioTree button[data-nk-view=tenancies]').click();");
-  await until("return document.querySelector('#appMain h1')?.textContent==='Mietverhältnisse';");
-  assert.equal(await evalJS("return document.querySelectorAll('#appMain .nk-live-table tbody tr').length;"),5);
+  await shot("canonical-02-real-A-unchanged-B-C");
+  await evalJS("document.querySelector('#portfolioTree [data-action=toggle-tree-section][data-id=master]').click();");
+  await until("return document.querySelectorAll('#portfolioTree .tree-subitem').length===4;");
+  assert.equal(await evalJS("return document.querySelectorAll('#portfolioTree .tree-subitem .tree-icon svg').length;"),4);
+  await shot("canonical-03-original-v013-expanded-master-tree");
+  await evalJS("document.querySelector('#portfolioTree [data-action=open-object-tab][data-id=tenancies]').click();");
+  await until("return document.querySelector('#appMain h1')?.textContent.includes('Mietverhältnisse');");
+  assert.equal(await evalJS("return document.querySelectorAll('#appMain .data-table tbody tr').length;"),5);
   assert.ok(await evalJS("return document.querySelector('#appMain').textContent.includes('2010-01-01');"));
-  await shot("integrated-03-five-real-tenancies");
-  await evalJS("document.querySelector('#portfolioTree button[data-nk-view=archives]').click();");
-  await until("return document.querySelectorAll('#appMain .nk-live-archive').length===5;");
-  assert.equal(await evalJS("return document.querySelectorAll('#appMain .nk-live-archive b').length;"),5);
-  await evalJS("[...document.querySelectorAll('#appMain .nk-live-archive')].find(e=>e.dataset.id==='2023full').click();");
-  await until("return document.querySelector('#appMain h1')?.textContent==='Archiv 2023';");
-  assert.equal(await evalJS("return document.querySelectorAll('#appMain .nk-live-table tbody tr').length;"),3);
-  await shot("integrated-04-original-2023-archive");
-  await evalJS("document.querySelector('#portfolioTree button[data-nk-view=year]').click();");
-  await until("return document.querySelector('#appMain h1')?.textContent==='Jahresabrechnung 2025';");
-  const annual=await evalJS("return document.querySelector('#appMain').textContent;");
-  assert.ok(annual.includes("keine Altwerte")||annual.includes("nicht migriert"));
-  assert.ok(annual.includes("Kosten erfasst"));
-  assert.ok(!annual.includes("7.890,12"),"2025 Techem values must not appear");
-  await shot("integrated-05-blank-2025");
+  await shot("canonical-04-original-v013-real-tenancies");
+  await evalJS("document.querySelector('#portfolioTree [data-action=open-object-tab][data-id=meters]').click();");
+  await until("return document.querySelector('#appMain h1')?.textContent.includes('Zähler');");
+  assert.equal(await evalJS("return document.querySelectorAll('#appMain .meter-unit').length;"),8,
+    "Original seven unit accordions plus existing house-meter accordion");
+  assert.ok(await evalJS("return document.querySelector('#appMain').textContent.includes('Hauszähler');"));
+  await shot("canonical-04b-meter-accordion-with-house-meter");
+  const realId=await evalJS("return [...document.querySelectorAll('#portfolioTree .tree-property-button')]"+
+   ".find(e=>e.textContent.includes('Synthetisches Haus')).dataset.id;");
+  await evalJS("document.querySelector('#portfolioTree .tree-year[data-id="+JSON.stringify(realId+"|2023")+"]').click();");
+  await until("return document.querySelector('#appMain h1')?.textContent==='Abrechnung 2023';");
+  assert.equal(await evalJS("return document.querySelectorAll('#appMain section[data-archive-ref]').length;"),2);
+  await shot("canonical-05-original-2023-two-snapshots");
+  await evalJS("document.querySelector('#portfolioTree .tree-year[data-id="+JSON.stringify(realId+"|2025")+"]').click();");
+  await until("return document.querySelector('#appMain h1')?.textContent==='Abrechnung 2025';");
+  assert.ok(await evalJS("return document.querySelector('#appMain').textContent.includes('Keine Kosten');"));
+  await shot("canonical-06-2025-blank");
+  // Existing B/C fixtures must remain interactive through the SAME original controller.
+  await evalJS("document.querySelector('#portfolioTree [data-action=select-property][data-id=SYN-B]').click();");
+  await until("return document.querySelector('#appMain h1')?.textContent==='Musterobjekt B';");
+  await evalJS("document.querySelector('#portfolioTree [data-action=object-billings][data-id=SYN-B]').click();");
+  await until("return document.querySelector('#appMain h1')?.textContent==='Jahresabrechnungen';");
+  assert.ok(await evalJS("return document.querySelector('#appMain').textContent.includes('Abrechnung 2024');"));
+  await shot("canonical-07-sample-B-0.13-year-list");
+  await evalJS("document.querySelector('#portfolioTree [data-action=select-property][data-id=SYN-C]').click();");
+  await until("return document.querySelector('#appMain h1')?.textContent==='Musterobjekt C';");
+  await shot("canonical-08-sample-C-0.13-object");
+  // Original mobile sidebar, not the pale duplicate removed from integrated-app.
   await cmd("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});
-  await pause(400);
-  const mobile=await evalJS("return {v:innerWidth,s:document.documentElement.scrollWidth};");
-  assert.ok(mobile.s<=mobile.v+2,"Unexpected mobile viewport overflow: "+JSON.stringify(mobile));
-  await shot("integrated-06-mobile-2025");
+  await pause(300);
+  const mobile=await evalJS("return {view:innerWidth,scroll:document.documentElement.scrollWidth};");
+  assert.ok(mobile.scroll<=mobile.view+2,JSON.stringify(mobile));
   await evalJS("document.querySelector('#openMenu').click();");
-  assert.equal(await evalJS("return document.body.classList.contains('menu-open');"),true,
-   "Mobile navigation must open using existing layout class");
-  await evalJS("document.querySelector('#portfolioTree button[data-nk-view=archives]').click();");
-  await until("return document.querySelector('#appMain h1')?.textContent==='Historische Abrechnungen';");
-  assert.equal(await evalJS("return document.body.classList.contains('menu-open');"),false);
-  await shot("integrated-07-mobile-historical-archive");
+  assert.ok(await evalJS("return document.body.classList.contains('menu-open');"));
+  await shot("canonical-09-mobile-B-C-original-tree");
+  await evalJS("document.querySelector('#portfolioTree [data-action=select-property][data-id="+JSON.stringify(realId)+"]').click();");
+  await until("return document.querySelector('#appMain h1')?.textContent==='Synthetisches Haus';");
+  await shot("canonical-10-mobile-real-A");
   await until("return !!navigator.serviceWorker.controller;");
   await cmd("Network.enable");
-  await cmd("Network.emulateNetworkConditions",{
-   offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
+  await cmd("Network.emulateNetworkConditions",{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});
   await cmd("Page.reload",{ignoreCache:true});
-  await until("return !!document.querySelector('#nkOpenLocked');");
+  await until("return !!window.NKPRO2_DEMO_TEST&&!!document.querySelector('#nkSyncPanel');");
   await evalJS("document.querySelector('#nkSyncButton').click();"+
    "document.querySelector('#nkSyncPassword').value='Synthetic Long Passphrase 2026';"+
    "document.querySelector('#nkUnlock').click();");
-  await until("return document.querySelector('#appMain h1')?.textContent.includes('Synthetisches Haus');");
-  // Simulate the EXISTING Google OAuth/Drive identity and a 1.0 cloud snapshot.
-  // No upload selection: invoke the Systemstatus Google-to-Google import button.
-  await cmd("Network.emulateNetworkConditions",{
-   offline:false,latency:0,downloadThroughput:0,uploadThroughput:0});
+  await until("return document.querySelector('#appMain h1')?.textContent==='Synthetisches Haus';");
+  assert.equal(await evalJS("return document.querySelectorAll('#portfolioTree .tree-property-button').length;"),3);
+  await shot("canonical-11-offline-unlock-restored-tree");
+  await cmd("Network.emulateNetworkConditions",{offline:false,latency:0,downloadThroughput:0,uploadThroughput:0});
   await evalJS("localStorage.removeItem('nkpro2_live_cloud_encrypted_v1');"+
    "sessionStorage.removeItem('__nk_test_cloud');");
   const mockDrive="(() => {\n const legacyFolder={id:\"old-folder\",name:\"NK-Pro – Privatdaten\",mimeType:\"application/vnd.google-apps.folder\"};\n const newFolder={id:\"new-folder\",name:\"NK-Pro 2.0 – Privatdaten\",mimeType:\"application/vnd.google-apps.folder\"};\n const legacyFile={id:\"legacy-2026\",name:\"nkpro-cloud-snapshot-2026-11-21T19-34-02-synthetic-snapshot-2026-xx.json\",mimeType:\"application/json\",size:\"10000\",parents:[\"old-folder\"],createdTime:\"2026-11-21T19:34:02Z\"};\n const mockRead=()=>JSON.parse(sessionStorage.getItem(\"__nk_test_cloud\")||\"[]\");\n const mockSave=records=>sessionStorage.setItem(\"__nk_test_cloud\",JSON.stringify(records));\n const respond=data=>new Response(JSON.stringify(data),{status:200,headers:{\"Content-Type\":\"application/json\"}});\n const nativeFetch=window.fetch.bind(window);\n window.google={accounts:{oauth2:{initTokenClient:cfg=>({\n  requestAccessToken:()=>cfg.callback({access_token:\"synthetic-oauth-token\",expires_in:3600})\n })}}};\n window.fetch=async (url,options={})=>{\n  if(typeof url===\"string\"&&url.startsWith(\"https://www.googleapis.com/\")){\n   const u=new URL(url),q=u.searchParams.get(\"q\")||\"\",method=options.method||\"GET\";\n   if(u.pathname===\"/drive/v3/files\"&&method===\"GET\"){\n    if(q.includes(\"mimeType = 'application/vnd.google-apps.folder'\"))\n     return respond({files:q.includes(\"NK-Pro 2.0\")?[newFolder]:[legacyFolder]});\n    if(q.includes(\"'old-folder' in parents\"))return respond({files:[legacyFile]});\n    if(q.includes(\"nkpro2-vault-v1-\"))return respond({files:mockRead().map(x=>x.metadata)});\n    throw Error(\"Unexpected Drive list query \"+q);\n   }\n   if(u.pathname.startsWith(\"/drive/v3/files/\")&&method===\"GET\"){\n    const id=u.pathname.split(\"/\").pop();\n    if(id===\"legacy-2026\")return nativeFetch(\"/__nk_test_legacy.json\");\n    const f=mockRead().find(x=>x.metadata.id===id);\n    return f?respond(f.encrypted):new Response(\"\",{status:404});\n   }\n   if(u.pathname===\"/upload/drive/v3/files\"&&method===\"POST\"){\n    const body=await options.body.text(),boundary=options.body.type.split(\"boundary=\")[1];\n    const parts=body.split(\"--\"+boundary).filter(x=>x.includes(\"Content-Type: application/json\"));\n    if(parts.length!==2)throw Error(\"multipart upload malformed\");\n    const [meta,encrypted]=parts.map(x=>JSON.parse(x.slice(x.indexOf(\"\\r\\n\\r\\n\")+4).trim()));\n    const records=mockRead(),metadata={...meta,id:\"new-\"+(records.length+1)};\n    records.push({metadata,encrypted});mockSave(records);\n    return respond(metadata);\n   }\n   throw Error(\"Unexpected Google Drive request \"+method+\" \"+u.pathname);\n  }\n  return nativeFetch(url,options);\n };\n})();";
   await cmd("Page.addScriptToEvaluateOnNewDocument",{source:mockDrive});
   await cmd("Page.reload",{ignoreCache:true});
-  await until("return !!window.NKPRO2_INTEGRATED_APP && !!document.querySelector('#nkSyncPanel') && "+
-   "!!document.querySelector('#nkSyncPassword') && !document.querySelector('#nkOpenLocked');");
+  await until("return !!window.NKPRO2_DEMO_TEST&&!!document.querySelector('#nkSyncPanel');");
   await evalJS("document.querySelector('#nkSyncButton').click();"+
    "document.querySelector('#nkSyncPassword').value='Synthetic Long Passphrase 2026';"+
    "document.querySelector('#nkConnect').click();");
-  await until("return !!document.querySelector('#nkImportDrive') && "+
-   "!document.querySelector('#nkImportDrive').disabled;");
-  assert.ok(await evalJS("return document.querySelector('#nkSyncMessage').textContent.includes('Originaldaten');"));
-  await shot("integrated-08-google-legacy-automatically-found");
+  await until("return !document.querySelector('#nkImportDrive').disabled;");
   await evalJS("document.querySelector('#nkImportDrive').click();");
-  await until("return !!document.querySelector('#nkOpenLocked');");
+  await until("return document.querySelector('#appMain h1')?.textContent==='Synthetisches Haus';");
   const synced=await evalJS("const r=JSON.parse(sessionStorage.getItem('__nk_test_cloud')||'[]');"+
    "return {count:r.length,folder:r[0]?.metadata?.parents?.[0],"+
-   "cipher:r[0]?.encrypted?.format,containsPlain:JSON.stringify(r).includes('Synthetic Tenant')};");
-  assert.deepEqual(synced,{count:1,folder:"new-folder",
-   cipher:"nkpro2-encrypted-vault-v1",containsPlain:false});
-  await evalJS("document.querySelector('#nkSyncButton').click();"+
-   "document.querySelector('#nkSyncPassword').value='Synthetic Long Passphrase 2026';"+
-   "document.querySelector('#nkUnlock').click();");
-  await until("return document.querySelector('#appMain h1')?.textContent.includes('Synthetisches Haus');");
-  assert.equal(await evalJS("return document.querySelectorAll('#appMain .nk-live-archive').length;"),5);
-  await shot("integrated-09-one-click-legacy-drive-migration");
-  console.log("INTEGRATED_CLOUD_BRIDGE_PASS: legacy Drive discovery, no file selection, encrypted separate cloud upload, 5 archives, 2025 blank");
-  console.log("INTEGRATED_CHROMIUM_PASS: Systemstatus, 5 archives, one object, no legacy 2025 costs, AES cache, mobile and offline restore");
+   "cipher:r[0]?.encrypted?.format,plain:JSON.stringify(r).includes('Synthetic Tenant')};");
+  assert.deepEqual(synced,{count:1,folder:"new-folder",cipher:"nkpro2-encrypted-vault-v1",plain:false});
+  assert.equal(await evalJS("return document.querySelectorAll('#portfolioTree .tree-property-button').length;"),3);
+  await shot("canonical-12-one-click-cloud-import");
+  console.log("CANONICAL_MIXED_PASS: identical 0.13 tree, real A, B/C samples, 2023 pair, blank 2025, mobile/offline and encrypted Drive");
  }finally{
   if(ws&&ws.readyState===WebSocket.OPEN)ws.close();
   if(chrome&&!chrome.killed){

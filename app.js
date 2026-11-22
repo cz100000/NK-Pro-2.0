@@ -1,9 +1,11 @@
 /* NK-Pro 2.0 – isolated UX prototype. NO production calculation or data integration. */
 (() => {
   'use strict';
-  // NK-Pro 2.0 real-data runtime is isolated from the synthetic billing engine.
-  // The same main application and Systemstatus are used for both states.
-  if(window.NKPRO2_INTEGRATED_APP?.bootstrap()) return;
+  // Exactly one 0.13 application/renderer. Google Drive only supplies data.
+  window.NKPRO2_INTEGRATED_APP?.bootstrap();
+  const navRenderer=window.NKPRO2_NAVIGATION;
+  const viewModel=window.NKPRO2_PORTFOLIO_VIEW;
+  if(!navRenderer||!viewModel)throw new Error("Canonical navigation/data adapter missing");
   const LEGACY_DEMO_KEY = 'nkpro2_design_demo_20261121_v1'; // old 0.6 untouched.
   const STORAGE_KEY = 'nkpro2_synthetic_portfolio_0_7_v1'; // no NK-Pro 1.x keys.
   const demoLedger = window.NKPRO2_DEMO_LEDGER;
@@ -20,33 +22,8 @@
   const estates = window.NKPRO2_ESTATES;
   const masterUi = window.NKPRO2_MASTER_UI;
   if (!demoLedger || !functionalBilling || !waterDetails || !propertyModel || !caseBilling || !workflow || !qualityModule || !letterModule || !legacyLetterEngine || !letterWorkspace || !legacyLandlordDocs || !estates || !masterUi || typeof caseBilling.calculate !== 'function') throw new Error('Synthetic billing modules missing.');
-  const icons = {
-    overview:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
-    bill:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
-    building:'<path d="M4 21V5l8-2v18M12 9h8v12M7 9h2M7 13h2M15 13h2M15 17h2"/>',
-    chart:'<path d="M4 20V12M10 20V5M16 20V9M22 20V2M2 20h21"/>',
-    folder:'<path d="M3 6a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
-    reset:'<path d="M3 11a9 9 0 1 1 3 7M3 4v7h7"/>',
-    menu:'<path d="M4 6h16M4 12h16M4 18h16"/>',
-    close:'<path d="m5 5 14 14M19 5 5 19"/>',
-    chevron:'<path d="m9 5 7 7-7 7"/>',
-    check:'<path d="m5 12 4 4L19 6"/>',
-    info:'<circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7v.4"/>',
-    alert:'<path d="M12 3 2 21h20L12 3Z"/><path d="M12 9v5M12 17v1"/>',
-    arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>',
-    save:'<path d="M4 3h14l3 3v15H3V3h1ZM7 3v6h10V3M7 21v-9h10v9"/>',
-    pencil:'<path d="m4 20 4.5-1 10-10a2 2 0 0 0-3-3l-10 10L4 20Z"/>',
-    calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v5M17 3v5M3 10h18"/>',
-    layers:'<path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5m-18 5 9 5 9-5"/>',
-    print:'<path d="M6 9V3h12v6M6 18H4V9h16v9h-2M6 15h12v6H6z"/>',
-    file:'<path d="M6 2h8l5 5v14H6zM14 2v6h5M9 12h7M9 16h7"/>',
-    door:'<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M10 11h.01M14 3v18"/>',
-    users:'<circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5v1"/>',
-    gauge:'<path d="M4 18a9 9 0 1 1 16 0H4Z"/><path d="m12 15 4-6M7 13h.01M12 8h.01M17 13h.01"/>',
-    more:'<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
-    plus:'<path d="M12 4v16M4 12h16"/>'
-  };
-  const icon=(name)=>`<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${icons[name]||icons.info}</svg>`;
+  const icon=navRenderer.icon;
+
   const initial=()=>workflow.example(propertyModel.upgrade(waterDetails.example({
     fixture:true,period:'2025',houseWater:266,waterDecision:null,heatingEvidence:false,heatingEvidenceFingerprint:null,letterChecked:false,demoFinalized:false,
     costs:[
@@ -90,13 +67,24 @@
     return estates.create(initial());
   }
   let portfolio=load(),data=estates.current(portfolio);
+  let realState=window.NKPRO2_INTEGRATED_APP?.getData()||null;
+  let realObject=realState?viewModel.genuineObject(realState):null;
+  let selectedReal=!!realObject,realYear="2025";
+  // The synthetic portfolio remains independent. Sample objects B/C keep their
+  // original records and all existing 0.13 business/test interactions.
+  function displayPortfolio(){
+   const shown=viewModel.compose(portfolio,realState,{locked:!realState&&!!window.NKPRO2_INTEGRATED_APP?.hasLocalData()});
+   if(realObject){shown.selectedObjectId=selectedReal?realObject.id:portfolio.selectedObjectId;
+    shown.selectedYear=selectedReal?realYear:portfolio.selectedYear;}
+   return shown;
+  }
   const ui={view:'overview',step:'advance',billingHome:true,objectListFilter:null,
     analytics:'nk',objectTab:'overview',unitDetailId:null,consumptionTab:'water',
     letterId:null,letterZoom:0.66,showAllLetters:false,filter:'',drawer:null,lastFocus:null,
     treeOpenObjectId:null,treeSections:{master:false,years:true}};
-  const master=()=>estates.object(portfolio);
-  const activeYear=()=>portfolio.selectedYear;
-  const annualLocked=()=>estates.readonly(data);
+  const master=()=>selectedReal&&realObject?realObject:estates.object(portfolio);
+  const activeYear=()=>selectedReal?realYear:portfolio.selectedYear;
+  const annualLocked=()=>selectedReal?true:estates.readonly(data);
   function savePortfolio(){
     // Optimistic local write guard: another browser tab must never be silently overwritten.
     const onDisk=localStorage.getItem(STORAGE_KEY);
@@ -170,12 +158,14 @@
   const head=(kicker,title,description,action='')=>`<div class="page-heading"><div><div class="eyebrow">${safeText(kicker)}</div><h1>${title}</h1><p>${description}</p></div>${action?`<div class="heading-actions">${action}</div>`:''}</div>`;
   function progress(){const done=Math.min(6,qualityReport().counts.executed===44?6:4);let html='<div class="flow-track">';for(let i=0;i<7;i++)html+=`<div class="flow-segment ${i<done?'complete':i===done?'current':''}"></div>`;return html+`</div><div class="flow-labels">${['Mietverhältnisse','Vorauszahlungen','Gesamtkosten','Verbräuche','Prüfen','Ergebnis','Briefe'].map((x,i)=>`<span class="${i===Math.min(done,6)?'highlight':''}">${x}</span>`).join('')}</div>`}
   function overview(){
-    const live=portfolio.objects.filter(o=>o.lifecycle?.status!=="archived"),
-      archived=portfolio.objects.filter(o=>o.lifecycle?.status==="archived");
+    const shown=displayPortfolio();
+    const live=shown.objects.filter(o=>o.lifecycle?.status!=="archived"),
+      archived=shown.objects.filter(o=>o.lifecycle?.status==="archived");
     const listing=(items,isArchived)=>{
       const row=o=>{
         const years=Object.keys(o.settlements).length;
-        const menu='<details class="estate-menu"><summary aria-label="Weitere Aktionen für '+safeText(o.name)+
+        const menu=['real','locked'].includes(o.sourceKind)?'<span class="status neutral">'+(o.sourceKind==='real'?'Echtdaten':'Gesperrt')+'</span>':
+          '<details class="estate-menu"><summary aria-label="Weitere Aktionen für '+safeText(o.name)+
           '" title="Objektaktionen">'+icon('more')+'</summary><div class="estate-menu-items">'+
           (isArchived?button('Wiederherstellen','restore-object',o.id,'button-quiet'):
             button('Archivieren','archive-object',o.id,'button-quiet'))+
@@ -198,7 +188,8 @@
         '<th>Jahresabrechnungen</th><th>Aktion</th></tr></thead><tbody>'+
         items.map(row).join('')+'</tbody></table></div>';
     };
-    return head('IMMOBILIENBESTAND · NUR MUSTERDATEN','Startseite',
+    return head(realObject?'IMMOBILIENBESTAND · ECHTDATEN + MUSTEROBJEKTE':
+      'IMMOBILIENBESTAND · NUR MUSTERDATEN','Startseite',
       'Verwaltete Immobilien im Überblick. Wählen Sie ein Objekt zur Bearbeitung.',
       button(icon('plus')+' Neues Objekt','new-object',null,'button-primary'))+
       '<section class="section estate-list"><div class="section-header"><div>'+
@@ -209,73 +200,105 @@
       '</section>'+
       (archived.length?'<details class="estate-archive-group"><summary>Archivierte Immobilien ('+
         archived.length+')</summary>'+listing(archived,true)+'</details>':'')+
-      '<p class="footnote">Nur synthetische Musterobjekte. Archivieren bewahrt sämtliche Abrechnungsjahre; endgültiges Löschen ist nur bei vollständig leeren Objekten möglich.</p>';
+       '<p class="footnote">'+(realObject?
+         'ARB5 ist der private Echtdatenbestand; Musterobjekte B und C bleiben vollständig für Testzwecke erhalten.':
+         'Nur synthetische Musterobjekte. Archivieren bewahrt sämtliche Abrechnungsjahre; endgültiges Löschen ist nur bei vollständig leeren Objekten möglich.')+'</p>';
   }
   const steps=[['advance','Vorauszahlungen'],['costs','Gesamtkosten'],['water','Verbräuche'],['review','Prüfen'],['allocation','Ergebnis'],['letters','Briefe']];
   const renderSteps=()=>`<div class="tab-bar" role="tablist" aria-label="Abrechnungsprozess">${steps.map(([id,label])=>`<button class="tab-button ${ui.step===id?'active':''}" role="tab" aria-selected="${ui.step===id}" type="button" data-step="${id}">${label}</button>`).join('')}</div>`;
   function renderTree(){
     const el=$('portfolioTree');if(!el)return;
-    const activeObjects=portfolio.objects.filter(o=>o.lifecycle?.status!=="archived");
-    el.innerHTML='<div class="tree-heading"><span>OBJEKTBEZOGEN</span><span class="tree-count">'+
-      activeObjects.length+'</span></div>'+
-      activeObjects.map(o=>{
-        const expanded=o.id===ui.treeOpenObjectId;
-        const related=o.id===portfolio.selectedObjectId &&
-          (ui.view==='object'||(ui.view==='billing'&&(!ui.billingHome||ui.objectListFilter===o.id)));
-        const years=Object.keys(o.settlements).sort((a,b)=>b.localeCompare(a));
-        const item=(label,action,id,count,selected,ico)=>'<button type="button" class="tree-subitem'+
-          (selected?' selected':'')+'" data-action="'+action+'" data-id="'+safeText(id)+
-          '"'+(selected?' aria-current="page"':'')+'><span class="tree-icon">'+icon(ico)+'</span>'+safeText(label)+
-          (count!=null?'<span class="tree-meta">'+count+'</span>':'')+'</button>';
-        const group=(id,label,count,children)=>{
-          const open=ui.treeSections[id];
-          const years=id==='years';
-          return '<div class="tree-section"><button type="button" class="tree-group-toggle'+
-            (years&&related&&ui.view==='billing'&&ui.billingHome?' selected':'')+'"'+
-            ' data-action="'+(years?'object-billings':'toggle-tree-section')+
-            '" data-id="'+(years?safeText(o.id):id)+'" aria-expanded="'+open+'">'+
-            '<span class="tree-arrow'+(open?' open':'')+'" aria-hidden="true">'+icon('chevron')+'</span>'+
-            '<span class="tree-icon">'+icon(id==='master'?'layers':'calendar')+'</span>'+
-            '<span class="tree-group-label">'+label+'</span>'+
-            (count!=null?'<span class="tree-meta">'+count+'</span>':'')+'</button>'+
-            (open?'<div class="tree-section-children">'+children+'</div>':'')+'</div>';
-        };
-        const masterItems=item('Objektdaten','open-object-tab','overview',null,
-            related&&ui.view==='object'&&ui.objectTab==='overview','building')+
-          item('Wohnungen','open-object-tab','units',o.units.length,
-            related&&ui.view==='object'&&ui.objectTab==='units','door')+
-          item('Mietverhältnisse','open-object-tab','tenancies',o.tenancies.length,
-            related&&ui.view==='object'&&ui.objectTab==='tenancies','users')+
-          item('Zähler','open-object-tab','meters',o.meterRegistry.length,
-            related&&ui.view==='object'&&ui.objectTab==='meters','gauge');
-        const yearItems=years.map(year=>{
-            const a=o.settlements[year];
-            const selected=related&&ui.view==='billing'&&!ui.billingHome&&
-              portfolio.selectedYear===year;
-            return '<button type="button" class="tree-year'+(selected?' selected':'')+
-              '" data-action="open-year" data-id="'+safeText(o.id)+'|'+year+'"'+
-              (selected?' aria-current="page"':'')+'>'+
-              '<span class="tree-year-name"><span class="tree-icon">'+icon('calendar')+'</span>'+
-              year+'</span><small>'+safeText(a.settlement?.status==='draft'?'In Bearbeitung':'Musterstand')+
-              '</small></button>';
-          }).join('');
-        return '<div class="tree-property'+(expanded?' expanded':'')+'">'+
-          '<button class="tree-property-button'+(related?' is-current':'')+
-            '" type="button" aria-expanded="'+expanded+'"'+
-            (related?' aria-current="location"':'')+
-            ' aria-label="'+safeText(o.name)+' öffnen" data-action="select-property" data-id="'+
-            safeText(o.id)+'"><span class="tree-arrow'+(expanded?' open':'')+'" aria-hidden="true">'+
-            icon('chevron')+'</span><span class="tree-icon">'+icon('building')+
-            '</span><span class="tree-property-label">'+safeText(o.name)+
-            '</span><span class="tree-units">'+o.units.length+' WE</span></button>'+
-          (expanded?'<div class="tree-children">'+
-            group('master','Stammdaten',null,masterItems)+
-            group('years','Jahresabrechnungen',years.length,yearItems)+
-            '</div>':'')+'</div>';
-      }).join('')+
-      '<p class="tree-footnote">Ausschließlich fiktive Musterobjekte.</p>';
+    el.innerHTML=navRenderer.render(displayPortfolio(),ui,
+      {mode:realObject?'real':'demo'});
+  }
+
+  // Original v0.13 document, table and heading classes are reused.
+  // Source archives are displayed without recalculation or synthetic results.
+  function realBillingList(){
+    const o=master(),years=Object.keys(o.settlements).sort((a,b)=>b.localeCompare(a));
+    return head('JAHRESABRECHNUNGEN · '+safeText(o.name),'Jahresabrechnungen',
+      'Übernommene historische Originalstände. Die Abrechnung 2025 wird neu erstellt.')+
+      '<div class="portfolio-summary"><div><small>Objekt</small><strong class="portfolio-object-name">'+safeText(o.name)+'</strong></div>'+
+      '<div><small>Wohnungen</small><strong>'+o.units.length+'</strong></div>'+
+      '<div><small>Abrechnungsjahre</small><strong>'+years.length+'</strong></div></div>'+
+      '<section class="section annual-property"><div class="section-header"><div>'+
+      '<h2>Jahresübersicht</h2><p>'+safeText(o.street)+', '+
+      safeText(o.postalCode)+' '+safeText(o.city)+'</p></div></div>'+
+      '<div class="annual-rows">'+years.map(y=>{
+        const a=o.settlements[y];
+        return '<div class="annual-row" data-year="'+safeText(y)+'">'+
+          '<span class="annual-icon">'+icon('calendar')+'</span>'+
+          '<span class="annual-primary"><strong>Abrechnung '+safeText(y)+'</strong>'+
+          '<small>'+safeText(y==='2025'?'Neu · ohne Altwerte':
+            'Historischer Originalstand · nur lesen')+'</small></span>'+
+          '<span class="annual-status">'+safeText(a.navigationLabel)+'</span>'+
+          '<span class="annual-link">'+viewAction('open-year',o.id+'|'+y,
+            'Abrechnung '+y)+'</span></div>';
+      }).join('')+'</div></section>'+
+      '<div class="info-line">Die zwei Archivstände für 2023 sind getrennt erhalten und '+
+      'über denselben Jahreseintrag erreichbar.</div>';
+  }
+  function realBillingYear(){
+    const o=master(),year=activeYear(),entry=o.settlements[year];
+    if(!entry)return head('JAHRESABRECHNUNG','Nicht vorhanden',
+      'Für diesen Zeitraum liegt kein Jahresstand vor.');
+    const back='<div class="context-return">'+button('← Jahresabrechnungen',
+      'back-billings',null,'button-quiet')+'<span>'+safeText(o.name)+'</span></div>';
+    if(year==='2025')
+      return back+head('JAHRESABRECHNUNG 2025 · NEU','Abrechnung 2025',
+        'Die Abrechnung 2025 wird in NK-Pro 2.0 neu erstellt.')+
+        '<section class="section"><div class="section-header"><div>'+
+        '<h2>Neuer Abrechnungsstand</h2></div>'+
+        '<span class="status neutral">Noch nicht freigegeben</span></div>'+
+        '<div class="info-line">Keine Kosten, Vorauszahlungen, Zählerablesungen, '+
+        'Techem-Einzelwerte oder Abrechnungsergebnisse aus NK-Pro 1.0 importiert. '+
+        'Der neue Fachworkflow ist noch nicht produktiv freigegeben.</div></section>';
+    const archives=entry.archivedOriginals||[];
+    return back+head('HISTORISCHES ARCHIV · '+safeText(year),
+      'Abrechnung '+safeText(year),'Unveränderte Originalstände ohne Neuberechnung.')+
+      archives.map((entry,i)=>{
+        const raw=entry.snapshot||{},historical=raw.data||{},
+          values=raw.summary||{},costs=Array.isArray(historical.kostenarten)?
+          historical.kostenarten:[],
+          complete=entry.completeness==='complete';
+        return '<section class="section" data-archive-ref="'+safeText(entry.id)+'">'+
+          '<div class="section-header"><div><h2>'+safeText(year)+
+          (archives.length>1?' · Archivstand '+(i+1):'')+'</h2>'+
+          '<p>'+safeText(complete?'Vollständiger Originalstand':
+            'Historischer Teilbestand – nicht vollständig rekonstruierbar')+'</p></div>'+
+          '<span class="status neutral">Nur Ansicht</span></div>'+
+          '<div class="stat-inline">'+[
+           ['Kosten laut Quelle',values.kostenNK],
+           ['Vorauszahlungen laut Quelle',values.vorauszahlungen],
+           ['Saldo laut Quelle',values.saldo]
+          ].map(([label,value])=>'<div><small>'+label+'</small><strong>'+
+            (Number.isFinite(value)?fmt(value):'–')+'</strong></div>').join('')+
+          '</div><div class="table-wrap"><table class="data-table"><thead><tr>'+
+          '<th>Kostenart</th><th class="money">Originalbetrag</th></tr></thead><tbody>'+
+          costs.map(c=>'<tr><td>'+safeText(c.kostenart||c.name||c.id)+'</td>'+
+           '<td class="money">'+(Number.isFinite(c.gesamtbetrag)?
+             fmt(c.gesamtbetrag):'–')+'</td></tr>').join('')+
+          '</tbody></table></div>'+
+          '<div class="info-line">Archivstand schreibgeschützt und unverändert. '+
+          'Keine neue Berechnung.</div></section>';
+      }).join('');
+  }
+  function realAnalytics(){
+    return head('OBJEKTÜBERGREIFEND','Analysezentrum',
+      'Historische Daten sind vorhanden. Geprüfte Mehrjahresvergleiche folgen.')+
+      '<section class="section"><div class="info-line">'+
+      'Keine ungeprüften Finanz-, Steuer- oder Nebenkostenkennzahlen aus echten Daten.'+
+      '</div></section>';
+  }
+  function realDocuments(){
+    return head('OBJEKTÜBERGREIFEND','Dokumente & Archiv',
+      'Historische Archive sind innerhalb der Jahresabrechnungen erreichbar.')+
+      '<section class="section"><div class="section-header"><h2>Historisches Archiv</h2></div>'+
+      '<div class="info-line">Fünf unveränderte Originalstände, darunter beide '+
+      'Fassungen für 2023. Keine neuen Briefe aus Echtdaten freigegeben.</div></section>';
   }
   function billingList(){
+    if(selectedReal)return realBillingList();
     const o=master(),years=Object.keys(o.settlements).sort((a,b)=>b.localeCompare(a));
     return head('JAHRESABRECHNUNGEN · '+safeText(o.name),'Jahresabrechnungen',
       'Hier werden ausschließlich Jahresabrechnungen dieser Immobilie angezeigt.',
@@ -305,6 +328,7 @@
         '</section><div class="info-line">Jahresabrechnungen sind diesem Objekt fest zugeordnet. Objektwechsel erfolgen ausschließlich links im Immobilienbaum.</div>';
   }
   function billing(){
+    if(selectedReal)return ui.billingHome?realBillingList():realBillingYear();
     if(ui.billingHome)return billingList();
     if(!data)return head('JAHRESABRECHNUNGEN','Kein Jahresstand',
       'Bitte zunächst unter Jahresabrechnungen eine synthetische Jahresabrechnung anlegen.');
@@ -683,13 +707,18 @@
           '</td><td>'+editAction('edit-master-tenancy',t.id,t.name)+'</td></tr>').join('')+
         '</tbody></table></div><div class="table-caption">Die Jahresfälle werden aus diesen Zeiträumen abgeleitet. Eine Änderung an einem Mietvertrag überschreibt abgeschlossene oder historische Jahresstände niemals still.</div></section>';
     }else{
-      const groups=o.units.map((u,i)=>{
-        const rows=o.meterRegistry.filter(m=>m.unitId===u.id);
+      const hasHouseMeters=selectedReal&&o.meterRegistry.some(m=>!m.unitId);
+      const meterUnits=hasHouseMeters?
+        [...o.units,{id:'__HOUSE_METERS__',label:'Hauszähler',
+          position:'Gemeinschaftszähler'}]:o.units;
+      const groups=meterUnits.map((u,i)=>{
+        const rows=o.meterRegistry.filter(m=>u.id==='__HOUSE_METERS__'?
+          !m.unitId:m.unitId===u.id);
         const active=rows.filter(m=>m.status==='active').length,
           placeholders=rows.filter(m=>m.status==='placeholder').length;
         const row=m=>{
           const where=[m.room,m.radiator].filter(Boolean).join(' · ')||'–';
-          return '<tr><td><strong>'+safeText(estates.METER_TYPES[m.type])+'</strong>'+
+          return '<tr><td><strong>'+safeText(m.originalType||estates.METER_TYPES[m.type]||m.type)+'</strong>'+
             '<span class="water-unit-sub mono">'+safeText(m.id)+'</span></td>'+
             '<td class="mono">'+(m.number?safeText(m.number):
               '<span class="meter-not-set">Noch nicht hinterlegt</span>')+'</td>'+
@@ -697,7 +726,7 @@
             '<td><span class="status '+(m.status==='active'?'green':'neutral')+'">'+
               safeText(estates.meterStatus[m.status])+'</span></td>'+
             '<td><div class="meter-actions">'+
-              editAction('edit-master-meter',m.id,estates.METER_TYPES[m.type]+' '+(m.number||m.id))+
+              editAction('edit-master-meter',m.id,(m.originalType||estates.METER_TYPES[m.type]||m.type)+' '+(m.number||m.id))+
               '</div></td></tr>';
         };
         return '<details class="meter-unit"'+(i===0?' open':'')+'>'+
@@ -708,8 +737,8 @@
             (placeholders?' · '+placeholders+' Muster':'')+'</span>'+
             '<span class="meter-disclosure">'+icon('chevron')+'</span></summary>'+
           '<div class="meter-unit-body">'+
-            '<div class="meter-unit-tools">'+button(icon('plus')+' Zähler hinzufügen',
-              'new-master-meter',u.id,'button-primary')+'</div>'+
+            '<div class="meter-unit-tools">'+(u.id==='__HOUSE_METERS__'?'':button(icon('plus')+' Zähler hinzufügen',
+              'new-master-meter',u.id,'button-primary'))+'</div>'+
             '<div class="table-wrap"><table class="data-table meter-table"><thead><tr>'+
             '<th>Zählertyp / ID</th><th>Zählernummer</th><th>Raum / Heizkörper</th>'+
             '<th>Status</th><th>Aktionen</th></tr></thead><tbody>'+
@@ -729,6 +758,7 @@
     return content;
   }
   function analytics(){
+    if(selectedReal)return realAnalytics();
     if(!data)return head('OBJEKTÜBERGREIFEND','Analysezentrum',
       'Objektübergreifende Auswertungen folgen in einer späteren Entwicklungsstufe.')+
       '<div class="info-line">Im aktuellen Objekt liegt noch kein Abrechnungsjahr vor. Keine Kennzahlen verfügbar.</div>';
@@ -742,7 +772,7 @@
       '<div class="info-line">Fachtest: Angezeigte Musterkennzahlen stammen derzeit nur aus '+safeText(master().name)+' / '+safeText(activeYear())+'. Keine objektübergreifende Aggregation.</div>'+
       `<div class="analytic-switch" role="tablist" aria-label="Analyseperspektive">${choices.map(([id,label])=>`<button type="button" role="tab" aria-selected="${ui.analytics===id}" class="${ui.analytics===id?'selected':''}" data-analytics="${id}">${label}</button>`).join('')}</div>`+body;
   }
-  function documents(){if(!data)return head('OBJEKTÜBERGREIFEND','Dokumente & Archiv',
+  function documents(){if(selectedReal)return realDocuments();if(!data)return head('OBJEKTÜBERGREIFEND','Dokumente & Archiv',
       'Zentrale Ablage für sämtliche Immobilien und Jahre – noch im Aufbau.')+
       '<div class="empty"><h3>Noch keine Dokumente verfügbar</h3><p>Für das aktuelle Objekt wurden noch keine Musterabrechnungen angelegt.</p></div>';
     return head('OBJEKTÜBERGREIFEND','Dokumente & Archiv',
@@ -752,6 +782,12 @@
     `<section class="section"><div class="section-header"><div><h2>Archiv</h2></div><span class="status neutral">Leer</span></div><div class="empty"><div class="empty-icon">${icon('folder')}</div><h3>Keine fachlich archivierten Abrechnungen</h3><p>Das echte Archiv wird später vollständig separat und schreibgeschützt migriert. Die bisherige NK-Pro-App bleibt unverändert.</p></div></section>`;}
   const objectTitles={overview:'Objektdaten',units:'Wohnungen',tenancies:'Mietverhältnisse',meters:'Zähler'};
   function render(){
+    // Preserve v0.13 layout; only contextual labels distinguish real A and demo B/C.
+    const badge=document.querySelector('.demo-badge');
+    if(badge)badge.textContent=selectedReal?'ECHTDATEN · 2025 OFFEN':'NUR MUSTERDATEN';
+    const subtitle=document.querySelector('.brand-subtitle');
+    if(subtitle)subtitle.textContent=realObject?
+      'NK-PRO 2.0 · 1 ECHTOBJEKT + 2 MUSTEROBJEKTE':'SYNTHETISCHER FACHTEST';
     document.querySelectorAll('.nav-item').forEach(el=>{
       const active=el.dataset.view===ui.view;
       el.classList.toggle('active',active);
@@ -769,6 +805,13 @@
     const target=$('appMain');
     target.innerHTML=({overview,billing,object,analytics,documents}[ui.view]||overview)();
     target.querySelectorAll('[data-icon]').forEach(n=>n.innerHTML=icon(n.dataset.icon));
+    if(selectedReal){
+      target.querySelectorAll('[data-action]').forEach(el=>{
+        if(/^(edit-|new-|archive-object|delete-empty-object|restore-object|rebase-year)/.test(el.dataset.action||'')){
+          el.disabled=true;el.title='Echtdaten-Bearbeitung noch nicht fachlich freigegeben';
+        }
+      });
+    }
     if(ui.view==='billing'&&!ui.billingHome&&annualLocked()){
       const forbidden=new Set(['new-cost','toggle-cost','delete-unused-cost','edit-cost','edit-water',
        'edit-house','edit-payment','edit-external','edit-case-water','edit-other-consumption',
@@ -1360,6 +1403,16 @@
     if(good){closeDrawer();stateChange();toast(msg)}
   }
   function doAction(action,id){
+    if(id===viewModel.LOCKED_ID){
+      window.NKPRO2_INTEGRATED_APP?.showSync();
+      return;
+    }
+    if(selectedReal&&!new Set(['select-property','toggle-tree-section',
+       'open-object-tab','object-billings','all-billings','back-billings',
+       'open-year']).has(action)){
+      toast('Echtdaten sind nur lesbar; die Musterobjekte B und C bleiben bearbeitbar.');
+      return;
+    }
     if(action==='new-object'){openDrawer('new-object');return;}
     if(action==='new-master-unit'){openDrawer('new-master-unit');return;}
     if(action==='new-year'){openDrawer('new-year');return;}
@@ -1384,7 +1437,12 @@
     }
     if(action==='select-property'){
       const collapse=ui.treeOpenObjectId===id&&ui.view==='object';
-      if(portfolio.selectedObjectId!==id)switchPortfolio(estates.selectObject(portfolio,id));
+      if(realObject&&id===realObject.id){
+        selectedReal=true;realYear='2025';
+      }else{
+        selectedReal=false;
+        if(portfolio.selectedObjectId!==id)switchPortfolio(estates.selectObject(portfolio,id));
+      }
       ui.treeOpenObjectId=collapse?null:id;
       ui.view='object';ui.objectTab='overview';ui.billingHome=true;render();
       document.body.classList.remove('menu-open');return;
@@ -1399,7 +1457,11 @@
       ui.treeOpenObjectId=master().id;ui.treeSections.master=true;
       ui.billingHome=true;render();document.body.classList.remove('menu-open');return;}
     if(action==='object-billings'){ui.objectListFilter=id;ui.billingHome=true;ui.view='billing';
-      if(portfolio.selectedObjectId!==id)switchPortfolio(estates.selectObject(portfolio,id));
+      if(realObject&&id===realObject.id)selectedReal=true;
+      else{
+        selectedReal=false;
+        if(portfolio.selectedObjectId!==id)switchPortfolio(estates.selectObject(portfolio,id));
+      }
       ui.treeOpenObjectId=id;ui.treeSections.years=true;
       render();document.body.classList.remove('menu-open');return;}
     if(action==='all-billings'||action==='back-billings'){ui.objectListFilter=master().id;ui.billingHome=true;
@@ -1408,6 +1470,16 @@
     if(action==='open-year'){
       const pos=id.lastIndexOf('|'),oid=id.slice(0,pos),year=id.slice(pos+1);
       if(pos<0)return;
+      if(realObject&&oid===realObject.id){
+        if(!Object.prototype.hasOwnProperty.call(realObject.settlements,year))
+          return toast('Dieses historische Jahr existiert nicht.');
+        selectedReal=true;realYear=year;
+        ui.billingHome=false;ui.objectListFilter=null;ui.step='advance';
+        ui.view='billing';ui.treeOpenObjectId=oid;ui.treeSections.years=true;
+        render();document.body.classList.remove('menu-open');
+        window.scrollTo({top:0,behavior:'instant'});return;
+      }
+      selectedReal=false;
       try{portfolio=estates.selectYear(portfolio,oid,year);
         data=estates.current(portfolio);savePortfolio();
         ui.billingHome=false;ui.objectListFilter=null;ui.step='advance';ui.view='billing';
@@ -1719,14 +1791,27 @@
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('drawer').hidden)closeDrawer();document.body.classList.remove('menu-open')}if(e.key==='Tab'&&!$('drawer').hidden){const nodes=[...$('drawer').querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled)')].filter(x=>x.offsetParent!==null);if(!nodes.length)return;const first=nodes[0],last=nodes.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});
   $('openMenu').addEventListener('click',()=>document.body.classList.toggle('menu-open'));
   $('resetDemo').addEventListener('click',()=>{
-    if(!window.confirm('Gesamten lokalen Fachtestbestand einschließlich neu angelegter Objekte zurücksetzen? Alle lokalen Änderungen an Musterdaten gehen verloren. NK-Pro 1.0 wird nicht verändert.'))return;
+    if(!window.confirm('Nur Musterobjekte zurücksetzen? Private Echtdaten und Google Drive bleiben unverändert.'))return;
     portfolio=estates.create(initial());data=estates.current(portfolio);
     try{savePortfolio()}catch(error){rollbackLocal();render();toast('Zurücksetzen nicht gespeichert: '+error.message);return;}
     ui.objectTab='overview';ui.unitDetailId=null;ui.billingHome=true;
     ui.treeOpenObjectId=null;ui.treeSections={master:false,years:true};
-    navigate('overview');toast('Drei Musterobjekte zurückgesetzt.');
+    navigate('overview');toast(realObject?
+      'Musterobjekte B und C zurückgesetzt, Echtdaten unverändert.':
+      'Drei Musterobjekte zurückgesetzt.');
+  });
+  window.addEventListener('nkpro2-private-data-change',()=>{
+    realState=window.NKPRO2_INTEGRATED_APP?.getData()||null;
+    realObject=realState?viewModel.genuineObject(realState):null;
+    if(realObject){
+      selectedReal=true;realYear='2025';ui.view='object';ui.objectTab='overview';
+      ui.treeOpenObjectId=realObject.id;ui.treeSections={master:false,years:true};
+      ui.billingHome=true;ui.unitDetailId=null;ui.letterId=null;
+    }else selectedReal=false;
+    render();
   });
   document.querySelectorAll('[data-icon]').forEach(node=>node.innerHTML=icon(node.dataset.icon));
+  if(realObject){ui.treeOpenObjectId=realObject.id;ui.view='object';}
   render();
   // API only for automated prototype smoke testing; never expose data from any real NK-Pro system.
   window.NKPRO2_DEMO_TEST=Object.freeze({getPortfolio:()=>clone(portfolio),getState:()=>clone(data),checks,ledger:()=>JSON.parse(JSON.stringify(ledger())),allocate:()=>data.units.map(u=>({id:u.id,amount:allocation(u),balance:balance(u)})),storageKey:STORAGE_KEY});

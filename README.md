@@ -1,5 +1,11 @@
 # NK-Pro 2.0 – Designprototyp (nicht produktiv)
 
+## Architekturwiederherstellung: Original-Navigation v0.13, echtes A und Dummys B/C
+
+Die urspruengliche Baumstruktur mit Icons, Stammdaten und Jahresabrechnungen ist wieder der einzige Navigator. Nur das Musterobjekt A wird in der Ansicht durch das private reale ARB5-Objekt ersetzt. Die Musterobjekte B und C bleiben unveraendert und koennen weiterhin als Testobjekte bearbeitet werden. Zwei historische 2023-Archivfassungen erscheinen innerhalb eines einzigen Jahresknotens 2023. Die Abrechnung 2025 wird neu angelegt; die produktive Berechnung ist noch nicht freigegeben.
+
+Siehe [Korrekturbericht zur v0.13-Navigation](docs/V013_CANONICAL_TREE_REAL_A_DUMMY_B_C_2026-11-22.md).
+
 ## Google Drive direkt unter Systemstatus · Echtdatenmigration (22.11.2026)
 
 Die Hauptanwendung [NK-Pro 2.0](https://cz100000.github.io/NK-Pro-2.0/) enthält die Google-Cloud-Anbindung direkt im Systemstatus. Der alte zusätzliche Bereich `/NK-Pro-2.0/private/` wird **nicht mehr veröffentlicht**. Verschlüsselte Speicherung und Google Drive sind jetzt technische Komponenten der einen Hauptanwendung, ohne zusätzlichen Hostinganbieter.
