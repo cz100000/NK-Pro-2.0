@@ -16,7 +16,7 @@ test("Integrated Google Drive client but no standalone vault or real data is pub
  assert.ok(publicHtml.includes("id=\"nkSyncButton\""));
  assert.ok(publicHtml.includes("./integrated-app.js"));
  assert.match(pages,/mkdir -p _site\/private/);
- assert.match(pages,/test "\$\(find _site -type f \| wc -l\)" -eq 27/);
+ assert.match(pages,/test "\$\(find _site -type f \| wc -l\)" -eq 29/);
  assert.ok(!pages.includes("cp -r private/"));
  assert.ok(!pages.includes("cp private/*"));
  for(const name of allowed)assert.ok(pages.includes("private/"+name));
