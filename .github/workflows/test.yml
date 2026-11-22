@@ -41,6 +41,8 @@ jobs:
         run: node tests/browser-visual-e2e.cjs
       - name: Chromium private encrypted-vault desktop/mobile acceptance
         run: node tests/private-browser-e2e.cjs
+      - name: Chromium integrated Systemstatus, real historical import, mobile and offline acceptance
+        run: node tests/integrated-browser-e2e.cjs
       - name: Preserve desktop/mobile screenshots
         if: always()
         uses: actions/upload-artifact@v4
