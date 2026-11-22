@@ -845,21 +845,48 @@
     }else if(type==='payment'){
       const t=data.tenancies.find(x=>x.id===id);if(!t)return;
       const p=data.payments?.[id]||{},mode=p.mode||'annual',
-        unit=data.units.find(x=>x.id===t.unitId)?.label||t.unitId;
+        actualMode=p.paidMode||'annual',
+        unit=data.units.find(x=>x.id===t.unitId)?.label||t.unitId,
+        agreement=workflow.agreementPreview(t,p);
       title='Vorauszahlungen · '+t.name;eyebrow='ZAHLUNGEN · '+activeYear();
-      body='<form id="editForm" data-type="payment">'+
+      body='<form id="editForm" data-type="payment" data-payment-case="'+safeText(t.id)+
+       '" data-previous-mode="'+mode+'">'+
        '<div class="drawer-note">Abrechnungsfall: '+safeText(t.name)+' · '+safeText(unit)+
        ' · '+safeText(t.start)+' bis '+safeText(t.end)+
-       '. Mieter, Wohnung und Mietzeitraum sind hier schreibgeschützt.</div>'+
-       '<div class="form-row"><label>Vereinbarte Vorauszahlung<select name="mode">'+
-         '<option value="monthly" '+(mode==='monthly'?'selected':'')+'>Monatsbetrag</option>'+
-         '<option value="annual" '+(mode==='annual'?'selected':'')+'>Jahresbetrag</option></select></label></div>'+
+       '. Mietverhältnis und Zeitraum sind ausschließlich im Stammdatenbereich bearbeitbar.</div>'+
+       '<h3 class="payment-title">Vereinbarte Vorauszahlung (Soll)</h3>'+
+       '<div class="water-form-grid"><div class="form-row"><label>Vereinbarung gilt pro'+
+       '<select name="mode"><option value="monthly" '+(mode==='monthly'?'selected':'')+
+       '>Monat</option><option value="annual" '+(mode==='annual'?'selected':'')+
+       '>Jahr</option></select></label></div>'+
        '<div class="form-row"><label>Vereinbarter Betrag (€)<input name="agreed" type="number" min="0" step="0.01" required value="'+
-        safeText(mode==='monthly'?p.agreedMonthly??'':p.agreedAnnual??'')+'"></label>'+
-       '<p class="form-help">Monatsbeträge werden zeitanteilig als Sollwert berechnet. Der Saldo verwendet die tatsächliche Zahlung.</p></div>'+
-       '<div class="form-row"><label>Tatsächlich gezahlt im Jahr (€)<input name="paid" type="number" min="0" step="0.01" required value="'+
-        safeText(p.paidActual??t.advance) +'"></label></div>'+
-       '<div class="drawer-note">Vereinbarte und tatsächliche Vorauszahlungen sind getrennte Angaben; historische Musterjahre können nicht bearbeitet werden.</div></form>';
+        safeText(mode==='monthly'?p.agreedMonthly??'':p.agreedAnnual??'')+'"></label></div></div>'+
+       '<div id="paymentPreview" class="payment-preview" aria-live="polite">'+
+       '<div><small>Pro Woche (vergleichbar)</small><strong>'+(!agreement.valid?'–':fmt(agreement.weekly))+'</strong></div>'+
+       '<div><small>Pro Monat (vergleichbar)</small><strong>'+(!agreement.valid?'–':fmt(agreement.monthly))+'</strong></div>'+
+       '<div><small>Pro Jahr (vergleichbar)</small><strong>'+(!agreement.valid?'–':fmt(agreement.annual))+'</strong></div>'+
+       '<div><small>Soll im Mietzeitraum</small><strong>'+(!agreement.valid?'–':fmt(agreement.expected))+'</strong></div></div>'+
+       '<p class="form-help">Monatswerte werden für angefangene Monate tagesgenau anteilig gerechnet. Neu eingegebene Jahresvereinbarungen werden für das betreffende Kalenderjahr tagesanteilig berechnet. Historisch gespeicherte Beträge bleiben unverändert, bis sie aktiv bearbeitet werden.</p>'+
+       '<h3 class="payment-title">Tatsächlich geleistete Zahlungen (Ist)</h3>'+
+       '<div class="form-row"><label>Erfassung der tatsächlich gebuchten Zahlungseingänge'+
+       '<select name="paidMode"><option value="annual" '+(actualMode!=='monthly'?'selected':'')+
+       '>Gesamtbetrag tatsächlich eingegangen</option><option value="monthly" '+
+         (actualMode==='monthly'?'selected':'')+'>Gleiche Monatszahlungen mit gebuchter Anzahl</option>'+
+       '</select></label></div>'+
+       '<div class="form-row" data-paid-annual '+(actualMode==='monthly'?'hidden':'')+
+       '><label>Summe der tatsächlich eingegangenen Zahlungen (€)'+
+       '<input name="paid" type="number" min="0" step="0.01" value="'+
+         safeText(p.paidActual??t.advance)+'"></label></div>'+
+       '<div class="water-form-grid" data-paid-monthly '+(actualMode==='monthly'?'':'hidden')+'>'+
+       '<div class="form-row"><label>Betrag je tatsächlich gebuchter Zahlung (€)'+
+       '<input name="paidMonthly" type="number" min="0" step="0.01" value="'+
+         safeText(p.paidMonthly??'')+'"></label></div>'+
+       '<div class="form-row"><label>Anzahl tatsächlich gebuchter Monatszahlungen'+
+       '<input name="paidMonths" type="number" min="0" max="12" step="1" value="'+
+         safeText(p.paidMonths??'')+'"></label></div></div>'+
+       '<div class="payment-actual-total">Tatsächlich gezahlt im Abrechnungszeitraum: <strong id="paidPreview">'+
+         fmt(p.paidActual??t.advance)+'</strong></div>'+
+       '<div class="drawer-note">Soll ist eine Berechnung aus der Vereinbarung. Ist wird ausschließlich aus tatsächlich erfassten Zahlungseingängen übernommen; keine Zahlung wird allein aufgrund des Mietvertrags als geleistet unterstellt.</div></form>';
     }else if(type==='cost'||type==='new-cost'){
       const c=type==='new-cost'?{name:'',amount:'',landlordShare:0,category:'Betriebskosten',method:'Fläche'}:data.costs.find(x=>x.id===id);if(!c)return;
       const costBasisFields='<div class="drawer-note">Einzelverbräuche und Techem-Einzelwerte werden ausschließlich unter Verbräuche gepflegt.</div>';
@@ -1095,7 +1122,10 @@
       data.letterSettings=next;msg='Briefvorlage (Muster) gespeichert.';
     }else if(type==='payment'){
       try{data=workflow.setPayment(data,id,{mode:form.elements.mode.value,
-         agreed:parseField(form.elements.agreed),paid:parseField(form.elements.paid)});}
+         agreed:parseField(form.elements.agreed),paid:parseField(form.elements.paid),
+         paidMode:form.elements.paidMode.value,
+         paidMonthly:parseField(form.elements.paidMonthly),
+         paidMonths:form.elements.paidMonths.value});}
       catch(e){return toast('Zahlungsdaten prüfen: '+e.message)}
       msg='Vorauszahlungen gespeichert.';
     }else if(type==='cost'||type==='new-cost'){
@@ -1369,7 +1399,39 @@
     e.preventDefault();
     try{saveDrawer(e.target)}catch(error){rollbackLocal();render();toast('Änderung nicht gespeichert: '+error.message)}
   }});
+  function paymentLivePreview(form){
+    if(!form||form.dataset.type!=='payment')return;
+    const t=data?.tenancies.find(x=>x.id===form.dataset.paymentCase);
+    if(!t)return;
+    const mode=form.elements.mode.value,agreed=parseField(form.elements.agreed);
+    const p=workflow.agreementPreview(t,{
+      mode,agreedMonthly:mode==='monthly'?agreed:null,
+      agreedAnnual:mode==='annual'?agreed:null,annualBasis:'fullYear'
+    });
+    const display=[p.weekly,p.monthly,p.annual,p.expected];
+    const cells=form.querySelectorAll('#paymentPreview strong');
+    cells.forEach((el,i)=>{el.textContent=p.valid&&Number.isFinite(display[i])?fmt(display[i]):'–'});
+    const actualMonthly=form.elements.paidMode.value==='monthly';
+    form.querySelectorAll('[data-paid-monthly]').forEach(el=>el.hidden=!actualMonthly);
+    form.querySelectorAll('[data-paid-annual]').forEach(el=>el.hidden=actualMonthly);
+    const paid=actualMonthly?workflow.actualPreview({paidMode:'monthly',
+      paidMonthly:form.elements.paidMonthly.value,paidMonths:form.elements.paidMonths.value}):
+      workflow.actualPreview({paidMode:'annual',paidActual:form.elements.paid.value});
+    const target=form.querySelector('#paidPreview');
+    if(target)target.textContent=paid.valid?fmt(paid.actual):'–';
+  }
   document.addEventListener('change',e=>{
+    if(e.target.name==='mode'&&e.target.closest('#editForm')?.dataset.type==='payment'){
+      const form=e.target.closest('#editForm'),now=form.elements.mode.value;
+      const before=form.dataset.previousMode;
+      const amt=parseField(form.elements.agreed);
+      if(Number.isFinite(amt)&&before!==now)
+        form.elements.agreed.value=String(round(before==='monthly'?amt*12:amt/12));
+      form.dataset.previousMode=now;
+      paymentLivePreview(form);
+    }
+    if(e.target.closest('#editForm')?.dataset.type==='payment'&&e.target.name!=='mode')
+      paymentLivePreview(e.target.closest('#editForm'));
     if(e.target.id==='d-catalog'){
       const choice=workflow.invoiceCatalog(e.target.value);
       if(choice&&$('d-name'))$('d-name').value=choice.name;
@@ -1383,6 +1445,8 @@
     }
   });
   document.addEventListener('input',e=>{
+    const paymentForm=e.target.closest?.('#editForm');
+    if(paymentForm?.dataset.type==='payment')paymentLivePreview(paymentForm);
     if(['coldStart','coldEnd','hotStart','hotEnd'].includes(e.target.name)){
       const f=$('editForm'),el=$('water-live-sum');
       if(f&&el&&f.dataset.type==='water'){
