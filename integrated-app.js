@@ -269,8 +269,15 @@
    if(menu)menu.addEventListener("click",()=>$("sidebar").classList.toggle("open"));
    render();
   }
-  if("serviceWorker" in navigator)navigator.serviceWorker.register("./nkpro2-sw.js",{scope:"./"})
-   .catch(e=>status("Offline-App konnte nicht eingerichtet werden: "+e.message,true));
+  if("serviceWorker" in navigator){
+   // Retire only the superseded /NK-Pro-2.0/private/ offline shell.
+   // Do not touch NK-Pro 1.0 workers, personal local data or encrypted snapshots.
+   navigator.serviceWorker.getRegistrations().then(regs=>Promise.all(
+    regs.filter(r=>new URL(r.scope).pathname==="/NK-Pro-2.0/private/")
+     .map(r=>r.unregister()))).catch(()=>{});
+   navigator.serviceWorker.register("./nkpro2-sw.js",{scope:"./"})
+    .catch(e=>status("Offline-App konnte nicht eingerichtet werden: "+e.message,true));
+  }
   setInterval(()=>automatic().catch(e=>status(String(e.message||e),true)),45000);
   window.addEventListener("focus",()=>automatic().catch(e=>status(String(e.message||e),true)));
   return live;
