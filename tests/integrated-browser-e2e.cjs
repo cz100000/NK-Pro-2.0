@@ -92,6 +92,15 @@ const chromeBinary=()=>{
    "document.querySelector('#nkImport').click();return true;";
   assert.equal(await evalJS(code),true);
   await until("return !!document.querySelector('#nkOpenLocked');");
+  // Regression: a valid local encrypted import disables repeat-import for safety.
+  // The UI must explain why and explicitly lead the user to unlock + sync.
+  const guarded=await evalJS("return {disabled:document.querySelector('#nkImportDrive').disabled,"+
+   "unlock:!document.querySelector('#nkUnlock').disabled,"+
+   "callout:document.querySelector('#nkSyncCallout').textContent};");
+  assert.equal(guarded.disabled,true);
+  assert.equal(guarded.unlock,true);
+  assert.match(guarded.callout,/Lokale Daten öffnen/);
+  assert.match(guarded.callout,/gesperrt/);
   assert.equal(await evalJS("return !!document.querySelector('.tree-property-button');"),false,
    "Synthetic portfolio must not remain active when real state was imported");
   let storage=await evalJS("const raw=localStorage.getItem('nkpro2_live_cloud_encrypted_v1');"+
@@ -102,6 +111,7 @@ const chromeBinary=()=>{
    "document.querySelector('#nkSyncPassword').value='Synthetic Long Passphrase 2026';"+
    "document.querySelector('#nkUnlock').click();");
   await until("return document.querySelector('#appMain h1')?.textContent.includes('Synthetisches Haus');");
+  assert.ok(await evalJS("return document.querySelector('#nkSyncMessage').textContent.includes('5 historische Archive');"));
   assert.equal(await evalJS("return document.querySelectorAll('#portfolioTree button[data-nk-view]').length;"),6);
   assert.equal(await evalJS("return document.querySelectorAll('#appMain .nk-live-archive').length;"),5);
   await evalJS("document.querySelector('#nkSyncClose').click();");
