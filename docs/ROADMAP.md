@@ -1,5 +1,17 @@
 # Roadmap für NK-Pro 2.0
 
+## Fachtest 0.9 · Objektverwaltung und Cloud-Vorbereitung (22.11.2026)
+
+- [x] Einheitliche SVG-Icons und grafische Chevrons im Objektbaum; Sidebar Desktop 288 px, Mobil 295 px.
+- [x] Jahresübersicht ausschließlich für aktuell ausgewählte Immobilie; kein Objekt-/Alle-Objekte-Filter im Arbeitsbereich.
+- [x] Startseite mit responsiven Immobilienkarten, aktiven/archivierten Objekten und eindeutiger Objektöffnung.
+- [x] Objekt, Wohnung und synthetischen Jahresstand anlegen; archivieren/wiederherstellen; endgültiges Löschen nur leerer Objekte mit Tombstone.
+- [x] Providerneutraler Objekt- und Jahres-Syncvertrag mit unabhängigen Record-Versionen und Dreiwege-Konfliktplaner, Datenmodell-Upgrade von 0.7 ohne Schlüssel-/Datenverlust.
+- [x] Schutz gegen stilles Überschreiben bei Änderungen in einem zweiten Browser-Tab und gegen stilles Zurücksetzen defekter Portfolios.
+- [ ] Echte Google-Drive-/Google-Cloud-Synchronisierung, Identität/OAuth, sichere getrennte Origin, produktive Datenbank/Backups, Konfliktbehebung und Fachfreigabe weiterhin offen.
+
+Details: [Fachtest 0.9 – Objektverwaltung und Datenmodell](STAGE_0_9_DATA_MODEL_NAVIGATION_2026-11-22.md).
+
 ## Fachtest 0.8 · Einfache, objektzentrierte Navigation (22.11.2026)
 
 - [x] Doppelte Hauptnavigation entfernt; Startseite und **ein** Objektbaum für Stammdaten und Jahresabrechnungen.

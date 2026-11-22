@@ -8,6 +8,16 @@ Interaktive, veröffentlichte Design-Demo: **https://cz100000.github.io/NK-Pro-2
 
 Die Anwendung ist ein interaktiver Entwurf für eine minimalistische Benutzerführung. Sie enthält eine **Startseite** mit hierarchisch aufklappbaren Immobilien, pro Objekt **Stammdaten** und **Jahresabrechnungen**, und darunter die getrennten objektübergreifenden Bereiche **Analysen** sowie **Dokumente & Archiv**. Die sechs Schritte einer Jahresabrechnung bleiben innerhalb der Arbeitsfläche.
 
+## Fachtest 0.9 – Immobilienverwaltung und Cloudvorbereitung
+
+Die linke Navigation ist auf **288 px Desktop / 295 px Mobil** verbreitert und zeigt einheitliche SVG-Icons sowie grafische Aufklapppfeile. Auf der neu gestalteten Startseite stehen Immobilienkarten mit Anlegen, Archivieren, Wiederherstellen und sicherem Entfernen **ausschließlich völlig leerer Objekte**. Wohnungen und fiktive Jahresabrechnungen können im neuen Objekt angelegt werden. Die Jahresübersicht ist **strikt objektbezogen**, ohne Objektfilter.
+
+Das überarbeitete Modell enthält stabile IDs, getrennte Versionen für Objektstamm und Jahresstände, unveränderliche historische Abrechnungsdaten, Löschmarkierungen, Rückwärtskompatibilität zum 0.7-Portfolioschlüssel und einen providerneutralen Dreiwege-Synchronisationsplaner mit Konflikterkennung. Ein zweiter Browser-Tab kann den gespeicherten Stand nicht unbemerkt überschreiben.
+
+**Keine aktive Cloud-Synchronisierung.** Google-Zugang, Cloud-Adapter, sichere Echt-Daten-Origin, transaktionale Synchronisierung und Cloud-Backup fehlen und sind in den späteren Entwicklungsstufen umzusetzen. **Keine echten Mieterdaten in diese öffentliche Demo eingeben.**
+
+Technischer Vertrag: [Fachtest 0.9 – Datenmodell und Navigation](docs/STAGE_0_9_DATA_MODEL_NAVIGATION_2026-11-22.md).
+
 ## Fachtest 0.8 – einheitliche Immobiliennavigation (22.11.2026)
 
 Die doppelte linke Navigation aus Fachtest 0.7 wurde durch eine einzige Hierarchie ersetzt: **Startseite → Immobilien → Stammdaten/Jahresabrechnungen**. Darunter stehen **Analysen** und **Dokumente & Archiv** als getrennte objektübergreifende Einstiege. Die Sidebar wurde verbreitert, Schriften und Klickflächen sind größer. Das weiterhin synthetische Portfolio und der Speicherschlüssel bleiben unverändert; bestehende Musterstände werden nicht migriert oder gelöscht. Die globalen Auswertungen und der Dokumentenindex sind noch nicht vollständig implementiert.
