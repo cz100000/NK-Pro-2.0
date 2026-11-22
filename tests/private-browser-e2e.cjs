@@ -110,8 +110,10 @@ const browser=()=>{
   console.log("PRIVATE_BROWSER_ACCEPTANCE_OK: desktop, mobile, encrypted cache, offline reload/unlock; no private source in repository");
  }finally{
   if(ws&&ws.readyState===WebSocket.OPEN)ws.close();
-  if(chrome&&!chrome.killed)chrome.kill("SIGTERM");
+  if(chrome&&!chrome.killed){chrome.kill("SIGTERM");
+   if(chrome.exitCode===null)await Promise.race([new Promise(r=>chrome.once("exit",r)),sleep(1000)]);
+  }
   await new Promise(r=>server.close(r));
-  if(profile)fs.rmSync(profile,{recursive:true,force:true});
+  if(profile)fs.rmSync(profile,{recursive:true,force:true,maxRetries:12,retryDelay:300});
  }
 })().catch(e=>{console.error(e);process.exitCode=1;server.close();});
