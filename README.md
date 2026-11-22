@@ -8,6 +8,18 @@ Interaktive, veröffentlichte Design-Demo: **https://cz100000.github.io/NK-Pro-2
 
 Die Anwendung ist ein interaktiver Entwurf für eine minimalistische Benutzerführung. Sie enthält eine **Startseite** mit hierarchisch aufklappbaren Immobilien, pro Objekt **Stammdaten** und **Jahresabrechnungen**, und darunter die getrennten objektübergreifenden Bereiche **Analysen** sowie **Dokumente & Archiv**. Die sechs Schritte einer Jahresabrechnung bleiben innerhalb der Arbeitsfläche.
 
+## Fachtest 0.12 – Jahresabrechnungen, Kosten und Ergebnis (22.11.2026)
+
+- Klick auf **Jahresabrechnungen** im Objektbaum öffnet rechts sofort die Jahresübersicht. Der überflüssige Unterpunkt „Alle Jahre“ wurde entfernt. Jahreszeilen zeigen einheitlich **Bearbeiten** (Entwurf) oder **Ansehen** (historischer, gesperrter Stand).
+- Der gemeinsame, blau umrandete Bearbeiten-Button wird auch in Vorauszahlungen, Kostenarten und Verbrauchstabellen eingesetzt. Wo belastbare Datenregeln bestehen, steht der Status **Nicht erfasst / Unvollständig / Vollständig** direkt neben der Aktion.
+- Vorauszahlungen unterscheiden Soll aus Monats- oder Jahresvereinbarung (zeitanteilig berechnet) und Ist aus ausdrücklich erfassten Zahlungseingängen. Live-Vorschau für Woche, Monat, Jahr und Soll-Zeitraum, bei Ist optional Monatsbetrag × Anzahl nachweislich gebuchter Zahlungen mit ausdrücklich bezeichneten Durchschnittswerten.
+- Gesamtkosten verwenden die bestehenden K-Codes des **NK-Pro-1.0-Katalogs**. Fiktive Kombination K002 „Wasser & Abwasser“ wird als **fachlich zu klärende Kombination von Wasserversorgung K002 und Entwässerung K003** gekennzeichnet; K006 bleibt der kombinierte Heiz-/Warmwasserposten, K009 Müll. Kostenarten sind kompakt und gleichmäßig gelistet, Aktivieren/Deaktivieren und Löschen nur im Bearbeitungsdialog nach Bestätigung.
+- Bei Verbrauchsumlage wird die auf der Rechnung ausgewiesene Menge erfasst; das Kostenformular zeigt den berechneten Einheitspreis. Alle Abrechnungsfälle sind **standardmäßig einbezogen** und nur ausdrücklich abgewählte Teilnehmer werden als Ausnahmen gespeichert.
+- Kaltwasserfelder sind sanft blau, Warmwasserfelder sanft orange hinterlegt; die Gesamtsumme ist größer. Ergebnisse zeigen die einzelnen verteilten Kostenarten je Abrechnungsfall, Ist-Vorauszahlungen, Umlagekosten und Saldo ohne Bearbeiten-Aktion oder Querverlinkung zur Briefvorschau.
+- **Prüfen** bleibt in dieser Stufe bewusst im bisherigen Layout. Fehlerhinweise verhindern nicht die Bearbeitung eines Entwurfs oder die vorläufige Ergebnisansicht, wohl aber eine unzulässige finale Abrechnungsfreigabe. **Briefe werden separat bearbeitet und in 0.12 nicht verändert.**
+
+Nur synthetische Musterdaten; weder vollständige 1.0-Parität noch Google-Cloud-Sync oder produktive Abrechnungsfreigabe. Fachliche Details: [Fachtest 0.12](docs/STAGE_0_12_ANNUAL_WORKSPACE_2026-11-22.md).
+
 ## Fachtest 0.11 – einheitliche Navigation und Bearbeiten-Aktionen (22.11.2026)
 
 Die Hierarchie links ist typografisch geklärt: **Startseite**, **OBJEKTBEZOGEN** und **OBJEKTÜBERGREIFEND** sind als Primärebene stärker gewichtet, Objektnamen und aufklappbare Gruppen erscheinen ruhiger und normal gewichtet; nur der aktive Eintrag ist betont.

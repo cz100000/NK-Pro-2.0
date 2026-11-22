@@ -1,5 +1,21 @@
 # Roadmap für NK-Pro 2.0
 
+## Fachtest 0.12 · Jahresabrechnungs-Workflow und konsistente Bearbeitung (22.11.2026)
+
+- [x] „Jahresabrechnungen“ im Baum öffnet das objektbezogene Jahresverzeichnis; separater „Alle Jahre“-Zweig entfernt.
+- [x] Gemeinsamer Bearbeiten-/Ansehen-Stil in Jahreslisten, Vorauszahlungen, Gesamtkosten, Wasser/Techem und weiteren Verbräuchen.
+- [x] Monatlicher/jährlicher Sollbetrag mit exakter zeitanteiliger Berechnung und Woche/Monat/Jahr-Vorschau; Ist-Eingänge separat als Zeitraumssumme oder tatsächlich gebuchte Monatsbeträge × Anzahl, ohne Soll=Ist-Unterstellung.
+- [x] Gesamtkostenliste konsolidiert; Status vor Bearbeiten, inaktiver/gelöschter Kostenstatus ausschließlich im Bearbeitungsdialog mit Bestätigungsprüfung.
+- [x] K002/K003-Wasser-Abwasser-Abgrenzung transparent, K006 Kombiheizung und K009 Müll; Original-Katalog statt eigenständiger neuer Kategorien für bereits bekannte Kosten.
+- [x] Rechnungsmenge für verbrauchsabhängige Positionen erfasst und Live-Einheitspreis aus Nettoumlage/Rechnungsmenge berechnet; Mieter und Wohnungen standardmäßig einbezogen, ausdrücklich gespeicherte Ausschlüsse bleiben erhalten.
+- [x] Kaltwasser hellblau, Warmwasser hellorange, Gesamtverbrauch hervorgehoben. Status Nicht erfasst/Unvollständig/Vollständig neben Edit-Aktion, soweit fachlich beurteilbar.
+- [x] Ergebnisansicht als Kostengruppen-Matrix je Wohnung/Mietverhältnis, Gesamtkosten, Ist-Vorauszahlungen und Saldo – ohne Aktion/Brief-Shortcut.
+- [x] Prüfen-Anzeige ohne zusätzliche Entwurfsblockade; Finalisierung nach wie vor gesperrt, solange Originalregeln fehlen.
+- [ ] **Briefe** werden in einer separaten Runde bearbeitet; keinerlei produktive Freigabe und kein aktiver Google-Sync.
+- [ ] Weitere fachliche Bestandsmigration/Originalparität inklusive historischer Zählerstände, Detailprüfungen und revisionssicherem Cloudbetrieb ausstehend.
+
+Details: [STAGE_0_12_ANNUAL_WORKSPACE_2026-11-22.md](STAGE_0_12_ANNUAL_WORKSPACE_2026-11-22.md).
+
 ## Fachtest 0.11 · Konsistentes Objekt-UI und sichere Zähleraktionen (22.11.2026)
 
 - [x] Startseite und Objekt-/Globalüberschriften typografisch stärker hervorgehoben; Objektnamen etwas größer und normal gewichtet, Stammdaten/Jahresabrechnungen ebenfalls normal.
