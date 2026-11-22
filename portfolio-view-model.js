@@ -25,7 +25,7 @@
   }
   const settlements={
    "2025":{period:"2025",fixture:false,source:"nkpro2-new-year",
-    navigationLabel:"Neu · In Bearbeitung",
+    navigationLabel:"In Bearbeitung",
     settlement:{year:"2025",status:"draft",readOnly:true},archivedOriginals:[],
     costs:[],payments:{},units:[],tenancies:[]}
   };
@@ -33,7 +33,7 @@
    need(year!=="2025"&&!Object.prototype.hasOwnProperty.call(settlements,year),
     "YEAR_DUPLICATE_OR_2025");
    settlements[year]={period:year,fixture:false,source:"legacy-immutable-history",
-    navigationLabel:"Historischer Bestand",
+    navigationLabel:"Archiv",
     settlement:{year,status:"archived",readOnly:true},
     archivedOriginals:originals,
     costs:[],payments:{},units:[],tenancies:[]};
