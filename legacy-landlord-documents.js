@@ -288,7 +288,7 @@
     const role=/privat|eigentuemer|eigentümer/i.test(String(tenancy.role||t.role||""))?
       "Privatanteil":"Mieter";
     const total=cents(t.costCents),advanced=cents(t.advanceCents);
-    return{id:unit.id||t.unitId,unit:unit.label||t.unitId,name:tenancy.name||t.name,
+    return{id:unit.id||t.unitId,caseId:t.id,unit:unit.label||t.unitId,name:tenancy.name||t.name,
       role,area:Number(unit.area||0),total,advanced,correction:0,
       balance:round2(total-advanced),costs,
       meterText:costs.find(x=>x.id==="K002")?.waterUnits||0,correctionMeta:null};
@@ -322,7 +322,7 @@
    const model=buildModel(annual,ledger),original=namespace.NKProLandlordDocs;
    const body=kind==="overview"?original.overviewPage(model):
      kind==="unit"?original.unitPage(model,
-       model.records.find(r=>r.id===unitId)||model.records[0]):
+       model.records.find(r=>r.caseId===unitId||r.id===unitId)||model.records[0]):
      original.overviewPage(model,model.records.length+1)+
        model.records.map((r,i)=>original.unitPage(model,r,i+2,model.records.length+1)).join("");
    // Original model and A4 geometry remain intact. Add a distinct synthetic test notice.
