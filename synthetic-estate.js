@@ -28,12 +28,16 @@
  }
  function meterReferenced(o,m){
    if(!["cold","hot"].includes(m.type))return false;
-   return Object.values(o.settlements).some(a=>(a.units||[]).some(u=>
-     u.id===m.unitId&&(()=>{
-       const v=u.waterMeters?.[m.type];
-       if(!v)return false;
-       return v.number===m.number||(v.segments||[]).some(seg=>seg.number===m.number);
-     })()));
+   // Legacy aliases can differ from the original 2025 source meter number.
+   // Treat all inherited water meters as referenced whenever a year contains that unit.
+   const inherited=m.id===legacyMeterId(m.unitId,m.type==="cold"?"KW":"WW");
+   return Object.values(o.settlements).some(a=>(a.units||[]).some(u=>{
+     if(u.id!==m.unitId)return false;
+     const v=u.waterMeters?.[m.type];
+     if(!v)return false;
+     return inherited||Boolean(m.number&&(v.number===m.number||
+       (v.segments||[]).some(seg=>seg.number===m.number)));
+   }));
  }
  function assertMeterFields(o,fields,old){
    const type=fields?.type,unitId=fields?.unitId,status=fields?.status||"placeholder";
