@@ -1,119 +1,199 @@
-/* NK-Pro 2.0 / explicitly synthetic-only 2025 water-entry domain.
- * No use of actual NK-Pro data. Preserves old demo edits on upgrade; it NEVER
- * invents a warm-water reading or historic carry-forward in an upgraded state.
+/* NK-Pro 2.0 synthetic-only water & meter-period engine.
+ * Two independent KW/WW channels per unit, multiple physical segments,
+ * original decimal readings preserved, optional evidence-gated 2025 rounding,
+ * replacement events and controlled year-start previews. Not a production port.
  */
 (function(root,factory){
-  "use strict";
-  const api=Object.freeze(factory());
-  if(typeof module!=="undefined"&&module.exports)module.exports=api;
-  else root.NKPRO2_WATER_DETAIL=api;
+ "use strict";const api=Object.freeze(factory());
+ if(typeof module!=="undefined"&&module.exports)module.exports=api;
+ else root.NKPRO2_WATER_DETAIL=api;
 })(typeof globalThis!=="undefined"?globalThis:this,function(){
-  "use strict";
-  const channels=Object.freeze(["cold","hot"]);
-  const date=s=>{
-    if(typeof s!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;
-    const d=new Date(s+"T00:00:00Z");
-    return Number.isFinite(d.valueOf())&&d.toISOString().slice(0,10)===s;
-  };
-  const volume=v=>typeof v!=="boolean"&&v!==""&&v!==null&&v!==undefined&&
-    Number.isSafeInteger(Number(v))&&Number(v)>=0;
-  const money=v=>typeof v!=="boolean"&&v!==""&&v!==null&&v!==undefined&&
-    Number.isFinite(Number(v))&&Number(v)>=0;
-  const round4=n=>Math.round((n+Number.EPSILON)*10000)/10000;
-  const emptyNumber=v=>v===null||v===undefined||v==="";
-  const defaults=(start="",end="")=>({start,end,startDate:"2025-01-01",endDate:"2025-12-30",number:""});
-  function example(state){
-    if(!state||state.fixture!==true||state.period!=="2025")
-      throw new TypeError("Synthetic demo fixture required");
-    const units=state.units.map((u,i)=>{
-      const total=Number(u.waterEnd)-Number(u.waterStart);
-      const cold={...defaults(Number(u.waterStart),Number(u.waterEnd)-10),
-        number:"DEMO-KW-"+String(i+1).padStart(2,"0")};
-      const hot={...defaults(300+i*20,310+i*20),
-        number:"DEMO-WW-"+String(i+1).padStart(2,"0")};
-      if(!Number.isSafeInteger(total)||total<10)throw new Error("Unexpected example water unit");
-      return {...u,waterMeters:{cold,hot},waterNote:""};
-    });
-    return {...state,waterSettings:{houseMeterNumber:"DEMO-HZ-2025",
-      houseStart:700,houseEnd:966,houseStartDate:"2025-01-01",
-      houseEndDate:"2025-12-30",invoiceNote:"Nur synthetische Musterrechnung."},
-      units};
-  }
-  function upgrade(state){
-    if(!state||state.fixture!==true||state.period!=="2025"||
-       !Array.isArray(state.units)||!Array.isArray(state.costs))
-      throw new TypeError("Synthetic demo fixture required");
-    const units=state.units.map(u=>{
-      if(u.waterMeters&&u.waterMeters.cold&&u.waterMeters.hot)return {...u};
-      // Historic one-meter demo cannot be claimed to be physically real KW/WW.
-      return {...u,waterMeters:{
-        cold:{...defaults(u.waterStart??"",u.waterEnd??"")},
-        hot:{...defaults("","")}
-      },waterSourceNotice:"Frühere Ein-Zähler-Demo: KW-Stand übernommen, WW nicht bekannt.",waterNote:u.waterNote||""};
-    });
-    const costs=state.costs.map(c=>({...c,note:String(c.note??""),
-      priceMode:c.priceMode==="manual"?"manual":"auto"}));
-    return {...state,units,costs,waterSettings:state.waterSettings&&
-      typeof state.waterSettings==="object"?{...state.waterSettings}:{
-        houseMeterNumber:"",houseStart:"",houseEnd:"",
-        houseStartDate:"2025-01-01",houseEndDate:"2025-12-30",invoiceNote:""
-      }};
-  }
-  function meterResult(meter){
-    if(!meter||!volume(meter.start)||!volume(meter.end))
-      return {complete:false,valid:false,consumption:null,reason:"Zählerstand fehlt"};
-    if(Number(meter.end)<Number(meter.start))
-      return {complete:true,valid:false,consumption:null,reason:"Endstand liegt unter Anfang"};
-    if(!date(meter.startDate)||!date(meter.endDate)||
-      meter.startDate>meter.endDate)
-      return {complete:true,valid:false,consumption:null,reason:"Ablesedatum fehlt oder ist unplausibel"};
-    return {complete:true,valid:true,consumption:Number(meter.end)-Number(meter.start),reason:"OK"};
-  }
-  function priceFor(cost,invoice){
-    if(!cost||!money(cost.amount)||!money(cost.landlordShare??0)||
-      Number(cost.landlordShare??0)>Number(cost.amount)||!volume(invoice)||Number(invoice)<=0)
-      return {valid:false,auto:null,effective:null,mode:"auto",reason:"Kosten oder Rechnungsverbrauch unvollständig"};
-    const amount=Number(cost.amount)-Number(cost.landlordShare??0);
-    const automatic=round4(amount/Number(invoice));
-    const isManual=cost.priceMode==="manual";
-    const manual=Number(cost.unitPrice);
-    if(isManual&&(!money(cost.unitPrice)||manual<=0||manual>100000))
-      return {valid:false,auto:automatic,effective:null,mode:"manual",reason:"Manueller Einheitspreis muss positiv sein"};
-    return {valid:true,auto:automatic,
-      effective:isManual?round4(manual):automatic,mode:isManual?"manual":"auto",reason:""};
-  }
-  function diagnostics(data){
-    if(!data||data.fixture!==true||data.period!=="2025"||!Array.isArray(data.units))
-      throw new TypeError("Synthetic 2025 water diagnostics only");
-    const issues=[], rows=data.units.map(u=>{
-      const cold=meterResult(u.waterMeters?.cold),hot=meterResult(u.waterMeters?.hot);
-      for(const [key,m] of [["KW",cold],["WW",hot]])
-        if(!m.valid)issues.push({code:"METER_"+key+"_INCOMPLETE",unitId:String(u.id),
-          reason:m.reason});
-      return{id:u.id,label:u.label,cold,hot,valid:cold.valid&&hot.valid,
-        total:cold.valid&&hot.valid?cold.consumption+hot.consumption:null};
-    });
-    const totals={
-      cold:rows.every(r=>r.cold.valid)?rows.reduce((s,r)=>s+r.cold.consumption,0):null,
-      hot:rows.every(r=>r.hot.valid)?rows.reduce((s,r)=>s+r.hot.consumption,0):null,
-      units:rows.every(r=>r.valid)?rows.reduce((s,r)=>s+r.total,0):null
-    };
-    const setting=data.waterSettings||{},house=meterResult({
-      start:setting.houseStart,end:setting.houseEnd,
-      startDate:setting.houseStartDate,endDate:setting.houseEndDate
-    });
-    if(!house.valid)issues.push({code:"HOUSE_METER_INCOMPLETE",reason:house.reason});
-    const invoice=volume(data.houseWater)?Number(data.houseWater):null;
-    if(invoice===null||invoice<=0)
-      issues.push({code:"INVOICE_VOLUME_INVALID",reason:"Rechnungsverbrauch fehlt"});
-    const delta={
-      invoiceHouse:invoice!==null&&house.valid?invoice-house.consumption:null,
-      houseUnits:house.valid&&totals.units!==null?house.consumption-totals.units:null,
-      invoiceUnits:invoice!==null&&totals.units!==null?invoice-totals.units:null
-    };
-    return{rows,totals,invoice,house,
-      delta,issues,canReview:issues.length===0,
-      exactMatch:issues.length===0&&delta.invoiceHouse===0&&delta.houseUnits===0};
-  }
-  return{example,upgrade,meterResult,diagnostics,priceFor,round4,volume,date,version:"synthetic-water-ux-1"};
+ "use strict";
+ const date=s=>{
+   if(typeof s!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;
+   const d=new Date(s+"T00:00:00Z");
+   return Number.isFinite(d.valueOf())&&d.toISOString().slice(0,10)===s;
+ };
+ const volume=v=>typeof v!=="boolean"&&v!==""&&v!==null&&v!==undefined&&
+   Number.isFinite(Number(v))&&Number(v)>=0;
+ const money=volume;
+ const round4=n=>Math.round((n+Number.EPSILON)*10000)/10000;
+ const defaults=(start="",end="")=>({start,end,startDate:"2025-01-01",endDate:"2025-12-30",number:""});
+ const clone=x=>JSON.parse(JSON.stringify(x));
+ function assertSynthetic(state){
+   if(!state||state.fixture!==true||state.period!=="2025"||
+      !Array.isArray(state.units)||!Array.isArray(state.costs))
+     throw new TypeError("Synthetic 2025 water fixture required");
+ }
+ function example(state){
+   assertSynthetic(state);
+   const units=state.units.map((u,i)=>{
+     const total=Number(u.waterEnd)-Number(u.waterStart);
+     if(!Number.isSafeInteger(total)||total<10)throw new Error("Unexpected example water unit");
+     const cold={...defaults(Number(u.waterStart),Number(u.waterEnd)-10),
+       number:"DEMO-KW-"+String(i+1).padStart(2,"0")};
+     const hot={...defaults(300+i*20,310+i*20),
+       number:"DEMO-WW-"+String(i+1).padStart(2,"0")};
+     return {...u,waterMeters:{cold,hot},waterNote:""};
+   });
+   return {...state,waterSettings:{houseMeterNumber:"DEMO-HZ-2025",
+     houseStart:700,houseEnd:966,houseStartDate:"2025-01-01",
+     houseEndDate:"2025-12-30",invoiceNote:"Nur synthetische Musterrechnung."},
+     units};
+ }
+ function upgrade(state){
+   assertSynthetic(state);
+   const units=state.units.map(u=>{
+     if(u.waterMeters&&u.waterMeters.cold&&u.waterMeters.hot)
+       return {...u,waterMeters:clone(u.waterMeters)};
+     return {...u,waterMeters:{
+       cold:{...defaults(u.waterStart??"",u.waterEnd??"")},
+       hot:{...defaults("","")}
+     },waterSourceNotice:"Frühere Ein-Zähler-Demo: KW-Stand übernommen, WW nicht bekannt.",waterNote:u.waterNote||""};
+   });
+   const costs=state.costs.map(c=>({...c,note:String(c.note??""),
+     priceMode:c.priceMode==="manual"?"manual":"auto"}));
+   return {...state,units,costs,waterSettings:state.waterSettings&&
+     typeof state.waterSettings==="object"?{...state.waterSettings}:{
+       houseMeterNumber:"",houseStart:"",houseEnd:"",
+       houseStartDate:"2025-01-01",houseEndDate:"2025-12-30",invoiceNote:""
+     }};
+ }
+ function readingResult(row,roundEach){
+   if(!row||!volume(row.start)||!volume(row.end))
+     return {complete:false,valid:false,consumption:null,rawConsumption:null,reason:"Zählerstand fehlt"};
+   const start=Number(row.start),end=Number(row.end);
+   if(end<start)
+     return {complete:true,valid:false,consumption:null,rawConsumption:null,reason:"Endstand liegt unter Anfang"};
+   if(!date(row.startDate)||!date(row.endDate)||row.startDate>row.endDate)
+     return {complete:true,valid:false,consumption:null,rawConsumption:null,reason:"Ablesedatum fehlt oder ist unplausibel"};
+   const raw=end-start,billed=roundEach?Math.round(end)-Math.round(start):raw;
+   return {complete:true,valid:true,consumption:billed,rawConsumption:raw,reason:"OK"};
+ }
+ function meterResult(meter,options={}){
+   const rounded=options&&options.roundEachToWhole===true;
+   if(!meter)return readingResult(meter,rounded);
+   if(!Array.isArray(meter.segments)||meter.segments.length===0)
+     return readingResult(meter,rounded);
+   const rows=meter.segments;
+   const numbers=new Set();let last=null,raw=0,total=0;
+   for(const row of rows){
+     const r=readingResult(row,rounded);
+     if(!r.valid)return {...r,reason:"Messperiode: "+r.reason};
+     const key=String(row.id||row.number||"").trim();
+     if(!key)return {complete:false,valid:false,consumption:null,rawConsumption:null,
+       reason:"Messperiode ohne Zählerkennung"};
+     if(numbers.has(key))return {complete:false,valid:false,consumption:null,rawConsumption:null,
+       reason:"Zählerkennung ist in Wechselkette doppelt"};
+     numbers.add(key);
+     if(last&&row.startDate<last)
+       return {complete:true,valid:false,consumption:null,rawConsumption:null,
+         reason:"Messperioden überschneiden sich"};
+     last=row.endDate;
+     raw+=r.rawConsumption;total+=r.consumption;
+   }
+   return {complete:true,valid:true,consumption:total,rawConsumption:raw,segments:rows.length,reason:"OK"};
+ }
+ function precisionPolicy(state){
+   const v=state?.meta?.confirmed2025Evidence?.water;
+   return state?.period==="2025"&&v?.houseConsumption===275&&v?.readingDate==="2025-12-30";
+ }
+ function priceFor(cost,invoice){
+   if(!cost||!money(cost.amount)||!money(cost.landlordShare??0)||
+     Number(cost.landlordShare??0)>Number(cost.amount)||!volume(invoice)||Number(invoice)<=0)
+     return {valid:false,auto:null,effective:null,mode:"auto",reason:"Kosten oder Rechnungsverbrauch unvollständig"};
+   const amount=Number(cost.amount)-Number(cost.landlordShare??0);
+   const automaticRaw=amount/Number(invoice),auto=round4(automaticRaw);
+   const isManual=cost.priceMode==="manual";
+   const manual=Number(cost.unitPrice);
+   if(isManual&&(!money(cost.unitPrice)||manual<=0||manual>100000))
+     return {valid:false,auto,effective:null,mode:"manual",reason:"Manueller Einheitspreis muss positiv sein"};
+   return {valid:true,auto,autoRaw:automaticRaw,effective:isManual?round4(manual):auto,
+     effectiveRaw:isManual?manual:automaticRaw,mode:isManual?"manual":"auto",reason:""};
+ }
+ function diagnostics(state){
+   assertSynthetic(state);
+   const issues=[],roundEach=precisionPolicy(state);
+   const rows=state.units.map(u=>{
+     const cold=meterResult(u.waterMeters?.cold,{roundEachToWhole:roundEach});
+     const hot=meterResult(u.waterMeters?.hot,{roundEachToWhole:roundEach});
+     for(const [key,m] of [["KW",cold],["WW",hot]])
+       if(!m.valid)issues.push({code:"METER_"+key+"_INCOMPLETE",unitId:String(u.id),reason:m.reason});
+     return {id:u.id,label:u.label,cold,hot,valid:cold.valid&&hot.valid,
+       total:cold.valid&&hot.valid?cold.consumption+hot.consumption:null};
+   });
+   const totals={
+     cold:rows.every(r=>r.cold.valid)?rows.reduce((s,r)=>s+r.cold.consumption,0):null,
+     hot:rows.every(r=>r.hot.valid)?rows.reduce((s,r)=>s+r.hot.consumption,0):null,
+     units:rows.every(r=>r.valid)?rows.reduce((s,r)=>s+r.total,0):null
+   };
+   const setting=state.waterSettings||{},house=meterResult({
+     start:setting.houseStart,end:setting.houseEnd,
+     startDate:setting.houseStartDate,endDate:setting.houseEndDate
+   });
+   if(!house.valid)issues.push({code:"HOUSE_METER_INCOMPLETE",reason:house.reason});
+   const invoice=volume(state.houseWater)?Number(state.houseWater):null;
+   if(invoice===null||invoice<=0)issues.push({code:"INVOICE_VOLUME_INVALID",reason:"Rechnungsverbrauch fehlt"});
+   const delta={
+     invoiceHouse:invoice!==null&&house.valid?invoice-house.consumption:null,
+     houseUnits:house.valid&&totals.units!==null?house.consumption-totals.units:null,
+     invoiceUnits:invoice!==null&&totals.units!==null?invoice-totals.units:null
+   };
+   return {rows,totals,invoice,house,delta,issues,roundEachToWhole:roundEach,
+     canReview:issues.length===0,exactMatch:issues.length===0&&delta.invoiceHouse===0&&delta.houseUnits===0};
+ }
+ function registerReplacement(state,unitId,kind,event){
+   assertSynthetic(state);
+   if(!["cold","hot"].includes(kind))throw new RangeError("Unknown channel");
+   const current=upgrade(state),unit=current.units.find(u=>String(u.id)===String(unitId));
+   if(!unit)throw new RangeError("Unknown synthetic unit");
+   const m=unit.waterMeters?.[kind];
+   if(!m)throw new RangeError("Missing meter");
+   if(!event||!date(event.at)||!volume(event.oldEnd)||!volume(event.newStart)||
+      !volume(event.newEnd)||Number(event.newEnd)<Number(event.newStart)||
+      !String(event.newNumber||"").trim())throw new TypeError("Invalid replacement readings");
+   const first=m.segments&&m.segments.length?m.segments.map(x=>({...x})):[
+     {id:String(m.number||kind+"-PREVIOUS"),number:String(m.number||kind+"-PREVIOUS"),
+      start:m.start,end:m.end,startDate:m.startDate,endDate:m.endDate}
+   ];
+   const last=first[first.length-1];
+   if(!volume(last.start)||Number(event.oldEnd)<Number(last.start)||
+     !date(last.startDate)||event.at<=last.startDate||event.at>=last.endDate)
+     throw new RangeError("Invalid meter replacement date / old reading");
+   if(first.some(row=>String(row.id||row.number)===String(event.newNumber)))
+     throw new RangeError("Replacement meter ID already used");
+   last.end=Number(event.oldEnd);last.endDate=event.at;
+   first.push({id:String(event.newNumber),number:String(event.newNumber),
+     start:Number(event.newStart),end:Number(event.newEnd),
+     startDate:event.at,endDate:String(m.endDate),
+     note:String(event.note||"").slice(0,2000)});
+   const proposed={...m,segments:first};
+   if(!meterResult(proposed).valid)throw new RangeError("Replacement measurement periods are invalid");
+   unit.waterMeters[kind]=proposed;
+   return current;
+ }
+ function carryForwardPreview(previous,current){
+   assertSynthetic(current);
+   if(!previous||previous.fixture!==true||previous.period!=="2024"||!Array.isArray(previous.units))
+     throw new TypeError("Synthetic previous-year sample required");
+   const currentMap=new Map(current.units.map(u=>[u.id,u]));
+   const proposals=[];
+   for(const u of previous.units){
+     const next=currentMap.get(u.id);if(!next)continue;
+     for(const kind of ["cold","hot"]){
+       const p=u.waterMeters?.[kind],n=next.waterMeters?.[kind];
+       if(!p||!n)continue;
+       const source=p.segments?.length?p.segments.at(-1):p;
+       const number=String(source.number||source.id||"");
+       const matches=number!==""&&number===String(n.number||"");
+       proposals.push({unitId:u.id,kind,meterNumber:number,previousEnd:source.end,
+         currentStart:n.start,status:!matches?"meter-changed":
+           !volume(source.end)?"missing-previous-end":
+           n.start!==""&&n.start!==undefined&&n.start!==null?"current-start-already-set":"ready"});
+     }
+   }
+   return proposals;
+ }
+ return {example,upgrade,meterResult,diagnostics,priceFor,round4,volume,date,
+   precisionPolicy,registerReplacement,carryForwardPreview,version:"synthetic-water-domain-v2"};
 });
