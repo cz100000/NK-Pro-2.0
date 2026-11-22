@@ -152,51 +152,52 @@
   const labelStatus=(done,t='Vollständig',f='Offen')=>`<span class="status ${done?'green':'amber'}">${done?t:f}</span>`;
   const iconButton=(action,id,aria='Details öffnen')=>`<button class="row-button" data-action="${action}" data-id="${safeText(id)}" aria-label="${safeText(aria)}" title="${safeText(aria)}" type="button">${icon('chevron')}</button>`;
   const button=(label,action,id,cls='')=>`<button class="button ${cls}" type="button" data-action="${action}"${id?` data-id="${safeText(id)}"`:''}>${label}</button>`;
+  // Shared master-data editing control for EVERY object (existing or newly created).
+  const editAction=(action,id,subject)=>`<button type="button" class="button edit-action" data-action="${safeText(action)}"${id?` data-id="${safeText(id)}"`:''} aria-label="${safeText(subject+' bearbeiten')}">${icon('pencil')}<span>Bearbeiten</span></button>`;
   const section=(title,inner,extra='',classes='')=>`<section class="section ${classes}"><div class="section-header"><div><h2>${title}</h2></div>${extra}</div>${inner}</section>`;
   const head=(kicker,title,description,action='')=>`<div class="page-heading"><div><div class="eyebrow">${safeText(kicker)}</div><h1>${title}</h1><p>${description}</p></div>${action?`<div class="heading-actions">${action}</div>`:''}</div>`;
   function progress(){const done=Math.min(6,qualityReport().counts.executed===44?6:4);let html='<div class="flow-track">';for(let i=0;i<7;i++)html+=`<div class="flow-segment ${i<done?'complete':i===done?'current':''}"></div>`;return html+`</div><div class="flow-labels">${['Mietverhältnisse','Vorauszahlungen','Gesamtkosten','Verbräuche','Prüfen','Ergebnis','Briefe'].map((x,i)=>`<span class="${i===Math.min(done,6)?'highlight':''}">${x}</span>`).join('')}</div>`}
   function overview(){
     const live=portfolio.objects.filter(o=>o.lifecycle?.status!=="archived"),
       archived=portfolio.objects.filter(o=>o.lifecycle?.status==="archived");
-    const totals=live.reduce((x,o)=>{
-      x.units+=o.units.length;x.settlements+=Object.keys(o.settlements).length;return x;
-    },{units:0,settlements:0});
-    const card=(o,isArchived)=>{
-      const years=Object.keys(o.settlements).length;
-      const menu='<details class="estate-menu"><summary aria-label="Aktionen für '+
-        safeText(o.name)+'" title="Objektaktionen">'+icon('more')+'</summary>'+
-        '<div class="estate-menu-items">'+(isArchived?
-          button('Objekt wiederherstellen','restore-object',o.id,'button-quiet'):
-          button('Objekt archivieren','archive-object',o.id,'button-quiet'))+
-        (!o.units.length&&!o.tenancies.length&&!years?
-          button('Leeres Objekt löschen','delete-empty-object',o.id,'button-quiet'):'')+
-        '</div></details>';
-      return '<article class="estate-card'+(isArchived?' is-archived':'')+'">'+
-        '<div class="estate-card-header"><span class="estate-symbol">'+icon('building')+
-        '</span><span class="status '+(isArchived?'neutral':'green')+'">'+
-        (isArchived?'Archiviert':'Aktiv')+'</span>'+menu+'</div>'+
-        '<h3>'+safeText(o.name)+'</h3><p class="estate-address">'+safeText(o.street)+
-        '<br>'+safeText(o.postalCode)+' '+safeText(o.city)+'</p>'+
-        '<div class="estate-stats"><div><strong>'+o.units.length+
-        '</strong><span>Wohnungen</span></div><div><strong>'+years+
-        '</strong><span>Jahresstände</span></div></div>'+
-        (isArchived?'<p class="estate-archived-note">Die Daten bleiben erhalten. Für die Bearbeitung zuerst wiederherstellen.</p>':
-          '<div class="estate-actions">'+button('Objekt öffnen '+icon('arrow'),'select-property',o.id,'button-primary')+'</div>')+
-        '</article>';
+    const listing=(items,isArchived)=>{
+      const row=o=>{
+        const years=Object.keys(o.settlements).length;
+        const menu='<details class="estate-menu"><summary aria-label="Weitere Aktionen für '+safeText(o.name)+
+          '" title="Objektaktionen">'+icon('more')+'</summary><div class="estate-menu-items">'+
+          (isArchived?button('Wiederherstellen','restore-object',o.id,'button-quiet'):
+            button('Archivieren','archive-object',o.id,'button-quiet'))+
+          (!o.units.length&&!o.tenancies.length&&!years?
+            button('Leeres Objekt löschen','delete-empty-object',o.id,'button-quiet'):'')+
+          '</div></details>';
+        return '<tr><td><strong>'+safeText(o.name)+'</strong>'+
+          '<span class="water-unit-sub mono">'+safeText(o.id)+'</span></td>'+
+          '<td>'+safeText(o.street)+'<span class="estate-postal">'+
+          safeText(o.postalCode)+' '+safeText(o.city)+'</span></td>'+
+          '<td class="estate-count">'+o.units.length+'</td>'+
+          '<td class="estate-count">'+years+'</td>'+
+          '<td class="estate-row-actions">'+(isArchived?
+            '<span class="status neutral">Archiviert</span>':
+            button('Öffnen '+icon('arrow'),'select-property',o.id,'button-quiet estate-open'))+
+          menu+'</td></tr>';
+      };
+      return '<div class="table-wrap"><table class="data-table estate-table"><thead><tr>'+
+        '<th>Immobilie</th><th>Anschrift</th><th>Wohnungen</th>'+
+        '<th>Jahresabrechnungen</th><th>Aktion</th></tr></thead><tbody>'+
+        items.map(row).join('')+'</tbody></table></div>';
     };
     return head('IMMOBILIENBESTAND · NUR MUSTERDATEN','Startseite',
-      'Wählen Sie eine Immobilie. Stammdaten und Jahresabrechnungen werden im jeweiligen Objekt bearbeitet.',
+      'Verwaltete Immobilien im Überblick. Wählen Sie ein Objekt zur Bearbeitung.',
       button(icon('plus')+' Neues Objekt','new-object',null,'button-primary'))+
-      '<div class="portfolio-summary"><div><small>Aktive Objekte</small><strong>'+live.length+'</strong></div>'+
-      '<div><small>Wohnungen</small><strong>'+totals.units+'</strong></div>'+
-      '<div><small>Jahresabrechnungen</small><strong>'+totals.settlements+'</strong></div></div>'+
-      '<div class="estate-grid">'+(live.length?live.map(o=>card(o,false)).join(''):
-        '<div class="estate-empty"><h3>Noch keine aktiven Objekte</h3>'+
+      '<section class="section estate-list"><div class="section-header"><div>'+
+      '<h2>Immobilien</h2><p>'+live.length+' aktive Objekte</p></div></div>'+
+      (live.length?listing(live,false):
+        '<div class="empty"><h3>Keine aktiven Objekte</h3>'+
         '<p>Erstellen Sie ein neues Objekt oder stellen Sie ein archiviertes Objekt wieder her.</p></div>')+
-      '</div>'+(archived.length?
-        '<details class="estate-archive-group"><summary>Archivierte Immobilien ('+archived.length+
-        ')</summary><div class="estate-grid">'+archived.map(o=>card(o,true)).join('')+'</div></details>':'')+
-      '<p class="footnote">Ausschließlich synthetische Testdaten. Archivieren erhält sämtliche Jahresstände; endgültiges Löschen ist nur bei vollständig leeren Objekten möglich.</p>';
+      '</section>'+
+      (archived.length?'<details class="estate-archive-group"><summary>Archivierte Immobilien ('+
+        archived.length+')</summary>'+listing(archived,true)+'</details>':'')+
+      '<p class="footnote">Nur synthetische Musterobjekte. Archivieren bewahrt sämtliche Abrechnungsjahre; endgültiges Löschen ist nur bei vollständig leeren Objekten möglich.</p>';
   }
   const steps=[['advance','Vorauszahlungen'],['costs','Gesamtkosten'],['water','Verbräuche'],['review','Prüfen'],['allocation','Ergebnis'],['letters','Briefe']];
   const renderSteps=()=>`<div class="tab-bar" role="tablist" aria-label="Abrechnungsprozess">${steps.map(([id,label])=>`<button class="tab-button ${ui.step===id?'active':''}" role="tab" aria-selected="${ui.step===id}" type="button" data-step="${id}">${label}</button>`).join('')}</div>`;
@@ -558,7 +559,7 @@
     if(ui.objectTab==='overview'){
       content=head('IMMOBILIENSTAMM · '+safeText(o.id),o.name,
         'Objekt, Wohnungen und Mietverhältnisse sind dauerhaft angelegt. Jahresabrechnungen beziehen sich auf diese Stammdaten.',
-        button(icon('pencil')+' Objektdaten bearbeiten','edit-master-property',null,'button-primary'))+
+        editAction('edit-master-property',null,'Objektdaten'))+
         '<section class="section"><div class="section-header"><div><h2>Objektstammdaten</h2>'+
         '<p>'+safeText(o.street)+', '+safeText(o.postalCode)+' '+safeText(o.city)+'</p></div>'+
         '<span class="status green">Stammdaten · Revision '+o.revision+'</span></div>'+
@@ -566,12 +567,7 @@
         '<div><small>Wohnungen</small><strong>'+o.units.length+'</strong></div>'+
         '<div><small>Fläche</small><strong>'+fmtVolume(o.units.reduce((n,u)=>n+Number(u.area),0))+' m²</strong></div>'+
         '<div><small>Mietverhältnisse</small><strong>'+o.tenancies.length+'</strong></div></div>'+
-        '<div class="object-shortcuts"><button type="button" data-action="open-object-tab" data-id="units">'+
-          icon('building')+'<strong>Wohnungen</strong><span>'+o.units.length+' Stammdatensätze →</span></button>'+
-          '<button type="button" data-action="open-object-tab" data-id="tenancies">'+
-          icon('layers')+'<strong>Mietverhältnisse</strong><span>'+o.tenancies.length+' Vertragsverläufe →</span></button>'+
-          '<button type="button" data-action="object-billings" data-id="'+safeText(o.id)+'">'+
-          icon('calendar')+'<strong>Jahresabrechnungen</strong><span>'+Object.keys(o.settlements).length+' Jahresstände →</span></button></div></section>'+
+        '</section>'+ 
         '<div class="info-line">Die Briefanschrift wird grundsätzlich aus der Objektadresse abgeleitet. Abweichende Zustellanschriften werden nur beim jeweiligen Mietverhältnis eingetragen. Änderungen an Stammdaten verändern bestehende Jahresabrechnungen nicht automatisch.</div>';
     }else if(ui.objectTab==='units'){
       content=head('WOHNUNGSSTAMMDATEN',o.name+' · Wohnungen',
@@ -589,7 +585,7 @@
           '<td class="mono small">'+safeText(u.id)+'</td>'+
           '<td>'+safeText(u.position)+'</td>'+
           '<td class="money">'+fmtVolume(u.area)+' m²</td>'+
-          '<td>'+button(icon('pencil')+' Bearbeiten','edit-master-unit',u.id,'button-quiet meter-row-action')+
+          '<td>'+editAction('edit-master-unit',u.id,u.label)+
           '</td></tr>').join('')+
         '</tbody></table></div></section>'+
         '<div class="info-line">Nur Wohnungsstammdaten: Mietverhältnisse, Zähler und Jahresabrechnungen haben jeweils ihren eigenen Eintrag in der linken Navigation.</div>';
@@ -607,7 +603,7 @@
           safeText(t.id)+'</span></td><td>'+safeText(o.units.find(u=>u.id===t.unitId)?.label||t.unitId)+
           '</td><td>'+safeText(t.role)+'</td><td>'+safeText(t.leaseStart)+
           '</td><td>'+(t.leaseEnd?safeText(t.leaseEnd):'<span class="status green">Nicht ausgezogen</span>')+
-          '</td><td>'+iconButton('edit-master-tenancy',t.id,'Mietvertrag bearbeiten')+'</td></tr>').join('')+
+          '</td><td>'+editAction('edit-master-tenancy',t.id,t.name)+'</td></tr>').join('')+
         '</tbody></table></div><div class="table-caption">Die Jahresfälle werden aus diesen Zeiträumen abgeleitet. Eine Änderung an einem Mietvertrag überschreibt abgeschlossene oder historische Jahresstände niemals still.</div></section>';
     }else{
       const groups=o.units.map((u,i)=>{
@@ -615,7 +611,6 @@
         const active=rows.filter(m=>m.status==='active').length,
           placeholders=rows.filter(m=>m.status==='placeholder').length;
         const row=m=>{
-          const cited=estates.meterReferenced(o,m);
           const where=[m.room,m.radiator].filter(Boolean).join(' · ')||'–';
           return '<tr><td><strong>'+safeText(estates.METER_TYPES[m.type])+'</strong>'+
             '<span class="water-unit-sub mono">'+safeText(m.id)+'</span></td>'+
@@ -625,9 +620,7 @@
             '<td><span class="status '+(m.status==='active'?'green':'neutral')+'">'+
               safeText(estates.meterStatus[m.status])+'</span></td>'+
             '<td class="meter-actions">'+
-              button(icon('pencil')+' Bearbeiten','edit-master-meter',m.id,'button-quiet meter-row-action')+
-              (m.status==='active'?button('Außer Betrieb','retire-master-meter',m.id,'button-quiet meter-row-action'): 
-                !cited?button('Löschen','delete-master-meter',m.id,'button-quiet meter-row-action'):'')+
+              editAction('edit-master-meter',m.id,estates.METER_TYPES[m.type]+' '+(m.number||m.id))+
               '</td></tr>';
         };
         return '<details class="meter-unit"'+(i===0?' open':'')+'>'+
@@ -658,7 +651,6 @@
         '<div class="info-line">Ein Zähler ist ein dauerhaftes Stammdatum. Bei Austausch wird der bisherige Datensatz außer Betrieb gesetzt; historische Abrechnungsjahre und Ablesungen bleiben unverändert. Techem- und Strom-Dummys enthalten keine echten Messwerte.</div>';
     }
     return content;
-    return switcher+content;
   }
   function analytics(){
     if(!data)return head('OBJEKTÜBERGREIFEND','Analysezentrum',
@@ -989,6 +981,21 @@
     }else if(type==='heat-evidence'){title='Heizkostenbeleg';eyebrow='PRÜFENTSCHEIDUNG';body=`<form id="editForm" data-type="heat-evidence"><div class="key-value" style="margin-bottom:20px"><small>Externe Heizkosten (Muster)</small><strong>${fmt(data.costs.find(x=>x.id==='heat')?.amount||0)}</strong></div><div class="form-row"><label><input name="confirmed" type="checkbox" style="width:auto;margin-right:8px" ${heatResolved()?'checked':''} required> Musterbeleg ist geprüft</label><p class="form-help">Diese Checkbox simuliert nur die später einzubindende Belegprüfung.</p></div></form>`;actionLabel='Belegstatus speichern';
     }else if(type==='result'){const u=data.units.find(x=>x.id===id);if(!u)return;title=u.label;eyebrow='BERECHNUNGSNACHWEIS';let a=data.units.reduce((s,x)=>s+x.area,0),w=unitConsumption();body=`<div class="drawer-note">Ausschließlich vereinfachter Beispielnachweis. Die produktive Umlage besitzt zusätzliche Schlüssel, Nachweise und Sonderfälle.</div><div class="key-value" style="margin-bottom:17px"><small>Wohnflächenanteil</small><strong>${int(u.area)} / ${int(a)} m²</strong></div><div class="key-value" style="margin-bottom:17px"><small>Verbrauchsanteil</small><strong>${int(consumption(u))} / ${int(w)} m³</strong></div><div class="key-value" style="margin-bottom:17px"><small>Berechnete Kosten</small><strong>${fmt(allocation(u))}</strong></div><div class="key-value"><small>Saldo nach Vorauszahlungen</small><strong>${fmt(balance(u))}</strong></div>${demoBreakdown(u.id)}`;actionLabel='Schließen';
     }
+    if(type==='master-meter'){
+      const m=master().meterRegistry.find(v=>v.id===id);
+      if(m){
+        const cited=estates.meterReferenced(master(),m);
+        const canRetire=m.status==='active';
+        const canDelete=!cited&&m.status!=='active';
+        body+='<div class="meter-admin"><div class="meter-admin-heading">Zählerverwaltung</div>'+
+          '<p>Diese Aktionen ändern den Zählerstamm, niemals historische Abrechnungen. '+
+          'Sie erfordern eine gesonderte Bestätigung.</p>'+
+          (canRetire?button('Zähler außer Betrieb setzen','retire-master-meter',id,'button-danger'):'')+
+          (canDelete?button('Zähler endgültig löschen','delete-master-meter',id,'button-danger'):'')+
+          (cited&&!canRetire?'<span class="meter-admin-lock">Historisch verwendeter Zähler: Löschen gesperrt.</span>':'')+
+          '</div>';
+      }
+    }
     $('drawerTitle').textContent=title;$('drawerEyebrow').textContent=eyebrow;$('drawerBody').innerHTML=body;
     $('drawerFooter').innerHTML=`<button class="button" type="button" data-action="close-drawer">Abbrechen</button>${type==='result'?'':`<button form="editForm" class="button button-primary" type="submit">${actionLabel}</button>`}`;
     $('overlay').hidden=false;$('drawer').hidden=false;document.body.style.overflow='hidden';setTimeout(()=>{const input=$('drawerBody').querySelector('input,textarea,select');if(input)input.focus();else $('closeDrawer').focus()},10);
@@ -1302,6 +1309,9 @@
     if(action==='new-master-meter'){openDrawer('new-master-meter',id);return}
     if(action==='edit-master-meter'){openDrawer('master-meter',id);return}
     if(action==='retire-master-meter'||action==='delete-master-meter'){
+      // Destructive actions are available only from the open matching editing dialog.
+      if(ui.drawer?.type!=='master-meter'||ui.drawer?.id!==id)
+        return toast('Zählerverwaltung nur über Bearbeiten öffnen.');
       const m=master().meterRegistry.find(v=>v.id===id);if(!m)return;
       const verb=action==='retire-master-meter'?'außer Betrieb setzen':'endgültig löschen';
       if(!window.confirm('Zähler '+(m.number||m.id)+' '+verb+'? Vorhandene Jahresabrechnungen werden nicht verändert.'))return;
@@ -1309,7 +1319,7 @@
         portfolio=action==='retire-master-meter'?
           estates.retireMeter(portfolio,master().id,id):
           estates.deleteUnusedMeter(portfolio,master().id,id);
-        data=estates.current(portfolio);savePortfolio();render();
+        data=estates.current(portfolio);savePortfolio();closeDrawer();render();
         toast(action==='retire-master-meter'?'Zähler außer Betrieb.':'Unbenutzter Zähler gelöscht.');
       }catch(e){rollbackLocal();render();toast('Zähleraktion nicht möglich: '+e.message)}
       return;
