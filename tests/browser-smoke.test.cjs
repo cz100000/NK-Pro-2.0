@@ -12,18 +12,19 @@ function browser(store=new Map()){
   querySelectorAll(){return []},querySelector(){return null}
  });return elements.get(id)}
  const doc={body:{style:{},classList:{remove(){},add(){},toggle(){}}},
-  getElementById:node,querySelectorAll(sel){return sel===".nav-item"?navs:[]},
+  getElementById:node,querySelector(){return null},querySelectorAll(sel){return sel===".nav-item"?navs:[]},
   addEventListener(evt,fn){handlers[evt]=fn},activeElement:null};
  const win={document:doc,console,setTimeout(){return 0},clearTimeout(){},
   localStorage:{getItem(k){return store.get(k)||null},setItem(k,v){store.set(k,v)}},
-  scrollTo(){},confirm(){return true},print(){},Date,Intl,Math,JSON,Number,Set,Map,Error,
+  scrollTo(){},confirm(){return true},print(){},addEventListener(evt,fn){handlers["window:"+evt]=fn},Date,Intl,Math,JSON,Number,Set,Map,Error,
   Object,Array,String,Boolean,parseInt,parseFloat};
  win.window=win;win.globalThis=win;
  const ctx=vm.createContext(win,{name:"nkpro2-synthetic-estates"});
  const names=["demo-ledger.js","experimental/settlement-cost.js","water-detail.js",
    "synthetic-billing.js","synthetic-property.js","synthetic-workflow.js",
    "synthetic-case-billing.js","synthetic-letters.js","legacy-letter-engine.js","letter-workspace-ui.js","legacy-landlord-documents.js","synthetic-review.js",
-   "synthetic-estate.js","synthetic-master-ui.js","app.js"];
+   "synthetic-estate.js","synthetic-master-ui.js","integrated-data.js",
+   "navigation-tree.js","portfolio-view-model.js","app.js"];
  for(const filename of names)vm.runInContext(fs.readFileSync(path.join(root,filename),"utf8"),
    ctx,{filename,timeout:5000});
  function click(selector,data){assert.ok(handlers.click);handlers.click({
