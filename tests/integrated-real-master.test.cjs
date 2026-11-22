@@ -82,3 +82,5 @@ test("Broken original checksum is not allowed to enter live-mode data store",()=
  const x=source();x.data.kostenarten[0].gesamtbetrag=999;
  assert.throws(()=>integrated.migrate(x),/SOURCE_INTEGRITY_FAILED/);
 });
+
+module.exports={source};
