@@ -49,8 +49,7 @@ test("public field mapping covers each declared raw Schema-5 root section", () =
   assert.ok(fieldMap.fields.length >= 28);
   for (const f of fieldMap.fields) {
     assert.ok(f.from.length && f.to && f.id && f.targetStatus);
-    assert.ok(fieldMap.knownRootFields.hasOwnProperty === undefined ||
-      f.from.every(path => typeof path === "string"));
+    assert.ok(f.from.every(path => typeof path === "string"));
   }
 });
 test("read-only assessment detects year and preserves historical areas without mutating source", () => {
