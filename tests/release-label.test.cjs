@@ -5,7 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 test("published version label and both synthetic and integrated asset versions",()=>{
  const html=fs.readFileSync(path.join(__dirname,"..","index.html"),"utf8");
- assert.match(html,/sidebar-version">NK-Pro 2\.0 · Synchronisierung 0\.14/);
+ assert.match(html,/sidebar-version">NK-Pro 2\.0 · Synchronisierung 0\.15/);
  assert.doesNotMatch(html,/Fachtest 0\.7/);
  for(const asset of ["styles.css","demo-ledger.js","experimental/settlement-cost.js",
    "water-detail.js","synthetic-billing.js","synthetic-property.js","synthetic-case-billing.js","synthetic-workflow.js","synthetic-letters.js","legacy-letter-engine.js","letter-workspace-ui.js","legacy-landlord-documents.js","synthetic-review.js","synthetic-estate.js","synthetic-master-ui.js"]){
