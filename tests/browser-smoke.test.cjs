@@ -56,17 +56,21 @@ test("0.7 boots a genuine 3-property portfolio and a clear 7-year overview",()=>
  assert.match(x.html(),/Abrechnung 2025/);
  assert.match(x.html(),/Abrechnung 2023/);
 });
-test("real click hierarchy B → master rooms → one unit → B/2024 → B/2023",()=>{
+test("real click hierarchy B → apartment list → meter registry → B/2024 → B/2023",()=>{
  const x=browser();x.act("select-property","SYN-B");
  assert.equal(x.portfolio().selectedObjectId,"SYN-B");
  assert.match(x.html(),/Objektdaten/);
- x.click("[data-object-tab]",{objectTab:"units"});
+ x.act("open-object-tab","units");
  assert.match(x.html(),/Wohnungen/);
- x.act("view-unit","SYN-B-W02");
- assert.match(x.html(),/Zählerstamm/);
- assert.match(x.html(),/SYN-B-T04/);
- x.act("back-units");
- x.click("[data-object-tab]",{objectTab:"tenancies"});
+ assert.match(x.html(),/SYN-B-W02/);
+ assert.doesNotMatch(x.html(),/data-action="view-unit"/);
+ assert.doesNotMatch(x.html(),/Abrechnungsjahre/);
+ x.act("open-object-tab","meters");
+ assert.match(x.html(),/ZÄHLERSTAMMDATEN/);
+ assert.match(x.html(),/Strom/);
+ assert.match(x.html(),/Techem-Heizkostenverteiler/);
+ assert.doesNotMatch(x.html(),/data-action="view-unit"/);
+ x.act("open-object-tab","tenancies");
  assert.match(x.html(),/Nicht ausgezogen/);
  x.act("open-year","SYN-B|2024");
  assert.equal(x.state().period,"2024");
@@ -282,4 +286,55 @@ test("0.9 local storage rejects stale second-tab writes without destroying first
  assert.ok(reload.portfolio().objects.some(o=>o.name==="Sicher A"));
  assert.ok(!reload.portfolio().objects.some(o=>o.name==="Konflikt B"));
  assert.throws(()=>browser(new Map([["nkpro2_synthetic_portfolio_0_7_v1","{corrupt"]])),/Lokaler Fachtestbestand/);
+});
+
+test("0.10 object-specific navigation uses symmetrical headers and a single meter editing surface",()=>{
+ const x=browser();
+ assert.match(x.tree(),/OBJEKTBEZOGEN/);
+ const shell=fs.readFileSync(path.join(root,"index.html"),"utf8");
+ assert.match(shell,/OBJEKTÜBERGREIFEND/);
+ assert.match(shell,/class="entry-nav"/);
+ x.act("select-property","SYN-A");
+ x.act("toggle-tree-section","master");
+ assert.match(x.tree(),/tree-section-children/);
+ assert.match(x.tree(),/tree-icon/);
+ x.act("open-object-tab","units");
+ assert.equal((x.html().match(/data-action="edit-master-unit"/g)||[]).length,7);
+ assert.doesNotMatch(x.html(),/data-action="view-unit"/);
+ assert.doesNotMatch(x.html(),/Zählerstamm/);
+ assert.doesNotMatch(x.html(),/Abrechnungsjahre/);
+ x.act("edit-master-unit","DEMO-W01");
+ assert.match(x.drawer(),/Wohnfläche/);
+ x.act("open-object-tab","meters");
+ assert.match(x.html(),/Wohnung A/);
+ assert.match(x.html(),/Zählerdatensätze/);
+ assert.match(x.html(),/Techem-Heizkostenverteiler/);
+ assert.match(x.html(),/Musterplatzhalter/);
+ assert.doesNotMatch(x.html(),/data-action="view-unit"/);
+ assert.doesNotMatch(x.html(),/data-action="open-year"/);
+});
+test("0.10 meter CRUD works through master-only drawer, never modifying an annual snapshot",()=>{
+ const x=browser(),old=JSON.stringify(x.portfolio().objects[0].settlements),
+   id="SYN-MTR-"+encodeURIComponent("DEMO-W01")+"-STROM";
+ x.act("select-property","SYN-A");
+ x.act("open-object-tab","meters");
+ x.act("edit-master-meter",id);
+ assert.match(x.drawer(),/Zählernummer/);
+ x.save({unitId:"DEMO-W01",type:"electricity",number:"DEMO-STROM-100",room:"",
+   radiator:"",status:"active",installedOn:"",removedOn:"",note:"synthetisch"});
+ let obj=x.portfolio().objects[0];
+ assert.equal(obj.meterRegistry.find(m=>m.id===id).status,"active");
+ assert.equal(obj.meterRegistry.find(m=>m.id===id).number,"DEMO-STROM-100");
+ assert.equal(JSON.stringify(obj.settlements),old);
+ x.act("retire-master-meter",id);
+ obj=x.portfolio().objects[0];
+ assert.equal(obj.meterRegistry.find(m=>m.id===id).status,"retired");
+ x.act("delete-master-meter",id);
+ assert.equal(x.portfolio().objects[0].meterRegistry.some(m=>m.id===id),false);
+ x.act("new-master-meter","DEMO-W01");
+ x.save({unitId:"DEMO-W01",type:"heat",number:"HKV-TEST-01",room:"Küche",
+   radiator:"Heizkörper 2",status:"active",installedOn:"",removedOn:"",note:""});
+ obj=x.portfolio().objects[0];
+ assert.ok(obj.meterRegistry.some(m=>m.number==="HKV-TEST-01"&&m.type==="heat"));
+ assert.equal(JSON.stringify(obj.settlements),old);
 });

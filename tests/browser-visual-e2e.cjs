@@ -114,13 +114,22 @@ const chromeBinary=()=>{
   await click('[data-view="overview"]');
   await click('.tree-property-button[data-id="SYN-B"]');
   await waitFor("return document.querySelector('#breadcrumbView').textContent.includes('Musterobjekt B');");
-  await click('[data-object-tab="units"]');
+  await click('[data-action="toggle-tree-section"][data-id="master"]');
+  await click('[data-action="open-object-tab"][data-id="units"]');
   assert.equal(await evalJS("return document.querySelectorAll('.data-table tbody tr').length;"),3);
+  assert.equal(await evalJS("return document.querySelectorAll('[data-action=view-unit]').length;"),0);
   await snap("03-desktop-three-units");
-  await click('[data-action="view-unit"][data-id="SYN-B-W02"]');
-  await waitFor("return document.querySelector('#appMain h1')?.textContent==='Wohnung 2';");
-  assert.match(await evalJS("return document.querySelector('#appMain').innerText;"),/Lea Hoffmann/);
-  await snap("04-desktop-unit-detail");
+  await click('[data-action="edit-master-unit"][data-id="SYN-B-W02"]');
+  await waitFor("return document.querySelector('#drawerTitle')?.textContent==='Wohnung 2';");
+  await snap("04-desktop-unit-editor");
+  await click('#closeDrawer');
+  await click('[data-action="open-object-tab"][data-id="meters"]');
+  assert.equal(await evalJS("return document.querySelectorAll('.meter-unit').length;"),3);
+  assert.equal(await evalJS("return document.querySelectorAll('[data-action=view-unit]').length;"),0);
+  await snap("04b-desktop-meter-master");
+  await click('[data-action="edit-master-meter"]');
+  await waitFor("return document.querySelector('#drawerTitle')?.textContent==='Zähler bearbeiten';");
+  await click('#closeDrawer');
   await click('[data-action="open-year"][data-id="SYN-B|2024"]');
   await waitFor("return document.querySelector('#appMain h1')?.textContent==='Abrechnung 2024';");
   assert.equal(await evalJS("return document.querySelectorAll('.tab-button').length;"),6);
@@ -154,7 +163,7 @@ const chromeBinary=()=>{
   assert.ok(m2.sw<=m2.vw+2,"Mobile annual-list overflow "+JSON.stringify(m2));
   assert.equal(m2.menu,false);
   await snap("09-mobile-year-list");
-  console.log("CDP_PASS: 3 objects, 12 apartments, 7 annual records, unit drilldown, frozen years, prepayments, mobile explorer.");
+  console.log("CDP_PASS: 3 objects, 12 apartments, 7 annual records, apartment master list, inline meter registry, frozen years and mobile explorer.");
   console.log("SCREENSHOTS "+output);
  }finally{
    try{ws?.close()}catch{}
