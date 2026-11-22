@@ -100,7 +100,10 @@
    /* Time is used only for display; parent links determine unique active head. */
    const children=new Set(filtered.map(f=>f.appProperties?.parentDriveId).filter(Boolean));
    const heads=filtered.filter(f=>!children.has(f.id));
-   if(heads.length>1)bad("DRIVE_MULTIPLE_HEADS");
+   if((filtered.length>0&&heads.length!==1)||heads.length>1)bad("DRIVE_MULTIPLE_HEADS");
+   const known=new Set(filtered.map(f=>f.id));
+   for(const f of filtered){const parent=f.appProperties?.parentDriveId;
+    if(parent&&!known.has(parent))bad("DRIVE_MISSING_ANCESTOR");}
    return {head:heads[0]||null,count:filtered.length};
   }
   async function read(encryptedFileId){
@@ -115,10 +118,10 @@
    if(headId!==(expectedHeadId||null))bad("DRIVE_SYNC_CONFLICT");
    if((envelope.parentId||null)!==headId)bad("DRIVE_PARENT_MISMATCH");
    const directory=await locateFolder(true);
-   const name=PREFIX+envelope.createdAt.replace(/[:.]/g,"-")+"-"+crypto.randomUUID()+".json";
+   const name=PREFIX+envelope.createdAt.replace(/[:.]/g,"-")+"-"+globalThis.crypto.randomUUID()+".json";
    const metadata={name,mimeType:"application/json",parents:[directory],
     appProperties:{nkpro2Vault:"1",parentDriveId:headId||"",vaultId:envelope.vaultId}};
-   const boundary="nkpro2"+crypto.randomUUID().replace(/-/g,"");
+   const boundary="nkpro2"+globalThis.crypto.randomUUID().replace(/-/g,"");
    const blob=new Blob(["--"+boundary+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n",
     JSON.stringify(metadata),"\r\n--"+boundary+
     "\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n",
