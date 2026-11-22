@@ -92,3 +92,9 @@ Der neue [integrierte Testläufer](docs/SYNTHETIC_PIPELINE.md) kombiniert erstma
 Zusätzlich vergleichen [separate Laufzeittests](tests/quality-legacy-execution.test.cjs) die ersten sieben synthetischen Stammdaten- und Mietzeitraumprüfungen gegen die tatsächlich ausgeführte `evaluateFactual()`-Funktion der eingefrorenen Originalversion V99.4.86. Drei weitere Regeln werden in [Kosten-Paritätstests](tests/quality-cost-phase-parity.test.cjs) gegen die Originalausführung getestet. Beide Testgruppen decken ausgewählte Normal-/Fehlerfälle ab und ersetzen **keine vollständige Paritätsabnahme mit Echtdaten**.
 
 **Release-Grenze unverändert:** Keine echten Mieterabrechnungen, keine vollständigen 44 Prüfungsberechnungen, keine echten A4-Briefe und keine produktive Archivierung. Die bestehende Anwendung auf `cz100000/NK-Pro` bleibt erhalten.
+
+## Funktionsmuster 0.3 · 22. November 2026
+
+Erste reale Verbindung der bestehenden 7-Wohnungen-Demo mit sechs gegen NK-Pro V99.4.86 synthetisch verglichenen Umlageverfahren. Der neue [synthetische Browseradapter](synthetic-billing.js) verwendet die testgesicherte [Referenzformelportierung](experimental/settlement-cost.js), die als einzige experimentelle Datei ausdrücklich auf Pages ausgeliefert wird. Die bestehenden Oberflächen für Kosten, Zähler, Vorauszahlungen, Umlage, Nachweis und Prüfung verwenden jetzt diese Formeln. Wohnungsdetails bieten Personen, Miettage und Aktivstatus. Ein Mustermieter pro Wohnung; noch keine echten Mietwechsel oder Techem-Einzelabrechnung.
+
+Zahlungen, Umlagebeträge und Brutto-/Vermieter-/Restdifferenzen werden in Cent nachgerechnet; nicht zugeordnete Anteile bleiben als **kritische Musterprüfpunkte** sichtbar, statt sie unbemerkt zu verteilen. Dies ist weiterhin ein reiner synthetischer Fachtest, keine Produktivabrechnung. Die Originalskripte aus `tests/reference`, Nutzer-Backups und sämtliche weiteren experimentellen Komponenten bleiben außerhalb der öffentlichen Demo.

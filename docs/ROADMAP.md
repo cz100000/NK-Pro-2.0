@@ -10,3 +10,10 @@
 8. Externe/eigene Offline- und Cloud-Tests, fachliche Abnahme und kontrollierte Umstellung.
 
 Das alte NK-Pro-Repositorium ist ausdrücklich nicht Teil dieses Deployments und bleibt produktiv nutzbar.
+
+## Funktionsmuster 0.3 (22.11.2026)
+
+- [x] Sechs Original-Umlageverfahren in bestehender synthetischer Browser-Demo eingebunden; Kosten, Personen/Miettage, Wasser, Vorauszahlungen, Restdifferenzen und Detailnachweise durchspielbar.
+- [ ] Echte Teilnehmer-/Mietwechsel- und KW-/WW-Domänen; vollständiger Legacy-Abrechnungskern und 44 Qualitätsregeln.
+- [ ] Sicherer Import und Speicher mit separater Browser-Origin.
+- [ ] Briefe, Druckabnahme, Archiv, Analysen, Drive und kontrollierter Parallelbetrieb.

@@ -21,3 +21,7 @@ Eine Hauptaktion je View, progressive Offenlegung statt Karten-/Buttonflut, ein 
 ## Nicht umgesetzt
 
 Echte Fachlogik, rechtsverbindliche Abrechnung, vollwertige 2025-Datenmigration, A4-Abnahme, mehrjährige Finance-/Steuerbuchhaltung und Google Drive. Die Demo verwendet nur vereinfachte Musterrechnungen.
+
+## Integrierter Browser-Fachtest (0.3)
+
+`synthetic-billing.js` verbindet ausschließlich `fixture:true` für 2025 mit der im Testlabor gegen das Original verglichenen 6-Methoden-Portierung. Die Browser-UI verwendet weiter den separaten Demo-Speicherschlüssel; weder Datenimport noch echte Mieterinformationen sind zugelassen. Gegenüber `demo-ledger.js` werden nicht zugeordnete Anteile ausdrücklich offengelassen und als prüfpflichtiger Fehler ausgegeben. Die vollständige Beleg-, Mietwechsel- und Briefparität fehlt weiter.
