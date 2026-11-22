@@ -35,8 +35,8 @@ test("Genuine 2025 is not run through sample billing, while B/C retain original 
  assert.match(app,/if\(selectedReal\)return ui\.billingHome\?realBillingList\(\):realBillingYear\(\)/);
  assert.match(app,/if\(selectedReal&&!new Set/);
  assert.match(adapt,/objects:\[real,b,c\]/);
- assert.match(adapt,/if\(!live\)return synthetic/);
- assert.match(adapt,/s\.settlement|settlement:\{year:"2025",status:"draft",readOnly:true\}/);
+ assert.match(adapt,/if\(!live&&!options\.locked\)return synthetic/);
+ assert.match(adapt,/settlement:\{year:"2025",status:"draft",readOnly:true\}/);
  assert.doesNotMatch(adapt,/caseBilling\.calculate|NKPRO2_SYNTHETIC_BILLING/);
 });
 test("Cloud controller keeps original encrypted-data key and never overwrites it during mere rendering",()=>{
