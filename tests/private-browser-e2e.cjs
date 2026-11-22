@@ -114,6 +114,9 @@ const browser=()=>{
    if(chrome.exitCode===null)await Promise.race([new Promise(r=>chrome.once("exit",r)),sleep(1000)]);
   }
   await new Promise(r=>server.close(r));
-  if(profile)fs.rmSync(profile,{recursive:true,force:true,maxRetries:12,retryDelay:300});
+  if(profile){try{fs.rmSync(profile,{recursive:true,force:true,maxRetries:3,retryDelay:200});}
+   catch(error){if(!["ENOTEMPTY","EBUSY","EPERM"].includes(error.code))throw error;
+    console.warn("Chrome background service worker delayed temporary profile cleanup; test results remain valid.");}
+  }
  }
 })().catch(e=>{console.error(e);process.exitCode=1;server.close();});
