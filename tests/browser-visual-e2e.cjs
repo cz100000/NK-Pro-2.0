@@ -201,8 +201,10 @@ const chromeBinary=()=>{
   await snap("06f-desktop-ported-AP13-letter");
   await click('[data-action="letter-fit-width"]');
   assert.ok(await evalJS("return document.querySelector('.letter-preview-stage').style.getPropertyValue('--letter-scale')!=='';"));
-  await click('[data-action="select-letter"][data-id="SYN-A-T02"]');
-  assert.ok(await evalJS("return document.querySelector('#letterConfigForm')?.dataset.caseId==='SYN-A-T02';"));
+  const secondLetterId=await evalJS("return document.querySelectorAll('.letter-recipient')[1]?.dataset.id;");
+  assert.ok(secondLetterId,"At least two synthetic letter recipients");
+  await click('[data-action="select-letter"][data-id="'+secondLetterId+'"]');
+  assert.ok(await evalJS("return document.querySelector('#letterConfigForm')?.dataset.caseId===document.querySelector('.letter-recipient.selected')?.dataset.id;"));
   await snap("06g-desktop-letter-settings");
   await cmd("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});
   await pause(220);
