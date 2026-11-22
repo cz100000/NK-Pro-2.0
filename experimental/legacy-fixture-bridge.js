@@ -39,7 +39,7 @@ function project(source){
    const label=text(t?.abrechnungRolle||t?.nutzungsart);
    const privateUse=/privat|eigen/i.test(label);
    return{id,unitId,name:text(t?.name),start:text(t?.einzug),end:text(t?.auszug),
-     private:privateUse,role:label,originalIndex:i};
+     private:privateUse,role:label,originalIndex:i,people:t?.personen??null};
  });
  const costs=(Array.isArray(state.kostenarten)?state.kostenarten:[]).map((c,i)=>{
    const id=text(c?.id),amount=number(c?.gesamtbetrag),enabled=text(c?.inNK)==="Ja";
@@ -105,7 +105,8 @@ function project(source){
  }
  const qualityInput={
    fixtureKind:"synthetic",period,units:units.map(x=>({id:x.id,status:x.status})),
-   tenants:tenants.map(x=>({id:x.id,name:x.name,unitId:x.unitId,start:x.start,end:x.end,private:x.private}))
+   tenants:tenants.map(x=>({id:x.id,name:x.name,unitId:x.unitId,start:x.start,end:x.end,private:x.private,people:x.people})),
+   costs:costs.map(x=>({id:x.id,name:x.name,enabled:x.enabled,amount:x.amount,basis:x.basis}))
  };
  return {
    mode:"read-only-preview",sourceSchema:schema,sourceFingerprint:null,

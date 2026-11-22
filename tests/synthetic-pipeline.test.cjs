@@ -57,8 +57,8 @@ test("integrates 7 synthetic units, private participant, K002, Techem and 44 QA 
  assert.equal(r.kind,"synthetic-integration-report");
  assert.equal(r.counts.units,7);assert.equal(r.counts.participants,6);
  assert.equal(r.counts.qualityRules,44);
- assert.equal(r.counts.qualitySubsetExecuted,7);
- assert.equal(r.counts.qualityRulesNotRun,37);
+ assert.equal(r.counts.qualitySubsetExecuted,10);
+ assert.equal(r.counts.qualityRulesNotRun,34);
  assert.equal(r.counts.critical,0);assert.equal(r.counts.openDecisions,0);
  assert.equal(r.sections.water.house,275);
  assert.equal(r.sections.water.units,275);

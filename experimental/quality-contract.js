@@ -8,6 +8,7 @@
  * "not-run" is never equal to "passed" or "not-applicable".
  */
 const catalog=require("../contracts/legacy-quality-registry.json");
+const costPhase=require("./quality-cost-phase.js");
 const EARLY_RULES=Object.freeze([
   "NKP-FACH-001","NKP-FACH-002","NKP-FACH-003","NKP-FACH-004",
   "NKP-FACH-005","NKP-FACH-006","NKP-FACH-007"
@@ -77,6 +78,14 @@ function evaluateEarly(model){
        tenantA:toText(a.id),tenantB:toText(b.id)});
  }
  add("NKP-FACH-007",crossings,"Keine Mietzeitraumüberschneidungen.");
+ // Cost checks run only when an explicit synthetic cost-domain projection exists.
+ // Missing domains must remain not-run, not silently pass.
+ if(Array.isArray(model.costs))for(const row of costPhase.evaluate({
+   fixtureKind:"synthetic",costs:model.costs,tenants:present
+ }))results.set(row.id,{
+   id:row.id,execution:"experimental-reference-compared",status:row.status,
+   findings:row.findings,summary:row.summary
+ });
  const catalogRows=catalog.rules.map(r=>{
   const actual=results.get(r.id);
   return{
@@ -94,12 +103,13 @@ function evaluateEarly(model){
  const notRun=catalogRows.filter(x=>x.status==="not-run");
  const executed=catalogRows.filter(x=>x.execution!=="not-ported");
  return{
-  engineVersion:"experimental-quality-1",
+  engineVersion:"experimental-quality-2",
   sourceRef:catalog.source.commit,
   scope:"synthetic-only",
   counts:{total:catalogRows.length,experimental:executed.length,
     passed:executed.filter(x=>x.status==="passed").length,
-    critical:critical.length,notRun:notRun.length},
+    critical:critical.length,notRun:notRun.length,
+    notApplicable:catalogRows.filter(x=>x.status==="not-applicable").length},
   rows:catalogRows,
   complete:false, // Cannot be changed by caller, even with zero critical findings.
   readyForRealFinalization:false,
@@ -109,4 +119,4 @@ function evaluateEarly(model){
  };
 }
 function registry(){return catalog.rules.map(row=>({...row}));}
-module.exports=Object.freeze({EARLY_RULES,evaluateEarly,registry,version:"experimental-quality-1"});
+module.exports=Object.freeze({EARLY_RULES,evaluateEarly,registry,version:"experimental-quality-2"});

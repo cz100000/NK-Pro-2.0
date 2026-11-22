@@ -22,4 +22,4 @@
 
 **CI-Gate:** Eine Regel oder Seite, die in der Ausgangsversion vorhanden war, darf aus der Matrix nicht versehentlich entfernt werden. Die Tests schlagen fehl, wenn sich Quell-Fingerprints oder Mengen/Zielzuordnungen widersprechen.
 
-**Offene Fachthemen:** Die 44 Regeln sind bisher **nicht migriert**. Der experimentelle sechs-Methoden-Rechenkern wird separat getestet und ist noch nicht mit der UI verbunden. Produktive Daten und Abrechnungen verbleiben in NK-Pro 1.0.
+**Offene Fachthemen:** Alle 44 Regeln sind inventarisiert; davon laufen 10 nur in synthetischen Tests (34 sind noch nicht portiert). Der experimentelle sechs-Methoden-Rechenkern wird separat getestet und ist noch nicht mit der UI verbunden. Produktive Daten und Abrechnungen verbleiben in NK-Pro 1.0.

@@ -5,7 +5,7 @@
 Das neue Modul [`experimental/synthetic-pipeline.js`](../experimental/synthetic-pipeline.js) verbindet erstmals in **einem ausführbaren Durchlauf** die zuvor getrennten Komponenten:
 
 1. Gesicherte Schema-5-Feldüberleitung ausschließlich für ausdrücklich synthetische In-Memory-Daten (`legacy-fixture-bridge.js`).
-2. Die ersten sieben strukturbezogenen Qualitätsprüfungen und das vollständige 44-Regel-Inventar (`quality-contract.js`); **37 Regeln bleiben immer „nicht ausgeführt“**.
+2. Zehn experimentelle Qualitätsprüfungen (sieben Stammdaten-/Periodenprüfungen plus drei kostenbezogene Pflichtprüfungen) und das vollständige 44-Regel-Inventar (`quality-contract.js`); bei explizit bereitgestellten synthetischen Kosten bleiben **34 Regeln „nicht ausgeführt“**.
 3. Kalt-/Warmwasser und Hausverbrauchsabgleich 2025 (`water-2025.js`).
 4. Externe Techem-Einzelwerte, Privatanteile und vermieterseitige Sammelposition (`external-techem.js`).
 5. Vollständigkeit der Empfängerliste sowie Cent-genaue **Datensummen** der Musterbriefe (`letter-preflight.js`).

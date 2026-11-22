@@ -53,8 +53,8 @@ test("schema-5 contract preview drives the quality engine without mutating sourc
  const p=adapter.project(s);
  const q=quality.evaluateEarly(p.normalized.qualityInput);
  assert.equal(q.counts.critical,0);
- assert.equal(q.counts.experimental,7);
- assert.equal(q.counts.notRun,37);
+ assert.equal(q.counts.experimental,10);
+ assert.equal(q.counts.notRun,34);
  assert.equal(q.readyForRealFinalization,false);
  assert.equal(JSON.stringify(s),before);
 });

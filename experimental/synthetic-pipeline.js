@@ -109,7 +109,7 @@ function run(input, options = {}) {
   // not migrated. These gates must remain false even when the subset is clear.
   const critical=problems.filter(p=>p.severity==="critical").length;
   const openDecisions=problems.filter(p=>p.severity==="decision").length;
-  const missing=["37 original quality rules not ported",
+  const missing=[q.counts.notRun+" original quality rules not ported",
     "Original full-year settlement and owner reconciliation parity",
     "All-recipient letter rendering / A4 / PDF preflight",
     "Immutable archive and guarded original JSON migration",
