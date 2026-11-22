@@ -1,6 +1,118 @@
 /* NK-Pro 0.7: synthetic multi-object portfolio; no genuine records allowed. */
 (function(root,factory){"use strict";const api=Object.freeze(factory());if(typeof module!=="undefined"&&module.exports)module.exports=api;else root.NKPRO2_ESTATES=api;})(typeof globalThis!=="undefined"?globalThis:this,function(){"use strict";
  const SCHEMA="nkpro2-estates-synthetic-v1",copy=x=>JSON.parse(JSON.stringify(x));
+
+ const METER_TYPES=Object.freeze({cold:"Kaltwasser",hot:"Warmwasser",
+   electricity:"Strom",heat:"Techem-Heizkostenverteiler"});
+ const meterStatus=Object.freeze({active:"Aktiv",placeholder:"Musterplatzhalter",retired:"Außer Betrieb"});
+ const legacyMeterId=(unitId,suffix)=>"SYN-MTR-"+encodeURIComponent(unitId)+"-"+suffix;
+ const sampleMeter=(u,type,id,number="",room="",radiator="")=>({
+   id,unitId:u.id,type,number,room,radiator,status:number?"active":"placeholder",
+   installedOn:null,removedOn:null,note:number?"Übernommener fiktiver Zählerstamm.":
+     "Musterplatzhalter – keine bestätigte Zähleridentität."});
+ function initialRegistry(o){
+   return o.units.flatMap(u=>[
+     sampleMeter(u,"cold",legacyMeterId(u.id,"KW"),u.meters?.cold||""),
+     sampleMeter(u,"hot",legacyMeterId(u.id,"WW"),u.meters?.hot||""),
+     sampleMeter(u,"electricity",legacyMeterId(u.id,"STROM")),
+     sampleMeter(u,"heat",legacyMeterId(u.id,"HKV-WZ"),"","Wohnzimmer","Heizkörper 1"),
+     sampleMeter(u,"heat",legacyMeterId(u.id,"HKV-SZ"),"","Schlafzimmer","Heizkörper 1")
+   ]);
+ }
+ // Compatibility-only projection for 0.7 water billing. The registry is the editable master.
+ // Retiring a water meter does not rewrite historical billing snapshots.
+ function updateLegacyWaterAlias(o,unitId,type,number){
+   if(type!=="cold"&&type!=="hot")return;
+   const u=o.units.find(x=>x.id===unitId);
+   if(u){u.meters=u.meters||{};u.meters[type]=number;}
+ }
+ function meterReferenced(o,m){
+   if(!["cold","hot"].includes(m.type))return false;
+   return Object.values(o.settlements).some(a=>(a.units||[]).some(u=>
+     u.id===m.unitId&&(()=>{
+       const v=u.waterMeters?.[m.type];
+       if(!v)return false;
+       return v.number===m.number||(v.segments||[]).some(seg=>seg.number===m.number);
+     })()));
+ }
+ function assertMeterFields(o,fields,old){
+   const type=fields?.type,unitId=fields?.unitId,status=fields?.status||"placeholder";
+   const number=String(fields?.number||"").trim(),room=String(fields?.room||"").trim(),
+     radiator=String(fields?.radiator||"").trim(),note=String(fields?.note||"").trim(),
+     installedOn=fields?.installedOn||null,removedOn=fields?.removedOn||null;
+   if(!o.units.some(u=>u.id===unitId)||!METER_TYPES[type]||!meterStatus[status])
+     throw new TypeError("Zählertyp, Status oder Wohnung ungültig");
+   if([number,room,radiator].some(v=>v.length>100)||note.length>1000)
+     throw new TypeError("Zählerangaben zu lang");
+   if((installedOn&&!date(installedOn))||(removedOn&&!date(removedOn))||
+     (installedOn&&removedOn&&removedOn<installedOn))
+     throw new TypeError("Einbau-/Ausbaudatum ist ungültig");
+   if(status==="active"&&!number)throw new TypeError("Aktiver Zähler benötigt eine Zählernummer");
+   if(status==="retired"&&!number)throw new TypeError("Für ausgebauten Zähler ist eine Nummer erforderlich");
+   if(type==="heat"&&!room)throw new TypeError("Für Heizkostenverteiler bitte Raum angeben");
+   if(old&&(type!==old.type||unitId!==old.unitId))
+     throw new RangeError("Zählertyp und Wohnung sind an die stabile Zähler-ID gebunden");
+   if(old&&old.number!==number&&meterReferenced(o,old))
+     throw new RangeError("Zählernummer ist in Jahresständen referenziert. Alten Zähler außer Betrieb setzen und neuen anlegen.");
+   if(status==="active"&&["cold","hot"].includes(type)&&
+     o.meterRegistry.some(m=>m.id!==old?.id&&m.unitId===unitId&&m.type===type&&m.status==="active"))
+     throw new RangeError("Für diese Wohnung ist bereits ein aktiver Wasserzähler dieses Typs vorhanden");
+   if(number&&o.meterRegistry.some(m=>m.id!==old?.id&&m.number===number&&m.status!=="retired"))
+     throw new RangeError("Zählernummer bereits in diesem Objekt vergeben");
+   return{type,unitId,status,number,room,radiator,note,installedOn,removedOn};
+ }
+ function addMeter(input,objectId,fields){
+   const p=upgradePortfolio(input),o=p.objects.find(x=>x.id===objectId);
+   if(!o||o.lifecycle.status!=="active")throw new RangeError("Aktives Objekt fehlt");
+   const row=assertMeterFields(o,fields,null),m={id:newId("SYN-MTR-"),...row};
+   o.meterRegistry.push(m);
+   if(m.status==="active")updateLegacyWaterAlias(o,m.unitId,m.type,m.number);
+   o.revision++;touch(p,o);return validate(p);
+ }
+ function editMeter(input,objectId,meterId,fields){
+   const p=upgradePortfolio(input),o=p.objects.find(x=>x.id===objectId);
+   if(!o||o.lifecycle.status!=="active")throw new RangeError("Aktives Objekt fehlt");
+   const index=o.meterRegistry.findIndex(x=>x.id===meterId);
+   if(index<0)throw new RangeError("Zählerdatensatz fehlt");
+   const old=o.meterRegistry[index],row=assertMeterFields(o,fields,old);
+   if(meterReferenced(o,old)&&old.status==="retired"&&row.status==="active")
+     throw new RangeError("Historisch ausgebauten Zähler nicht reaktivieren – neuen Zähler anlegen");
+   o.meterRegistry[index]={...old,...row};
+   if(row.status==="active")updateLegacyWaterAlias(o,row.unitId,row.type,row.number);
+   else if(["cold","hot"].includes(row.type)){
+     const u=o.units.find(x=>x.id===row.unitId);
+     if(u?.meters?.[row.type]===old.number)updateLegacyWaterAlias(o,row.unitId,row.type,"");
+   }
+   o.revision++;touch(p,o);return validate(p);
+ }
+ function retireMeter(input,objectId,meterId){
+   const p=upgradePortfolio(input),o=p.objects.find(x=>x.id===objectId);
+   if(!o||o.lifecycle.status!=="active")throw new RangeError("Aktives Objekt fehlt");
+   const m=o.meterRegistry.find(x=>x.id===meterId);
+   if(!m)throw new RangeError("Zählerdatensatz fehlt");
+   if(m.status==="retired")throw new RangeError("Zähler bereits außer Betrieb");
+   if(m.status==="placeholder")
+     throw new RangeError("Unbenutzten Musterplatzhalter direkt löschen");
+   m.status="retired";
+   const u=o.units.find(x=>x.id===m.unitId);
+   if(["cold","hot"].includes(m.type)&&u?.meters?.[m.type]===m.number)
+     updateLegacyWaterAlias(o,m.unitId,m.type,"");
+   o.revision++;touch(p,o);return validate(p);
+ }
+ function deleteUnusedMeter(input,objectId,meterId){
+   const p=upgradePortfolio(input),o=p.objects.find(x=>x.id===objectId);
+   if(!o||o.lifecycle.status!=="active")throw new RangeError("Aktives Objekt fehlt");
+   const m=o.meterRegistry.find(x=>x.id===meterId);
+   if(!m)throw new RangeError("Zählerdatensatz fehlt");
+   if(meterReferenced(o,m))
+     throw new RangeError("Zähler ist in einer Jahresabrechnung referenziert. Stattdessen außer Betrieb setzen.");
+   o.meterRegistry=o.meterRegistry.filter(x=>x.id!==meterId);
+   const u=o.units.find(x=>x.id===m.unitId);
+   if(["cold","hot"].includes(m.type)&&u?.meters?.[m.type]===m.number)
+     updateLegacyWaterAlias(o,m.unitId,m.type,"");
+   o.revision++;touch(p,o);return validate(p);
+ }
+
  const stamp=()=>new Date().toISOString();
  const newId=(prefix)=>{
    const cryptoApi=typeof globalThis!=="undefined"?globalThis.crypto:null;
@@ -20,6 +132,7 @@
    for(const o of p.objects){
      o.lifecycle=o.lifecycle||{status:"active",archivedAt:null};
      o.sync=o.sync||{version:1,updatedAt:null};
+     if(!Array.isArray(o.meterRegistry))o.meterRegistry=initialRegistry(o);
      for(const a of Object.values(o.settlements||{}))a.sync=a.sync||{version:1,updatedAt:null};
    }
    return validate(p);
@@ -175,6 +288,16 @@
      ids.add(o.id);
      const unitIds=new Set(o.units.map(u=>u.id));
      const tenantIds=new Set(o.tenancies.map(t=>t.id));
+     if(!Array.isArray(o.meterRegistry))throw new TypeError("Zählerstamm fehlt");
+     const meterIds=new Set(o.meterRegistry.map(m=>m.id));
+     if(meterIds.size!==o.meterRegistry.length||
+       o.meterRegistry.some(m=>!m?.id||!unitIds.has(m.unitId)||!METER_TYPES[m.type]||
+       !meterStatus[m.status]))
+       throw new TypeError("Zählerstammdaten enthalten doppelte IDs oder ungültige Zuordnungen");
+     for(const unitId of unitIds)for(const type of ["cold","hot"]){
+       const active=o.meterRegistry.filter(m=>m.unitId===unitId&&m.type===type&&m.status==="active");
+       if(active.length>1)throw new TypeError("Doppelte aktive Wasserzähler");
+     }
      if(unitIds.size!==o.units.length||tenantIds.size!==o.tenancies.length||
        o.tenancies.some(t=>!unitIds.has(t.unitId)))
        throw new TypeError("Invalid apartment / tenancy relationship");
@@ -294,7 +417,7 @@
      throw new TypeError("Objektname und vollständige fiktive Anschrift erforderlich");
    let id=newId("SYN-OBJ-");
    while(p.objects.some(o=>o.id===id)||p.tombstones.some(t=>t.id===id))id=newId("SYN-OBJ-");
-   const o={id,name,street,postalCode,city,revision:1,units:[],tenancies:[],settlements:{},
+   const o={id,name,street,postalCode,city,revision:1,units:[],tenancies:[],meterRegistry:[],settlements:{},
      lifecycle:{status:"active",archivedAt:null},sync:{version:0,updatedAt:null}};
    p.objects.push(o);
    touch(p,o);
@@ -311,7 +434,10 @@
      throw new TypeError("Gültige Wohnungsbezeichnung, Lage und Fläche erforderlich");
    const unit={id:newId("SYN-W-"),label,position,area,active:true,
      meters:{cold:newId("DEMO-KW-"),hot:newId("DEMO-WW-")}};
-   o.units.push(unit);o.revision++;touch(p,o);
+   o.units.push(unit);
+   // New apartments get their own independent meter records, including clearly marked demos.
+   o.meterRegistry.push(...initialRegistry({units:[unit]}));
+   o.revision++;touch(p,o);
    return validate(p);
  }
  function addYear(input,objectId,year){
@@ -321,6 +447,9 @@
      throw new RangeError("Objekt/Jahr ungültig oder bereits vorhanden");
    if(!o.units.length||!project(o,y).length)
      throw new RangeError("Vor dem Jahresentwurf Wohnungen und gültige Mietverhältnisse anlegen");
+   for(const u of o.units)for(const type of ["cold","hot"])
+     if(!o.meterRegistry.some(m=>m.unitId===u.id&&m.type===type&&m.status==="active"))
+       throw new RangeError("Vor einer neuen Jahresabrechnung müssen aktive KW-/WW-Zähler vorhanden sein");
    const a=syntheticYear(o,y);
    a.settlement={...a.settlement,status:"draft",readOnly:false,
      createdFrom:"new-object-synthetic-template"};
@@ -405,5 +534,6 @@
  return{SCHEMA,create,validate,upgradePortfolio,object,annual,current,readonly,project,
   selectObject,selectYear,editMaster,addObject,addUnit,addYear,archiveObject,restoreObject,
   deleteEmptyObject,saveYear,rebasePreview,rebaseDraft,syncSnapshot,planSync,statusLabel,
-  version:"synthetic-estates-v2"};
+  METER_TYPES,meterStatus,addMeter,editMeter,retireMeter,deleteUnusedMeter,meterReferenced,
+  version:"synthetic-estates-v3"};
 });
