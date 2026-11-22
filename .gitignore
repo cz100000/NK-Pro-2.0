@@ -1,0 +1,10 @@
+# Keep genuine NK-Pro backups and migration workspaces out of this public repo.
+/private-data/
+/.nkpro-private/
+/private-import/
+/_real-data/
+*.nkpro-private.json
+*.nkpro-real.json
+*.nkpro-source.json
+_site/
+_visual-test-artifacts/
