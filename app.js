@@ -11,9 +11,11 @@
   const workflow = window.NKPRO2_WORKFLOW;
   const qualityModule = window.NKPRO2_REVIEW;
   const letterModule = window.NKPRO2_LETTERS;
+  const legacyLetterEngine = window.NKPRO2_LEGACY_LETTER_ENGINE;
+  const letterWorkspace = window.NKPRO2_LETTER_WORKSPACE;
   const estates = window.NKPRO2_ESTATES;
   const masterUi = window.NKPRO2_MASTER_UI;
-  if (!demoLedger || !functionalBilling || !waterDetails || !propertyModel || !caseBilling || !workflow || !qualityModule || !letterModule || !estates || !masterUi || typeof caseBilling.calculate !== 'function') throw new Error('Synthetic billing modules missing.');
+  if (!demoLedger || !functionalBilling || !waterDetails || !propertyModel || !caseBilling || !workflow || !qualityModule || !letterModule || !legacyLetterEngine || !letterWorkspace || !estates || !masterUi || typeof caseBilling.calculate !== 'function') throw new Error('Synthetic billing modules missing.');
   const icons = {
     overview:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
     bill:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
@@ -86,7 +88,7 @@
   let portfolio=load(),data=estates.current(portfolio);
   const ui={view:'overview',step:'advance',billingHome:true,objectListFilter:null,
     analytics:'nk',objectTab:'overview',unitDetailId:null,consumptionTab:'water',
-    letterId:null,showAllLetters:false,filter:'',drawer:null,lastFocus:null,
+    letterId:null,letterZoom:0.66,showAllLetters:false,filter:'',drawer:null,lastFocus:null,
     treeOpenObjectId:null,treeSections:{master:false,years:true}};
   const master=()=>estates.object(portfolio);
   const activeYear=()=>portfolio.selectedYear;
@@ -619,24 +621,10 @@
         '<div class="info-line">Die 44 Originalregeln sind jetzt sichtbar inventarisiert. „Nicht ausgeführt“ bedeutet ausdrücklich NICHT bestanden. Finalisierung, Archiv und echte Brieffreigabe bleiben gesperrt.</div>';
   }
   function letters(){
-    const bundle=letterBundle(),list=bundle.letters,chosen=ui.letterId&&list.find(x=>x.id===ui.letterId)||list[0];
-    const selected=ui.showAllLetters?list:chosen?[chosen]:[];
-    const incomplete=bundle.missingRecipients.length+bundle.errors.length;
-    return '<div class="inline-toolbar"><div><h2>Briefe · Einzelvorschau und Sammelentwurf</h2>'+
-      '<p class="small muted">Vollständige Muster-Empfängerliste aus dem Abrechnungskern · keine Versandfreigabe</p></div>'+
-      button('Briefvorlage bearbeiten','edit-letter-settings',null,'button-quiet')+'</div>'+
-      '<div class="case-summary"><div><small>Abrechnungsfälle</small><strong>'+data.tenancies.length+'</strong></div>'+
-      '<div><small>Briefentwürfe</small><strong>'+bundle.letters.length+'</strong></div>'+
-      '<div><small>Fehlende Daten</small><strong>'+incomplete+'</strong></div>'+
-      '<div><small>A4-/Fachfreigabe</small><strong>Gesperrt</strong></div></div>'+
-      '<section class="section printable"><div class="section-header"><div><h2>Entwurfsauswahl</h2>'+
-      '<p>Alle Entwürfe enthalten eine Nicht-versenden-Kennzeichnung.</p></div>'+
-      '<button class="link" type="button" data-action="all-letters">'+(ui.showAllLetters?'Einzelbrief anzeigen':'Alle Entwürfe anzeigen')+'</button></div>'+
-      '<div class="letter-picker">'+list.map(x=>'<button type="button" class="'+(chosen?.id===x.id?'active':'')+
-         '" data-action="select-letter" data-id="'+safeText(x.id)+'">'+safeText(x.name)+' · '+safeText(x.unit)+'</button>').join('')+'</div>'+
-      '<div class="section-body letter-paper-stack">'+selected.map(x=>letterModule.html(x,bundle.config)).join('')+'</div></section>'+
-      '<div class="info-line">Die Briefdaten und Beträge stammen aus dem fallbezogenen Abrechnungsmodell. Dokumentpreflight: '+safeText(bundle.status)+
-      '. Druck- und A4-Layoutparität, alle Original-Briefeinstellungen und finale Freigabe sind noch nicht abgeschlossen.</div>';
+    try{return letterWorkspace.render({data,ledger:ledger(),ui,
+      engine:legacyLetterEngine,annualLocked:annualLocked()});}
+    catch(error){return '<div class="water-issues"><strong>Briefvorschau konnte nicht sicher erstellt werden.</strong>'+
+      '<p>'+safeText(error.message)+'</p><p>Die gespeicherten Abrechnungsdaten bleiben unverändert.</p></div>';}
   }
   function object(){
     const o=master();
@@ -1507,6 +1495,65 @@
     if(action==='check-water'){const r=waterReport();if(!r.canReview){navigate('billing','water');toast('Bitte fehlende Zählerstände und Ablesedaten ergänzen.');return}if(r.exactMatch){toast('Beide Wasserabgleiche stimmen überein.');return}openDrawer('water-decision');return}
     if(action==='edit-water-price'){openDrawer('cost','water');return}
     if(action==='go-water'){navigate('billing','water');return}if(action==='go-advance'){navigate('billing','advance');return}if(action==='check-heat'){openDrawer('heat-evidence');return}if(action==='go-costs'){navigate('billing','costs');return}if(action==='go-review'){navigate('billing','review');return}if(action==='go-letter'){navigate('billing','letters');return}
+    if(action==='letter-zoom-in'||action==='letter-zoom-out'){
+      ui.letterZoom=Math.min(1.4,Math.max(.3,ui.letterZoom+(action==='letter-zoom-in'?.1:-.1)));
+      render();return;
+    }
+    if(action==='letter-fit-width'||action==='letter-fit-page'){
+      const viewport=$('legacyLetterViewport');
+      if(!viewport)return;
+      const width=(viewport.clientWidth||800)-30;
+      const height=(viewport.clientHeight||760)-25;
+      const w=width/(210*96/25.4);
+      const h=height/(297*96/25.4);
+      ui.letterZoom=Math.min(1.1,Math.max(.25,action==='letter-fit-page'?Math.min(w,h):w));
+      render();return;
+    }
+    if(action==='letter-toggle-mono'){
+      if(annualLocked())return toast('Historischer Musterstand – nur ansehen.');
+      data.letterSettings=data.letterSettings||{};
+      data.letterSettings.schwarzweissOptimiert=
+        data.letterSettings.schwarzweissOptimiert==='Ja'?'Nein':'Ja';
+      stateChange();return;
+    }
+    if(action==='letter-print-check'){
+      const model=ledger(),person=model.tenants.find(t=>t.id===ui.letterId)||model.tenants[0];
+      if(!person)return toast('Kein Briefempfänger vorhanden.');
+      const report=legacyLetterEngine.render(data,model,person.id).preflight;
+      toast(report.errors?report.errors+' Pflichtangaben fehlen.':
+        report.warnings?report.warnings+' Prüfhinweise im Brief.':
+        'AP13-Layout vorhanden; Produktivfreigabe weiterhin gesperrt.');
+      return;
+    }
+    if(action==='letter-copy'){
+      const element=$('legacyLetterCanvas');
+      const text=element?.innerText||element?.textContent||'';
+      if(!text)return toast('Keine Briefvorschau vorhanden.');
+      if(window.navigator?.clipboard?.writeText){
+        window.navigator.clipboard.writeText(text).then(()=>toast('Brieftext kopiert.'))
+          .catch(()=>toast('Zwischenablage nicht verfügbar.'));
+      }else toast('Zwischenablage hier nicht verfügbar. Text bitte manuell markieren.');
+      return;
+    }
+    if(action==='letter-print'||action==='letter-print-all'){
+      const model=ledger(),records=action==='letter-print-all'?
+        legacyLetterEngine.renderAll(data,model):[
+          legacyLetterEngine.render(data,model,
+            ui.letterId||model.tenants[0]?.id)];
+      if(records.some(r=>r.preflight.errors)){
+        const count=records.reduce((n,r)=>n+r.preflight.errors,0);
+        toast('Druck abgebrochen: '+count+' Pflichtangaben fehlen. Bitte die Briefprüfung öffnen.');
+        return;
+      }
+      const win=window.open?.('','_blank');
+      if(!win){toast('Druckfenster blockiert. Bitte Pop-ups erlauben.');return;}
+      const html=legacyLetterEngine.printHtml(records.map(r=>r.html).join(''),
+        action==='letter-print-all'?'Sammeldruck':'Einzelbrief');
+      win.document.open();win.document.write(html);win.document.close();
+      win.focus();
+      toast('Muster-Druckansicht geöffnet. Im Druckdialog „Als PDF speichern“ möglich.');
+      return;
+    }
     if(action==='all-letters'){ui.showAllLetters=!ui.showAllLetters;render();return}
     if(action==='select-letter'){ui.letterId=id;ui.showAllLetters=false;render();return}
     if(action==='print-letter'){if(annualLocked())return toast('Historischer Musterstand: Druck gesperrt.');
@@ -1525,10 +1572,52 @@
       catch(error){rollbackLocal();render();toast('Aktion nicht gespeichert: '+error.message)}
     }
   });
-  document.addEventListener('submit',e=>{if(e.target.id==='editForm'){
-    e.preventDefault();
-    try{saveDrawer(e.target)}catch(error){rollbackLocal();render();toast('Änderung nicht gespeichert: '+error.message)}
-  }});
+  function saveLetterConfig(form){
+    if(annualLocked())return toast('Historischer Musterstand: keine Änderungen.');
+    const caseId=form.dataset.caseId;
+    if(!data.tenancies.some(t=>t.id===caseId))throw new RangeError('Briefempfänger fehlt');
+    const next={...(data.letterSettings||{})};
+    const fields=['absenderName','absenderStrasse','absenderOrt','absenderTelefon',
+      'absenderZeile','ort','briefdatum','zahlungsziel','bankverbindung',
+      'introText','saldoTextNachzahlung','saldoTextGuthaben','outroText',
+      'abschlusstext','gruss','signatur','anlagenText','heizkostenFussnote',
+      'vorauszahlungPrintMode','vorauszahlungAb','vorauszahlungIntro','dauerauftragText'];
+    for(const name of fields){
+      const field=form.elements[name];if(field)next[name]=field.value.slice(0,4000);
+    }
+    if(next.vorauszahlungPrintMode==='Berechnete Werte drucken')
+      throw new RangeError('Automatische Vorauszahlungsanpassungen sind noch nicht fachlich freigegeben.');
+    next.personalSalutations={...next.personalSalutations};
+    const sal=form.elements.personalSalutation?.value.trim()||'';
+    if(sal)next.personalSalutations[caseId]=sal;
+    else delete next.personalSalutations[caseId];
+    const previous=Array.isArray(next.prepaymentRows)?next.prepaymentRows:[];
+    const rows=previous.filter(row=>row.tenantId!==caseId);
+    for(const cost of data.costs.filter(c=>c.active!==false)){
+      const old=form.elements['prepayOld_'+cost.id]?.value.trim()||'';
+      const neu=form.elements['prepayNew_'+cost.id]?.value.trim()||'';
+      if(!old&&!neu)continue;
+      if(!old||!neu||!Number.isFinite(Number(old))||!Number.isFinite(Number(neu))||
+        Number(old)<0||Number(neu)<0)
+        throw new RangeError('Bei Vorauszahlungsanpassungen je Kostenart bitte beide Monatswerte korrekt eingeben.');
+      rows.push({tenantId:caseId,costId:cost.id,label:cost.name,
+        oldMonthly:round(Number(old)),newMonthly:round(Number(neu))});
+    }
+    next.prepaymentRows=rows;
+    data.letterSettings=next;stateChange();toast('Briefeinstellungen gespeichert.');
+  }
+  document.addEventListener('submit',e=>{
+    if(e.target.id==='letterConfigForm'){
+      e.preventDefault();
+      try{saveLetterConfig(e.target)}
+      catch(error){toast('Briefeinstellungen nicht gespeichert: '+error.message)}
+      return;
+    }
+    if(e.target.id==='editForm'){
+      e.preventDefault();
+      try{saveDrawer(e.target)}catch(error){rollbackLocal();render();toast('Änderung nicht gespeichert: '+error.message)}
+    }
+  });
   function costLivePreview(form){
     if(!form||!['cost','new-cost'].includes(form.dataset.type))return;
     const el=form.querySelector('#costPricePreview');if(!el)return;
