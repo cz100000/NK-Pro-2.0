@@ -17,3 +17,11 @@ Das alte NK-Pro-Repositorium ist ausdrücklich nicht Teil dieses Deployments und
 - [ ] Echte Teilnehmer-/Mietwechsel- und KW-/WW-Domänen; vollständiger Legacy-Abrechnungskern und 44 Qualitätsregeln.
 - [ ] Sicherer Import und Speicher mit separater Browser-Origin.
 - [ ] Briefe, Druckabnahme, Archiv, Analysen, Drive und kontrollierter Parallelbetrieb.
+
+## Anwenderfeedback vom 22.11.2026 · Wasser und Kostenfreitext
+
+- [x] Zwei getrennte KW-/WW-Kanäle je synthetischer Wohnung; Zählernummer, Datum, Anfang/Ende und optionale Bemerkung.
+- [x] Hauszählerstand, Rechnungsverbrauch, beide Abweichungsabgleiche und €/m³-Anzeige; automatische Preisermittlung mit vier Nachkommastellen und manuelle Preisvorgabe im Kostenformular.
+- [x] Freitext/Bemerkung zu jeder angelegten Kostenart mit Speicherung im Demo-Datensatz.
+- [ ] Vollständige Bestandsparität für physische Zähleridentität, Messperioden, Zählerwechsel, Leerstand, Mieterwechsel und Vorjahresübernahme.
+- [ ] 2025-Sonderregel der tatsächlichen Abrechnung mit den bestätigten Originalzählerständen centgenau abnehmen, ehe Echtdaten erlaubt werden.

@@ -43,9 +43,9 @@ test("meter differences do not disappear into a tenant allocation",()=>{
   assert.equal(r.valid,false);
 });
 test("negative meter, zero person basis and invalid owner amount block",()=>{
-  const x=make();x.units[0].waterEnd=1;
+  const x=make();x.units[0].waterMeters.cold.end=1;
   assert.ok(calc.calculate(x).issues.some(i=>i.code==="INVALID_WATER"));
-  x.units[0].waterEnd=40;x.units.forEach(u=>u.people=0);x.costs[0].method="Personen";
+  x.units[0].waterMeters.cold.end=30;x.units.forEach(u=>u.people=0);x.costs[0].method="Personen";
   assert.ok(calc.calculate(x).issues.some(i=>i.code==="ZERO_BASIS"));
   x.costs[0].landlordShare=1000;
   assert.ok(calc.calculate(x).issues.some(i=>i.code==="INVALID_LANDLORD"));
@@ -62,4 +62,27 @@ test("inactive apartment does not participate in active-only cost",()=>{
   const r=calc.calculate(x);
   assert.equal(r.units[1].costCents,0);
   assert.equal(r.units[0].costCents,19713);
+});
+test("manual €/m³ override changes the legacy-reference split and exposes unallocated costs",()=>{
+ const x=make();x.costs[0].method="Verbrauch";
+ const regular=calc.calculate(x);
+ x.costs[0].priceMode="manual";x.costs[0].unitPrice=1.2345;
+ const manual=calc.calculate(x);
+ assert.notEqual(manual.units[0].costCents,regular.units[0].costCents);
+ assert.ok(manual.issues.some(i=>i.code==="UNALLOCATED_REFERENCE"));
+ assert.equal(manual.valid,false);
+});
+test("missing WW channel blocks the billing calculation, not silently zero",()=>{
+ const x=make();x.costs[0].method="Verbrauch";
+ x.units[1].waterMeters.hot.end="";
+ const report=calc.calculate(x);
+ assert.equal(report.valid,false);
+ assert.ok(report.issues.some(i=>i.code==="METER_WW_INCOMPLETE"));
+});
+test("consumption reads both independent meter channels",()=>{
+ const x=make();x.costs[0].method="Verbrauch";
+ const first=calc.calculate(x).units[0].costCents;
+ x.units[0].waterMeters.hot.end+=10;x.houseWater=80;
+ const second=calc.calculate(x).units[0].costCents;
+ assert.ok(second>first);
 });
