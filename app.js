@@ -158,12 +158,14 @@
   const head=(kicker,title,description,action='')=>`<div class="page-heading"><div><div class="eyebrow">${safeText(kicker)}</div><h1>${title}</h1><p>${description}</p></div>${action?`<div class="heading-actions">${action}</div>`:''}</div>`;
   function progress(){const done=Math.min(6,qualityReport().counts.executed===44?6:4);let html='<div class="flow-track">';for(let i=0;i<7;i++)html+=`<div class="flow-segment ${i<done?'complete':i===done?'current':''}"></div>`;return html+`</div><div class="flow-labels">${['Mietverhältnisse','Vorauszahlungen','Gesamtkosten','Verbräuche','Prüfen','Ergebnis','Briefe'].map((x,i)=>`<span class="${i===Math.min(done,6)?'highlight':''}">${x}</span>`).join('')}</div>`}
   function overview(){
-    const live=portfolio.objects.filter(o=>o.lifecycle?.status!=="archived"),
-      archived=portfolio.objects.filter(o=>o.lifecycle?.status==="archived");
+    const shown=displayPortfolio();
+    const live=shown.objects.filter(o=>o.lifecycle?.status!=="archived"),
+      archived=shown.objects.filter(o=>o.lifecycle?.status==="archived");
     const listing=(items,isArchived)=>{
       const row=o=>{
         const years=Object.keys(o.settlements).length;
-        const menu='<details class="estate-menu"><summary aria-label="Weitere Aktionen für '+safeText(o.name)+
+        const menu=o.sourceKind==='real'?'<span class="status neutral">Echtdaten</span>':
+          '<details class="estate-menu"><summary aria-label="Weitere Aktionen für '+safeText(o.name)+
           '" title="Objektaktionen">'+icon('more')+'</summary><div class="estate-menu-items">'+
           (isArchived?button('Wiederherstellen','restore-object',o.id,'button-quiet'):
             button('Archivieren','archive-object',o.id,'button-quiet'))+
@@ -186,7 +188,8 @@
         '<th>Jahresabrechnungen</th><th>Aktion</th></tr></thead><tbody>'+
         items.map(row).join('')+'</tbody></table></div>';
     };
-    return head('IMMOBILIENBESTAND · NUR MUSTERDATEN','Startseite',
+    return head(realObject?'IMMOBILIENBESTAND · ECHTDATEN + MUSTEROBJEKTE':
+      'IMMOBILIENBESTAND · NUR MUSTERDATEN','Startseite',
       'Verwaltete Immobilien im Überblick. Wählen Sie ein Objekt zur Bearbeitung.',
       button(icon('plus')+' Neues Objekt','new-object',null,'button-primary'))+
       '<section class="section estate-list"><div class="section-header"><div>'+
@@ -197,7 +200,9 @@
       '</section>'+
       (archived.length?'<details class="estate-archive-group"><summary>Archivierte Immobilien ('+
         archived.length+')</summary>'+listing(archived,true)+'</details>':'')+
-      '<p class="footnote">Nur synthetische Musterobjekte. Archivieren bewahrt sämtliche Abrechnungsjahre; endgültiges Löschen ist nur bei vollständig leeren Objekten möglich.</p>';
+       '<p class="footnote">'+(realObject?
+         'ARB5 ist der private Echtdatenbestand; Musterobjekte B und C bleiben vollständig für Testzwecke erhalten.':
+         'Nur synthetische Musterobjekte. Archivieren bewahrt sämtliche Abrechnungsjahre; endgültiges Löschen ist nur bei vollständig leeren Objekten möglich.')+'</p>';
   }
   const steps=[['advance','Vorauszahlungen'],['costs','Gesamtkosten'],['water','Verbräuche'],['review','Prüfen'],['allocation','Ergebnis'],['letters','Briefe']];
   const renderSteps=()=>`<div class="tab-bar" role="tablist" aria-label="Abrechnungsprozess">${steps.map(([id,label])=>`<button class="tab-button ${ui.step===id?'active':''}" role="tab" aria-selected="${ui.step===id}" type="button" data-step="${id}">${label}</button>`).join('')}</div>`;
@@ -207,7 +212,93 @@
       {mode:realObject?'real':'demo'});
   }
 
+  // Original v0.13 document, table and heading classes are reused.
+  // Source archives are displayed without recalculation or synthetic results.
+  function realBillingList(){
+    const o=master(),years=Object.keys(o.settlements).sort((a,b)=>b.localeCompare(a));
+    return head('JAHRESABRECHNUNGEN · '+safeText(o.name),'Jahresabrechnungen',
+      'Übernommene historische Originalstände. Die Abrechnung 2025 wird neu erstellt.')+
+      '<div class="portfolio-summary"><div><small>Objekt</small><strong class="portfolio-object-name">'+safeText(o.name)+'</strong></div>'+
+      '<div><small>Wohnungen</small><strong>'+o.units.length+'</strong></div>'+
+      '<div><small>Abrechnungsjahre</small><strong>'+years.length+'</strong></div></div>'+
+      '<section class="section annual-property"><div class="section-header"><div>'+
+      '<h2>Jahresübersicht</h2><p>'+safeText(o.street)+', '+
+      safeText(o.postalCode)+' '+safeText(o.city)+'</p></div></div>'+
+      '<div class="annual-rows">'+years.map(y=>{
+        const a=o.settlements[y];
+        return '<div class="annual-row" data-year="'+safeText(y)+'">'+
+          '<span class="annual-icon">'+icon('calendar')+'</span>'+
+          '<span class="annual-primary"><strong>Abrechnung '+safeText(y)+'</strong>'+
+          '<small>'+safeText(y==='2025'?'Neu · ohne Altwerte':
+            'Historischer Originalstand · nur lesen')+'</small></span>'+
+          '<span class="annual-status">'+safeText(a.navigationLabel)+'</span>'+
+          '<span class="annual-link">'+viewAction('open-year',o.id+'|'+y,
+            'Abrechnung '+y)+'</span></div>';
+      }).join('')+'</div></section>'+
+      '<div class="info-line">Die zwei Archivstände für 2023 sind getrennt erhalten und '+
+      'über denselben Jahreseintrag erreichbar.</div>';
+  }
+  function realBillingYear(){
+    const o=master(),year=activeYear(),entry=o.settlements[year];
+    if(!entry)return head('JAHRESABRECHNUNG','Nicht vorhanden',
+      'Für diesen Zeitraum liegt kein Jahresstand vor.');
+    const back='<div class="context-return">'+button('← Jahresabrechnungen',
+      'back-billings',null,'button-quiet')+'<span>'+safeText(o.name)+'</span></div>';
+    if(year==='2025')
+      return back+head('JAHRESABRECHNUNG 2025 · NEU','Abrechnung 2025',
+        'Die Abrechnung 2025 wird in NK-Pro 2.0 neu erstellt.')+
+        '<section class="section"><div class="section-header"><div>'+
+        '<h2>Neuer Abrechnungsstand</h2></div>'+
+        '<span class="status neutral">Noch nicht freigegeben</span></div>'+
+        '<div class="info-line">Keine Kosten, Vorauszahlungen, Zählerablesungen, '+
+        'Techem-Einzelwerte oder Abrechnungsergebnisse aus NK-Pro 1.0 importiert. '+
+        'Der neue Fachworkflow ist noch nicht produktiv freigegeben.</div></section>';
+    const archives=entry.archivedOriginals||[];
+    return back+head('HISTORISCHES ARCHIV · '+safeText(year),
+      'Abrechnung '+safeText(year),'Unveränderte Originalstände ohne Neuberechnung.')+
+      archives.map((entry,i)=>{
+        const raw=entry.snapshot||{},historical=raw.data||{},
+          values=raw.summary||{},costs=Array.isArray(historical.kostenarten)?
+          historical.kostenarten:[],
+          complete=entry.completeness==='complete';
+        return '<section class="section" data-archive-ref="'+safeText(entry.id)+'">'+
+          '<div class="section-header"><div><h2>'+safeText(year)+
+          (archives.length>1?' · Archivstand '+(i+1):'')+'</h2>'+
+          '<p>'+safeText(complete?'Vollständiger Originalstand':
+            'Historischer Teilbestand – nicht vollständig rekonstruierbar')+'</p></div>'+
+          '<span class="status neutral">Nur Ansicht</span></div>'+
+          '<div class="stat-inline">'+[
+           ['Kosten laut Quelle',values.kostenNK],
+           ['Vorauszahlungen laut Quelle',values.vorauszahlungen],
+           ['Saldo laut Quelle',values.saldo]
+          ].map(([label,value])=>'<div><small>'+label+'</small><strong>'+
+            (Number.isFinite(value)?fmt(value):'–')+'</strong></div>').join('')+
+          '</div><div class="table-wrap"><table class="data-table"><thead><tr>'+
+          '<th>Kostenart</th><th class="money">Originalbetrag</th></tr></thead><tbody>'+
+          costs.map(c=>'<tr><td>'+safeText(c.kostenart||c.name||c.id)+'</td>'+
+           '<td class="money">'+(Number.isFinite(c.gesamtbetrag)?
+             fmt(c.gesamtbetrag):'–')+'</td></tr>').join('')+
+          '</tbody></table></div>'+
+          '<div class="info-line">Archivstand schreibgeschützt und unverändert. '+
+          'Keine neue Berechnung.</div></section>';
+      }).join('');
+  }
+  function realAnalytics(){
+    return head('OBJEKTÜBERGREIFEND','Analysezentrum',
+      'Historische Daten sind vorhanden. Geprüfte Mehrjahresvergleiche folgen.')+
+      '<section class="section"><div class="info-line">'+
+      'Keine ungeprüften Finanz-, Steuer- oder Nebenkostenkennzahlen aus echten Daten.'+
+      '</div></section>';
+  }
+  function realDocuments(){
+    return head('OBJEKTÜBERGREIFEND','Dokumente & Archiv',
+      'Historische Archive sind innerhalb der Jahresabrechnungen erreichbar.')+
+      '<section class="section"><div class="section-header"><h2>Historisches Archiv</h2></div>'+
+      '<div class="info-line">Fünf unveränderte Originalstände, darunter beide '+
+      'Fassungen für 2023. Keine neuen Briefe aus Echtdaten freigegeben.</div></section>';
+  }
   function billingList(){
+    if(selectedReal)return realBillingList();
     const o=master(),years=Object.keys(o.settlements).sort((a,b)=>b.localeCompare(a));
     return head('JAHRESABRECHNUNGEN · '+safeText(o.name),'Jahresabrechnungen',
       'Hier werden ausschließlich Jahresabrechnungen dieser Immobilie angezeigt.',
@@ -237,6 +328,7 @@
         '</section><div class="info-line">Jahresabrechnungen sind diesem Objekt fest zugeordnet. Objektwechsel erfolgen ausschließlich links im Immobilienbaum.</div>';
   }
   function billing(){
+    if(selectedReal)return ui.billingHome?realBillingList():realBillingYear();
     if(ui.billingHome)return billingList();
     if(!data)return head('JAHRESABRECHNUNGEN','Kein Jahresstand',
       'Bitte zunächst unter Jahresabrechnungen eine synthetische Jahresabrechnung anlegen.');
@@ -621,7 +713,7 @@
           placeholders=rows.filter(m=>m.status==='placeholder').length;
         const row=m=>{
           const where=[m.room,m.radiator].filter(Boolean).join(' · ')||'–';
-          return '<tr><td><strong>'+safeText(estates.METER_TYPES[m.type])+'</strong>'+
+          return '<tr><td><strong>'+safeText(m.originalType||estates.METER_TYPES[m.type]||m.type)+'</strong>'+
             '<span class="water-unit-sub mono">'+safeText(m.id)+'</span></td>'+
             '<td class="mono">'+(m.number?safeText(m.number):
               '<span class="meter-not-set">Noch nicht hinterlegt</span>')+'</td>'+
@@ -629,7 +721,7 @@
             '<td><span class="status '+(m.status==='active'?'green':'neutral')+'">'+
               safeText(estates.meterStatus[m.status])+'</span></td>'+
             '<td><div class="meter-actions">'+
-              editAction('edit-master-meter',m.id,estates.METER_TYPES[m.type]+' '+(m.number||m.id))+
+              editAction('edit-master-meter',m.id,(m.originalType||estates.METER_TYPES[m.type]||m.type)+' '+(m.number||m.id))+
               '</div></td></tr>';
         };
         return '<details class="meter-unit"'+(i===0?' open':'')+'>'+
@@ -661,6 +753,7 @@
     return content;
   }
   function analytics(){
+    if(selectedReal)return realAnalytics();
     if(!data)return head('OBJEKTÜBERGREIFEND','Analysezentrum',
       'Objektübergreifende Auswertungen folgen in einer späteren Entwicklungsstufe.')+
       '<div class="info-line">Im aktuellen Objekt liegt noch kein Abrechnungsjahr vor. Keine Kennzahlen verfügbar.</div>';
@@ -674,7 +767,7 @@
       '<div class="info-line">Fachtest: Angezeigte Musterkennzahlen stammen derzeit nur aus '+safeText(master().name)+' / '+safeText(activeYear())+'. Keine objektübergreifende Aggregation.</div>'+
       `<div class="analytic-switch" role="tablist" aria-label="Analyseperspektive">${choices.map(([id,label])=>`<button type="button" role="tab" aria-selected="${ui.analytics===id}" class="${ui.analytics===id?'selected':''}" data-analytics="${id}">${label}</button>`).join('')}</div>`+body;
   }
-  function documents(){if(!data)return head('OBJEKTÜBERGREIFEND','Dokumente & Archiv',
+  function documents(){if(selectedReal)return realDocuments();if(!data)return head('OBJEKTÜBERGREIFEND','Dokumente & Archiv',
       'Zentrale Ablage für sämtliche Immobilien und Jahre – noch im Aufbau.')+
       '<div class="empty"><h3>Noch keine Dokumente verfügbar</h3><p>Für das aktuelle Objekt wurden noch keine Musterabrechnungen angelegt.</p></div>';
     return head('OBJEKTÜBERGREIFEND','Dokumente & Archiv',
