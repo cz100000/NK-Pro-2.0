@@ -707,8 +707,13 @@
           '</td><td>'+editAction('edit-master-tenancy',t.id,t.name)+'</td></tr>').join('')+
         '</tbody></table></div><div class="table-caption">Die Jahresfälle werden aus diesen Zeiträumen abgeleitet. Eine Änderung an einem Mietvertrag überschreibt abgeschlossene oder historische Jahresstände niemals still.</div></section>';
     }else{
-      const groups=o.units.map((u,i)=>{
-        const rows=o.meterRegistry.filter(m=>m.unitId===u.id);
+      const hasHouseMeters=selectedReal&&o.meterRegistry.some(m=>!m.unitId);
+      const meterUnits=hasHouseMeters?
+        [...o.units,{id:'__HOUSE_METERS__',label:'Hauszähler',
+          position:'Gemeinschaftszähler'}]:o.units;
+      const groups=meterUnits.map((u,i)=>{
+        const rows=o.meterRegistry.filter(m=>u.id==='__HOUSE_METERS__'?
+          !m.unitId:m.unitId===u.id);
         const active=rows.filter(m=>m.status==='active').length,
           placeholders=rows.filter(m=>m.status==='placeholder').length;
         const row=m=>{
@@ -732,8 +737,8 @@
             (placeholders?' · '+placeholders+' Muster':'')+'</span>'+
             '<span class="meter-disclosure">'+icon('chevron')+'</span></summary>'+
           '<div class="meter-unit-body">'+
-            '<div class="meter-unit-tools">'+button(icon('plus')+' Zähler hinzufügen',
-              'new-master-meter',u.id,'button-primary')+'</div>'+
+            '<div class="meter-unit-tools">'+(u.id==='__HOUSE_METERS__'?'':button(icon('plus')+' Zähler hinzufügen',
+              'new-master-meter',u.id,'button-primary'))+'</div>'+
             '<div class="table-wrap"><table class="data-table meter-table"><thead><tr>'+
             '<th>Zählertyp / ID</th><th>Zählernummer</th><th>Raum / Heizkörper</th>'+
             '<th>Status</th><th>Aktionen</th></tr></thead><tbody>'+
