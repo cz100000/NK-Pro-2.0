@@ -121,6 +121,12 @@ const chromeBinary=()=>{
   assert.equal(await evalJS("return document.querySelectorAll('#appMain .data-table tbody tr').length;"),5);
   assert.ok(await evalJS("return document.querySelector('#appMain').textContent.includes('2010-01-01');"));
   await shot("canonical-04-original-v013-real-tenancies");
+  await evalJS("document.querySelector('#portfolioTree [data-action=open-object-tab][data-id=meters]').click();");
+  await until("return document.querySelector('#appMain h1')?.textContent.includes('Zähler');");
+  assert.equal(await evalJS("return document.querySelectorAll('#appMain .meter-unit').length;"),8,
+    "Original seven unit accordions plus existing house-meter accordion");
+  assert.ok(await evalJS("return document.querySelector('#appMain').textContent.includes('Hauszähler');"));
+  await shot("canonical-04b-meter-accordion-with-house-meter");
   const realId=await evalJS("return [...document.querySelectorAll('#portfolioTree .tree-property-button')]"+
    ".find(e=>e.textContent.includes('Synthetisches Haus')).dataset.id;");
   await evalJS("document.querySelector('#portfolioTree .tree-year[data-id="+JSON.stringify(realId+"|2023")+"]').click();");
