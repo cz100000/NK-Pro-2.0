@@ -203,7 +203,7 @@
   function renderTree(){
     const el=$('portfolioTree');if(!el)return;
     const activeObjects=portfolio.objects.filter(o=>o.lifecycle?.status!=="archived");
-    el.innerHTML='<div class="tree-heading"><span>IMMOBILIEN</span><span class="tree-count">'+
+    el.innerHTML='<div class="tree-heading"><span>OBJEKTBEZOGEN</span><span class="tree-count">'+
       activeObjects.length+'</span></div>'+
       activeObjects.map(o=>{
         const expanded=o.id===ui.treeOpenObjectId;
@@ -230,7 +230,7 @@
             related&&ui.view==='object'&&ui.objectTab==='units','door')+
           item('Mietverhältnisse','open-object-tab','tenancies',o.tenancies.length,
             related&&ui.view==='object'&&ui.objectTab==='tenancies','users')+
-          item('Zähler','open-object-tab','meters',o.units.length*2,
+          item('Zähler','open-object-tab','meters',o.meterRegistry.length,
             related&&ui.view==='object'&&ui.objectTab==='meters','gauge');
         const yearItems=item('Alle Jahre','object-billings',o.id,years.length,
             related&&ui.view==='billing'&&ui.billingHome&&ui.objectListFilter===o.id,'layers')+
@@ -553,17 +553,12 @@
       '. Druck- und A4-Layoutparität, alle Original-Briefeinstellungen und finale Freigabe sind noch nicht abgeschlossen.</div>';
   }
   function object(){
-    const o=master(),tabs=[['overview','Objektdaten'],['units','Wohnungen'],
-       ['tenancies','Mietverhältnisse'],['meters','Zähler']];
-    const switcher='<div class="object-switch" role="tablist" aria-label="Objektstammdaten">'+
-      tabs.map(([key,label])=>'<button role="tab" aria-selected="'+(ui.objectTab===key)+
-        '" type="button" data-object-tab="'+key+'" class="'+(ui.objectTab===key?'active':'')+'">'+
-        label+'</button>').join('')+'</div>';
+    const o=master();
     let content='';
     if(ui.objectTab==='overview'){
       content=head('IMMOBILIENSTAMM · '+safeText(o.id),o.name,
         'Objekt, Wohnungen und Mietverhältnisse sind dauerhaft angelegt. Jahresabrechnungen beziehen sich auf diese Stammdaten.',
-        button('Objektdaten bearbeiten','edit-master-property',null,'button-quiet'))+
+        button(icon('pencil')+' Objektdaten bearbeiten','edit-master-property',null,'button-primary'))+
         '<section class="section"><div class="section-header"><div><h2>Objektstammdaten</h2>'+
         '<p>'+safeText(o.street)+', '+safeText(o.postalCode)+' '+safeText(o.city)+'</p></div>'+
         '<span class="status green">Stammdaten · Revision '+o.revision+'</span></div>'+
@@ -579,42 +574,25 @@
           icon('calendar')+'<strong>Jahresabrechnungen</strong><span>'+Object.keys(o.settlements).length+' Jahresstände →</span></button></div></section>'+
         '<div class="info-line">Die Briefanschrift wird grundsätzlich aus der Objektadresse abgeleitet. Abweichende Zustellanschriften werden nur beim jeweiligen Mietverhältnis eingetragen. Änderungen an Stammdaten verändern bestehende Jahresabrechnungen nicht automatisch.</div>';
     }else if(ui.objectTab==='units'){
-      const u=ui.unitDetailId&&o.units.find(v=>v.id===ui.unitDetailId);
-      if(u){
-        const leases=o.tenancies.filter(t=>t.unitId===u.id).sort((a,b)=>a.leaseStart.localeCompare(b.leaseStart));
-        content='<div class="context-return">'+button('← Alle Wohnungen','back-units',null,'button-quiet')+
-          '<span>'+safeText(o.name)+'</span></div>'+
-          head('WOHNUNGSSTAMMDATEN · '+safeText(u.id),u.label,
-           'Wohnung und zugehörige Mietverhältnisse über alle Abrechnungsjahre.',
-           button('Wohnung bearbeiten','edit-master-unit',u.id,'button-quiet'))+
-          '<section class="section"><div class="stat-inline"><div><small>Lage</small><strong>'+
-           safeText(u.position)+'</strong></div><div><small>Wohnfläche</small><strong>'+
-           fmtVolume(u.area)+' m²</strong></div><div><small>Vertragsverläufe</small><strong>'+
-           leases.length+'</strong></div></div>'+
-          '<div class="section-header"><div><h2>Mietverhältnisse dieser Wohnung</h2><p>Aus den dauerhaften Stammdaten, nicht aus dem Abrechnungsjahr</p></div></div>'+
-          '<div class="table-wrap"><table class="data-table"><thead><tr><th>Mieter</th><th>Nutzung</th><th>Einzug</th><th>Auszug</th><th>Details</th></tr></thead><tbody>'+
-          leases.map(t=>'<tr><td>'+safeText(t.name)+'</td><td>'+safeText(t.role)+
-            '</td><td>'+safeText(t.leaseStart)+'</td><td>'+safeText(t.leaseEnd||'Nicht ausgezogen')+
-            '</td><td>'+iconButton('edit-master-tenancy',t.id,'Mieterstammdaten bearbeiten')+'</td></tr>').join('')+
-          '</tbody></table></div><div class="section-header"><div><h2>Zählerstamm</h2></div></div>'+
-          '<div class="stat-inline"><div><small>Kaltwasser</small><strong>'+safeText(u.meters.cold)+
-            '</strong></div><div><small>Warmwasser</small><strong>'+safeText(u.meters.hot)+'</strong></div></div></section>'+
-          '<div class="object-year-links"><strong>Abrechnungsjahre</strong>'+
-          Object.keys(o.settlements).sort((a,b)=>b.localeCompare(a)).map(y=>
-            button(y+' öffnen','open-year',o.id+'|'+y,'button-quiet')).join('')+'</div>';
-      }else{
-        content=head('WOHNUNGSSTAMMDATEN',o.name+' · Wohnungen',
-          'Wohnungen werden einmalig im Objekt gepflegt; Abrechnungen übernehmen die zugehörigen Daten.',
-          button(icon('plus')+' Wohnung hinzufügen','new-master-unit',null,'button-primary'))+
-          '<section class="section"><div class="stat-inline"><div><small>Wohnungen</small><strong>'+o.units.length+
-          '</strong></div><div><small>Gesamtwohnfläche</small><strong>'+
-          fmtVolume(o.units.reduce((n,u)=>n+u.area,0))+' m²</strong></div></div>'+
-          '<div class="table-wrap"><table class="data-table"><thead><tr><th>Wohnung</th><th>Wohnungs-ID</th><th>Lage</th><th class="money">Fläche</th><th>Öffnen</th></tr></thead><tbody>'+
-          o.units.map(u=>'<tr><td><strong>'+safeText(u.label)+'</strong></td><td>'+
-            safeText(u.id)+'</td><td>'+safeText(u.position)+'</td><td class="money">'+
-            fmtVolume(u.area)+' m²</td><td>'+iconButton('view-unit',u.id,'Wohnung öffnen')+'</td></tr>').join('')+
-          '</tbody></table></div></section>';
-      }
+      content=head('WOHNUNGSSTAMMDATEN',o.name+' · Wohnungen',
+        'Wohnungen werden ausschließlich hier verwaltet. Eine eigene Wohnungs-Detailseite ist nicht notwendig.',
+        button(icon('plus')+' Wohnung hinzufügen','new-master-unit',null,'button-primary'))+
+        '<section class="section"><div class="stat-inline">'+
+          '<div><small>Wohnungen</small><strong>'+o.units.length+'</strong></div>'+
+          '<div><small>Gesamtwohnfläche</small><strong>'+
+            fmtVolume(o.units.reduce((n,u)=>n+Number(u.area),0))+' m²</strong></div>'+
+          '<div><small>Stammdatensätze</small><strong>'+o.units.length+'</strong></div></div>'+
+        '<div class="table-wrap"><table class="data-table"><thead><tr><th>Wohnung</th>'+
+        '<th>Wohnungs-ID</th><th>Lage / Geschoss</th><th class="money">Fläche</th>'+
+        '<th>Aktion</th></tr></thead><tbody>'+
+        o.units.map(u=>'<tr><td><strong>'+safeText(u.label)+'</strong></td>'+
+          '<td class="mono small">'+safeText(u.id)+'</td>'+
+          '<td>'+safeText(u.position)+'</td>'+
+          '<td class="money">'+fmtVolume(u.area)+' m²</td>'+
+          '<td>'+button(icon('pencil')+' Bearbeiten','edit-master-unit',u.id,'button-quiet meter-row-action')+
+          '</td></tr>').join('')+
+        '</tbody></table></div></section>'+
+        '<div class="info-line">Nur Wohnungsstammdaten: Mietverhältnisse, Zähler und Jahresabrechnungen haben jeweils ihren eigenen Eintrag in der linken Navigation.</div>';
     }else if(ui.objectTab==='tenancies'){
       const ordered=o.tenancies.slice().sort((a,b)=>a.unitId.localeCompare(b.unitId)||a.leaseStart.localeCompare(b.leaseStart));
       content=head('DAUERHAFTE MIETERSTAMMDATEN',o.name+' · Mietverhältnisse',
@@ -632,15 +610,54 @@
           '</td><td>'+iconButton('edit-master-tenancy',t.id,'Mietvertrag bearbeiten')+'</td></tr>').join('')+
         '</tbody></table></div><div class="table-caption">Die Jahresfälle werden aus diesen Zeiträumen abgeleitet. Eine Änderung an einem Mietvertrag überschreibt abgeschlossene oder historische Jahresstände niemals still.</div></section>';
     }else{
-      content=head('TECHNISCHER STAMMBESTAND',o.name+' · Zähler',
-       'Physische Zähleridentitäten im Objekt. Jahresablesungen gehören zur jeweiligen Jahresabrechnung.')+
-       '<section class="section"><div class="table-wrap"><table class="data-table"><thead><tr>'+
-       '<th>Wohnung</th><th>Kaltwasser-Zähler</th><th>Warmwasser-Zähler</th><th>Wohnung</th></tr></thead><tbody>'+
-       o.units.map(u=>'<tr><td><strong>'+safeText(u.label)+'</strong></td>'+
-         '<td>'+safeText(u.meters.cold)+'</td><td>'+safeText(u.meters.hot)+'</td>'+
-         '<td>'+iconButton('view-unit',u.id,'Wohnung mit Zählern anzeigen')+'</td></tr>').join('')+
-       '</tbody></table></div><div class="table-caption">Zählerwechsel und Ablesungen werden im Abrechnungsjahr erfasst; die vollständige historische Stammdatenbindung ist noch in Entwicklung.</div></section>';
+      const groups=o.units.map((u,i)=>{
+        const rows=o.meterRegistry.filter(m=>m.unitId===u.id);
+        const active=rows.filter(m=>m.status==='active').length,
+          placeholders=rows.filter(m=>m.status==='placeholder').length;
+        const row=m=>{
+          const cited=estates.meterReferenced(o,m);
+          const where=[m.room,m.radiator].filter(Boolean).join(' · ')||'–';
+          return '<tr><td><strong>'+safeText(estates.METER_TYPES[m.type])+'</strong>'+
+            '<span class="water-unit-sub mono">'+safeText(m.id)+'</span></td>'+
+            '<td class="mono">'+(m.number?safeText(m.number):
+              '<span class="meter-not-set">Noch nicht hinterlegt</span>')+'</td>'+
+            '<td>'+safeText(where)+'</td>'+
+            '<td><span class="status '+(m.status==='active'?'green':'neutral')+'">'+
+              safeText(estates.meterStatus[m.status])+'</span></td>'+
+            '<td class="meter-actions">'+
+              button(icon('pencil')+' Bearbeiten','edit-master-meter',m.id,'button-quiet meter-row-action')+
+              (m.status==='active'?button('Außer Betrieb','retire-master-meter',m.id,'button-quiet meter-row-action'): 
+                !cited?button('Löschen','delete-master-meter',m.id,'button-quiet meter-row-action'):'')+
+              '</td></tr>';
+        };
+        return '<details class="meter-unit"'+(i===0?' open':'')+'>'+
+          '<summary class="meter-unit-head"><span class="meter-unit-title">'+
+            icon('building')+'<strong>'+safeText(u.label)+'</strong>'+
+            '<small>'+safeText(u.position)+'</small></span>'+
+            '<span class="meter-unit-meta">'+rows.length+' Zähler · '+active+' aktiv'+
+            (placeholders?' · '+placeholders+' Muster':'')+'</span>'+
+            '<span class="meter-disclosure">'+icon('chevron')+'</span></summary>'+
+          '<div class="meter-unit-body">'+
+            '<div class="meter-unit-tools">'+button(icon('plus')+' Zähler für diese Wohnung',
+              'new-master-meter',u.id,'button-quiet')+'</div>'+
+            '<div class="table-wrap"><table class="data-table meter-table"><thead><tr>'+
+            '<th>Zählertyp / ID</th><th>Zählernummer</th><th>Raum / Heizkörper</th>'+
+            '<th>Status</th><th>Aktionen</th></tr></thead><tbody>'+
+            rows.map(row).join('')+'</tbody></table></div></div></details>';
+      }).join('');
+      content=head('ZÄHLERSTAMMDATEN',o.name+' · Zähler',
+        'Wasser-, Strom- und Techem-Zähler werden hier wohnungsweise erfasst und gepflegt. Jahresablesungen gehören ausschließlich in die Jahresabrechnung.',
+        o.units.length?button(icon('plus')+' Zähler hinzufügen','new-master-meter',null,'button-primary'):'')+
+        '<div class="meter-summary">'+
+          '<span><strong>'+o.units.length+'</strong> Wohnungen</span>'+
+          '<span><strong>'+o.meterRegistry.length+'</strong> Zählerdatensätze</span>'+
+          '<span><strong>'+o.meterRegistry.filter(m=>m.status==='placeholder').length+
+          '</strong> Musterplatzhalter</span></div>'+
+        (groups||'<div class="empty"><h3>Noch keine Wohnungen</h3>'+
+          '<p>Bitte zunächst unter Wohnungen eine Wohnung anlegen.</p></div>')+
+        '<div class="info-line">Ein Zähler ist ein dauerhaftes Stammdatum. Bei Austausch wird der bisherige Datensatz außer Betrieb gesetzt; historische Abrechnungsjahre und Ablesungen bleiben unverändert. Techem- und Strom-Dummys enthalten keine echten Messwerte.</div>';
     }
+    return content;
     return switcher+content;
   }
   function analytics(){
@@ -719,7 +736,7 @@
     return '<div class="drawer-breakdown"><div class="eyebrow">Kostenpositionen · Muster-Nachweis</div><div class="drawer-table-scroll"><table class="data-table"><thead><tr><th>Position</th><th class="money">Umlagefähig</th><th class="money">Wohnungsanteil</th></tr></thead><tbody>'+costRows+'</tbody></table></div><div class="drawer-note">Getestete Referenzformeln, Centverteilung mit Restcents. Nicht zugeordnete Beträge bleiben offen. Keine produktive Umlageabrechnung.</div></div>';
   }
   function openDrawer(type,id){
-    if(type==='new-master-tenancy'&&!master().units.length)return toast('Bitte zuerst eine Wohnung anlegen.');
+    if((type==='new-master-tenancy'||type==='new-master-meter')&&!master().units.length)return toast('Bitte zuerst eine Wohnung anlegen.');
     const d={type,id};ui.drawer=d;ui.lastFocus=document.activeElement;let title='',eyebrow='',body='',actionLabel='Änderungen speichern';
     if(type==='new-object'){
       title='Neue Immobilie';eyebrow='OBJEKTSTAMM · NUR FIKTIVE DATEN';
@@ -744,7 +761,7 @@
         '<div class="form-row"><label>Abrechnungsjahr<input name="year" type="number" required min="2000" max="2100" step="1" value="2025"></label></div>'+
         '<div class="drawer-note">Ausschließlich synthetischer Jahresentwurf. Vorher sind Wohnungen und zeitlich gültige Mietverhältnisse erforderlich. Bereits vorhandene Jahresstände werden nie überschrieben.</div></form>';
       actionLabel='Musterjahr anlegen';
-    }else if(type.startsWith('master-')||type==='new-master-tenancy'){
+    }else if(type.startsWith('master-')||type==='new-master-tenancy'||type==='new-master-meter'){
       const result=masterUi.form(type,master(),id);
       if(!result)return toast('Stammdatensatz nicht gefunden.');
       title=result.title;eyebrow=result.eyebrow;body=result.body;
@@ -999,10 +1016,15 @@
       }catch(e){rollbackLocal();render();toast('Anlage nicht möglich: '+e.message)}
       return;
     }
-    if(type.startsWith('master-')||type==='new-master-tenancy'){
+    if(type.startsWith('master-')||type==='new-master-tenancy'||type==='new-master-meter'){
       try{
         const parsed=masterUi.parse(type,form.elements,id,ui.draftMasterTenancy);
-        portfolio=estates.editMaster(portfolio,master().id,parsed.kind,parsed.entry);
+        if(parsed.kind==='meter')
+          portfolio=type==='new-master-meter'?
+            estates.addMeter(portfolio,master().id,parsed.entry):
+            estates.editMeter(portfolio,master().id,id,parsed.entry);
+        else
+          portfolio=estates.editMaster(portfolio,master().id,parsed.kind,parsed.entry);
         data=estates.current(portfolio);
         savePortfolio();
         closeDrawer();render();toast('Stammdaten gespeichert. Jahresabrechnungen bleiben unverändert.');
@@ -1236,8 +1258,6 @@
       catch(e){toast('Jahresabrechnung kann nicht geöffnet werden: '+e.message)}
       return;
     }
-    if(action==='view-unit'){ui.unitDetailId=id;ui.objectTab='units';ui.view='object';render();return;}
-    if(action==='back-units'){ui.unitDetailId=null;render();return;}
     if(action==='rebase-year'){
       const diff=estates.rebasePreview(portfolio,master().id,activeYear());
       if(!diff.stale)return toast('Stammdaten sind aktuell.');
@@ -1268,6 +1288,21 @@
     if(action==='edit-master-unit'){openDrawer('master-unit',id);return}
     if(action==='edit-master-tenancy'){openDrawer('master-tenancy',id);return}
     if(action==='new-master-tenancy'){openDrawer('new-master-tenancy');return}
+    if(action==='new-master-meter'){openDrawer('new-master-meter',id);return}
+    if(action==='edit-master-meter'){openDrawer('master-meter',id);return}
+    if(action==='retire-master-meter'||action==='delete-master-meter'){
+      const m=master().meterRegistry.find(v=>v.id===id);if(!m)return;
+      const verb=action==='retire-master-meter'?'außer Betrieb setzen':'endgültig löschen';
+      if(!window.confirm('Zähler '+(m.number||m.id)+' '+verb+'? Vorhandene Jahresabrechnungen werden nicht verändert.'))return;
+      try{
+        portfolio=action==='retire-master-meter'?
+          estates.retireMeter(portfolio,master().id,id):
+          estates.deleteUnusedMeter(portfolio,master().id,id);
+        data=estates.current(portfolio);savePortfolio();render();
+        toast(action==='retire-master-meter'?'Zähler außer Betrieb.':'Unbenutzter Zähler gelöscht.');
+      }catch(e){rollbackLocal();render();toast('Zähleraktion nicht möglich: '+e.message)}
+      return;
+    }
     if(action==='edit-letter-settings'){openDrawer('letter-settings');return}
     if(action==='edit-case-water'){openDrawer('case-water',id);return}
     if(action==='edit-external'){openDrawer('external',id);return}
