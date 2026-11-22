@@ -288,6 +288,9 @@
         '</section><div class="info-line">Jahresabrechnungen sind diesem Objekt fest zugeordnet. Objektwechsel erfolgen ausschließlich links im Immobilienbaum.</div>';
   }
   function billing(){
+    if(ui.billingHome)return billingList();
+    if(!data)return head('JAHRESABRECHNUNGEN','Kein Jahresstand',
+      'Bitte zunächst unter Alle Jahre eine synthetische Jahresabrechnung anlegen.');
     const ending=estates.statusLabel(data.settlement?.status);
     let content='';let action='';let title='Abrechnung '+activeYear();
     let description='Abrechnungsfälle werden automatisch aus den Objektstammdaten abgeleitet.';
