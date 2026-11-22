@@ -106,7 +106,7 @@ test("reordered process has advances before invoices and review before result",(
 test("partial quality module never permits finalization, even with synthetic valid inputs",()=>{
  const app=browser(),review=app.window.NKPRO2_REVIEW.assess(app.getState(),app.window.NKPRO2_CASE_BILLING.calculate(app.getState()));
  assert.equal(review.counts.total,44);
- assert.equal(review.counts.notRun,34);
+ assert.equal(review.counts.notRun,19);
  assert.equal(review.readyForClose,false);
  app.click("[data-view]",{view:"billing"});app.click("[data-step]",{step:"review"});
  assert.match(app.source(),/Abschluss gesperrt/);

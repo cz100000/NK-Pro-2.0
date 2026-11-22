@@ -6,9 +6,9 @@ tenancies:[{id:"T1",unitId:"W1",name:"Musterperson A",start:"2025-01-01",end:"20
 costs:[{id:"K",name:"Kosten",amount:100,method:"Fläche"}]});
 const result=()=>({tenants:[{id:"T1",unitId:"W1",name:"Musterperson A",costCents:10000,advanceCents:8000,balanceCents:2000}],
 costs:[{id:"K",name:"Kosten",method:"Fläche",rows:[{tenantId:"T1",cents:10000}]}],issues:[],occupancy:{issues:[]}});
-test("44 inventoried with 10 synthetic checks and 34 not-run, cannot close",()=>{
+test("44 inventoried with 25 synthetic checks and 19 not-run, cannot close",()=>{
  const x=review.assess(fixture(),result());
- assert.equal(x.rows.length,44);assert.equal(x.counts.executed,10);assert.equal(x.counts.notRun,34);
+ assert.equal(x.rows.length,44);assert.equal(x.counts.executed,25);assert.equal(x.counts.notRun,19);
  assert.equal(x.readyForClose,false);
  assert.equal(x.rows.find(r=>r.id==="NKP-TECH-006").status,"not-run");
 });

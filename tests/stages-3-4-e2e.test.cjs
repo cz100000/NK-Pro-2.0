@@ -40,7 +40,7 @@ test("stages 3+4 use same identities/costs/payments/letters and block unported r
    assert.equal(letter.balanceCents,t.balanceCents);
  }
  assert.equal(q.counts.total,44);
- assert.equal(q.counts.notRun,34);
+ assert.equal(q.counts.notRun,19);
  assert.equal(q.readyForClose,false);
  assert.equal(bundle.readyForPrint,false);
 });

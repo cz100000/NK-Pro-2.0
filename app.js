@@ -329,7 +329,8 @@
     const item=x=>'<div class="check-item"><div class="check-dot '+(x.status==='passed'?'pass':'todo')+'">'+
       icon(x.status==='passed'?'check':'alert')+'</div><div class="check-content"><strong>'+
       safeText(x.id)+' · '+safeText(x.title)+'</strong><span>'+
-      safeText(x.status==='not-run'?'Originalprüfung noch nicht umgesetzt.':x.status==='passed'?'Vorprüfung bestanden (synthetisch)':x.status==='not-applicable'?'Nicht anwendbar':'Kritisch / zu klären')+
+      safeText(x.detail||((x.status==='not-run')?'Originalprüfung noch nicht umgesetzt.':x.status==='passed'?'Vorprüfung bestanden (synthetisch)':x.status==='not-applicable'?'Nicht anwendbar':x.status==='hint'?'Fachlicher Hinweis':
+      x.status==='review'?'Entscheidung erforderlich':'Kritischer Abrechnungsmangel'))+
       '</span></div>'+(x.status==='critical'?'<button class="link" type="button" data-action="'+safeText(x.route)+'">Ursache →</button>':'')+'</div>';
     return '<div class="inline-toolbar"><div><h2>Prüfen · vollständiges Regelregister</h2>'+
       '<p class="small muted">Die Abrechnung wird intern vorab berechnet. Nur tatsächlich ausgeführte Regeln erhalten einen Prüfstatus.</p></div>'+
@@ -340,7 +341,7 @@
         '<div><small>Noch nicht ausgeführt</small><strong>'+q.counts.notRun+'</strong></div>'+
         '<div><small>Kritische Meldungen</small><strong>'+q.counts.critical+'</strong></div></div>'+
       '<section class="section"><div class="section-header"><div><h2>Vorprüfungen und aktuelle Abrechnungsfehler</h2>'+
-        '<p>Die 10 Basisregeln sind unabhängig auf Musterdaten geprüft; 34 Originalregeln und die druckfertige Briefprüfung fehlen.</p></div></div>'+
+        '<p>25 Teilprüfungen arbeiten mit synthetischen Musterdaten; 19 Originalregeln und die druckfertige Briefprüfung fehlen weiterhin.</p></div></div>'+
         real.map(item).join('')+q.dynamic.map(d=>'<div class="check-item"><div class="check-dot todo">'+icon('alert')+
           '</div><div class="check-content"><strong>'+safeText(d.title)+'</strong><span>Dynamischer Berechnungs- oder Briefmangel</span></div>'+
           '<button class="link" type="button" data-action="'+safeText(d.route)+'">Bearbeiten →</button></div>').join('')+
@@ -833,7 +834,7 @@
     if(action==='all-letters'){ui.showAllLetters=!ui.showAllLetters;render();return}
     if(action==='select-letter'){ui.letterId=id;ui.showAllLetters=false;render();return}
     if(action==='print-letter'){ui.showAllLetters=true;render();window.print();return}
-    if(action==='demo-finish'){toast('Abschluss gesperrt: 34 Originalregeln, Briefdruck und Archiv sind nicht freigegeben.');return}
+    if(action==='demo-finish'){toast('Abschluss gesperrt: 19 Originalregeln, Briefdruck und Archiv sind nicht freigegeben.');return}
     if(action==='close-drawer'){closeDrawer();return}
   }
   document.addEventListener('click',e=>{
