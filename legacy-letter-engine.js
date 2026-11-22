@@ -697,8 +697,13 @@
    if(person&&paid!==person.advanceCents)
      issues.push({level:"error",message:"Briefvorauszahlungen weichen vom Zahlungsstand ab."});
    if(!ledger.valid)issues.push({level:"warning",message:"Abrechnung enthält offene fachliche Prüfhinweise."});
-   if(settings.vorauszahlungPrintMode!=="Nicht drucken"&&!settings.prepaymentRows.some(r=>r.tenantId===person?.id))
-     issues.push({level:"warning",message:"Anpassungsblatt angefordert, aber keine geprüften Monatswerte hinterlegt."});
+   if(settings.vorauszahlungPrintMode!=="Nicht drucken"){
+     const adjustments=settings.prepaymentRows.filter(r=>r.tenantId===person?.id);
+     if(!adjustments.length)
+       issues.push({level:"warning",message:"Anpassungsblatt angefordert, aber keine geprüften Monatswerte hinterlegt."});
+     else if(!Number.isFinite(Number(t.kaltSoll))||Number(t.kaltSoll)<=0)
+       issues.push({level:"error",message:"Kaltmiete für den neuen Warmmietenbetrag fehlt in NK-Pro 2.0. Zusatzblatt nur als unfreigegebene Vorschau; Drucken gesperrt."});
+   }
    return{issues,errors:issues.filter(x=>x.level==="error").length,
      warnings:issues.filter(x=>x.level==="warning").length,
      readyForPrint:false,readyForRealFinalization:false};
