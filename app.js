@@ -143,6 +143,70 @@
   }
   const steps=[['advance','Vorauszahlungen'],['costs','Gesamtkosten'],['water','Verbräuche'],['review','Prüfen'],['allocation','Ergebnis'],['letters','Briefe']];
   const renderSteps=()=>`<div class="tab-bar" role="tablist" aria-label="Abrechnungsprozess">${steps.map(([id,label])=>`<button class="tab-button ${ui.step===id?'active':''}" role="tab" aria-selected="${ui.step===id}" type="button" data-step="${id}">${label}</button>`).join('')}</div>`;
+  function renderTree(){
+    const el=$('portfolioTree');if(!el)return;
+    el.innerHTML='<div class="tree-heading"><span>IMMOBILIENBESTAND</span><span class="tree-count">'+
+      portfolio.objects.length+'</span></div>'+
+      portfolio.objects.map(o=>{
+        const active=o.id===portfolio.selectedObjectId;
+        const years=Object.keys(o.settlements).sort((a,b)=>b.localeCompare(a));
+        const item=(label,action,tab,count)=>'<button type="button" class="tree-subitem" data-action="'+
+          action+'" data-id="'+safeText(tab||o.id)+'">'+safeText(label)+
+          (count!=null?'<span>'+count+'</span>':'')+'</button>';
+        return '<div class="tree-property '+(active?'expanded':'')+'">'+
+          '<button class="tree-property-button" type="button" aria-expanded="'+active+
+            '" aria-label="'+safeText(o.name)+' öffnen" data-action="select-property" data-id="'+safeText(o.id)+'">'+
+            '<span class="tree-arrow">'+(active?'⌄':'›')+'</span><span class="tree-property-label">'+
+            safeText(o.name)+'</span><span class="tree-units">'+o.units.length+' WE</span></button>'+
+          (active?'<div class="tree-children">'+
+            item('Objektdaten','open-object-tab','overview')+
+            item('Wohnungen','open-object-tab','units',o.units.length)+
+            item('Mietverhältnisse','open-object-tab','tenancies',o.tenancies.length)+
+            item('Zähler','open-object-tab','meters',o.units.length*2)+
+            item('Alle Abrechnungen','object-billings',o.id,years.length)+
+            '<div class="tree-year-list">'+years.map(year=>{
+              const a=o.settlements[year],selected=ui.view==='billing'&&!ui.billingHome&&
+                portfolio.selectedYear===year;
+              return '<button type="button" class="tree-year '+(selected?'selected':'')+
+                '" data-action="open-year" data-id="'+safeText(o.id)+'|'+year+'">'+
+                '<span>'+year+'</span><small>'+safeText(a.settlement?.status==='draft'?'In Bearbeitung':'Musterstand')+'</small></button>';
+            }).join('')+'</div></div>':'')+'</div>';
+      }).join('')+
+      '<p class="tree-footnote">Alle Daten sind fiktiv. Abgeschlossene echte Abrechnungen sind hier nicht enthalten.</p>';
+  }
+  function billingList(){
+    const candidates=portfolio.objects.filter(o=>!ui.objectListFilter||o.id===ui.objectListFilter);
+    return head('JAHRESABRECHNUNGEN · MUSTERBESTAND','Jahresabrechnungen',
+      'Wählen Sie zuerst das Objekt und anschließend das Abrechnungsjahr. Historische Musterstände sind schreibgeschützt.')+
+      '<div class="portfolio-summary">'+
+        '<div><small>Objekte</small><strong>'+portfolio.objects.length+'</strong></div>'+
+        '<div><small>Wohnungen</small><strong>'+portfolio.objects.reduce((n,o)=>n+o.units.length,0)+'</strong></div>'+
+        '<div><small>Jahresabrechnungen</small><strong>'+portfolio.objects.reduce((n,o)=>n+Object.keys(o.settlements).length,0)+'</strong></div></div>'+
+      '<div class="portfolio-filter"><button type="button" class="'+(!ui.objectListFilter?'selected':'')+
+        '" data-action="all-billings">Alle Objekte</button>'+
+        portfolio.objects.map(o=>'<button type="button" class="'+(ui.objectListFilter===o.id?'selected':'')+
+         '" data-action="object-billings" data-id="'+safeText(o.id)+'">'+safeText(o.name)+'</button>').join('')+'</div>'+
+      candidates.map(o=>{
+        const years=Object.keys(o.settlements).sort((a,b)=>b.localeCompare(a));
+        return '<section class="section annual-property">'+
+        '<div class="section-header"><div><h2>'+safeText(o.name)+'</h2>'+
+          '<p>'+safeText(o.street)+', '+safeText(o.postalCode)+' '+safeText(o.city)+
+          ' · '+o.units.length+' Wohnungen</p></div>'+
+          button('Objekt öffnen','select-property',o.id,'button-quiet')+'</div>'+
+        '<div class="annual-rows">'+years.map(y=>{
+          const a=o.settlements[y],active=a.settlement?.status==='draft',
+            stale=estates.rebasePreview(portfolio,o.id,y).stale;
+          return '<button type="button" class="annual-row" data-action="open-year" data-id="'+safeText(o.id)+'|'+y+'">'+
+            '<span class="annual-icon">'+icon('calendar')+'</span>'+
+            '<span class="annual-primary"><strong>Abrechnung '+y+'</strong><small>01.01.'+y+
+              ' – 31.12.'+y+' · '+a.tenancies.length+' Abrechnungsfälle</small></span>'+
+            '<span class="annual-status '+(active?'active':'')+'">'+safeText(estates.statusLabel(a.settlement?.status))+
+              (stale?' · Stammdatenabweichung':'')+'</span>'+
+            '<span class="annual-link">'+(active?'Bearbeiten':'Ansehen')+' →</span></button>';
+        }).join('')+'</div></section>';
+      }).join('')+
+      '<div class="info-line">Die Jahre 2023 und 2024 sind ausschließlich synthetische historische Musterstände und keine archivierten echten Abrechnungen. Der bisherige Fachtest 2025 bleibt als bearbeitbarer Entwurf beim sieben-Wohnungen-Objekt erhalten.</div>';
+  }
   function billing(){
     const ending=estates.statusLabel(data.settlement?.status);
     let content='';let action='';let title='Abrechnung '+activeYear();
@@ -453,7 +517,28 @@
     `<section class="section"><div class="section-header"><div><h2>Dokumente · 2025</h2><p>Erstellte Dokumente werden erst nach der fachlichen Freigabe verbindlich.</p></div></div><div class="task-row"><div class="task-icon">${icon('file')}</div><div class="task-copy"><strong>Musterbrief · Wohnung A</strong><span>Vorschau · synthetische Beträge · nicht versandfertig</span></div><button class="link" type="button" data-action="go-letter">Vorschau →</button></div><div class="task-row"><div class="task-icon">${icon('layers')}</div><div class="task-copy"><strong>Prüf- und Abschlussprotokoll</strong><span>Erst nach Fachfreigabe des vollständigen Systems verfügbar</span></div><button class="link" type="button" data-action="go-review">Prüfstatus →</button></div></section>`+
     `<section class="section"><div class="section-header"><div><h2>Archiv</h2></div><span class="status neutral">Leer</span></div><div class="empty"><div class="empty-icon">${icon('folder')}</div><h3>Keine historischen Abrechnungen in der Demo</h3><p>Das echte Archiv wird später vollständig separat und schreibgeschützt migriert. Die bisherige NK-Pro-App bleibt unverändert.</p></div></section>`;}
   const viewTitles={overview:'Übersicht',billing:'Abrechnungen',object:'Objekt',analytics:'Analysen',documents:'Dokumente & Archiv'};
-  function render(){document.querySelectorAll('.nav-item').forEach(el=>{const active=el.dataset.view===ui.view;el.classList.toggle('active',active);if(active)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current')});$('breadcrumbView').textContent=viewTitles[ui.view];const target=$('appMain');target.innerHTML=({overview, billing,object,analytics,documents}[ui.view]||overview)();$('appMain').querySelectorAll('[data-icon]').forEach(n=>n.innerHTML=icon(n.dataset.icon));}
+  function render(){
+    document.querySelectorAll('.nav-item').forEach(el=>{
+      const active=el.dataset.view===ui.view;
+      el.classList.toggle('active',active);
+      if(active)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');
+    });
+    const context=master().name+(ui.view==='billing'&&!ui.billingHome?' / '+activeYear():'');
+    $('breadcrumbView').textContent=context+' / '+viewTitles[ui.view];
+    renderTree();
+    const target=$('appMain');
+    target.innerHTML=({overview,billing,object,analytics,documents}[ui.view]||overview)();
+    target.querySelectorAll('[data-icon]').forEach(n=>n.innerHTML=icon(n.dataset.icon));
+    if(ui.view==='billing'&&!ui.billingHome&&annualLocked()){
+      const forbidden=new Set(['new-cost','toggle-cost','delete-unused-cost','edit-cost','edit-water',
+       'edit-house','edit-payment','edit-external','edit-case-water','edit-other-consumption',
+       'add-interim','replace-meter','edit-letter-settings','edit-water-price','check-water',
+       'check-heat','edit-advance','edit-unit','new-tenancy','edit-tenancy']);
+      target.querySelectorAll('[data-action]').forEach(el=>{
+        if(forbidden.has(el.dataset.action)){el.disabled=true;el.title='Historischer Musterstand – nur Ansicht';}
+      });
+    }
+  }
   function navigate(view,step){
     ui.view=view;
     if(view==='billing'&&!step){ui.billingHome=true;ui.objectListFilter=null;}
@@ -851,6 +936,47 @@
     if(good){closeDrawer();stateChange();toast(msg)}
   }
   function doAction(action,id){
+    if(action==='select-property'){
+      switchPortfolio(estates.selectObject(portfolio,id));
+      ui.view='object';ui.objectTab='overview';ui.billingHome=true;render();
+      document.body.classList.remove('menu-open');return;
+    }
+    if(action==='open-object-tab'){ui.view='object';ui.objectTab=id;ui.unitDetailId=null;
+      ui.billingHome=true;render();document.body.classList.remove('menu-open');return;}
+    if(action==='object-billings'){ui.objectListFilter=id;ui.billingHome=true;ui.view='billing';
+      if(portfolio.selectedObjectId!==id)switchPortfolio(estates.selectObject(portfolio,id));
+      render();document.body.classList.remove('menu-open');return;}
+    if(action==='all-billings'||action==='back-billings'){ui.objectListFilter=null;ui.billingHome=true;
+      ui.view='billing';render();return;}
+    if(action==='open-year'){
+      const pos=id.lastIndexOf('|'),oid=id.slice(0,pos),year=id.slice(pos+1);
+      if(pos<0)return;
+      try{portfolio=estates.selectYear(portfolio,oid,year);
+        data=estates.current(portfolio);savePortfolio();
+        ui.billingHome=false;ui.objectListFilter=null;ui.step='advance';ui.view='billing';
+        ui.letterId=null;ui.showAllLetters=false;ui.consumptionTab='water';
+        render();document.body.classList.remove('menu-open');
+        window.scrollTo({top:0,behavior:'instant'});}
+      catch(e){toast('Jahresabrechnung kann nicht geöffnet werden: '+e.message)}
+      return;
+    }
+    if(action==='view-unit'){ui.unitDetailId=id;ui.objectTab='units';ui.view='object';render();return;}
+    if(action==='back-units'){ui.unitDetailId=null;render();return;}
+    if(action==='rebase-year'){
+      const diff=estates.rebasePreview(portfolio,master().id,activeYear());
+      if(!diff.stale)return toast('Stammdaten sind aktuell.');
+      if(!window.confirm('Entwurf '+activeYear()+' an neue Stammdaten anpassen? Alle Jahresbeträge und erfassten Verbrauchswerte bleiben über stabile IDs erhalten. Prüfergebnisse werden ungültig.'))return;
+      try{switchPortfolio(estates.rebaseDraft(portfolio,master().id,activeYear()));
+        toast('Stammdaten kontrolliert übernommen; Prüfungen erneut erforderlich.');}
+      catch(e){toast('Abgleich gesperrt: '+e.message)}return;
+    }
+    const writeActions=new Set(['new-cost','toggle-cost','delete-unused-cost','edit-cost','edit-water',
+      'edit-house','edit-payment','edit-external','edit-case-water','edit-other-consumption',
+      'add-interim','replace-meter','edit-letter-settings','edit-water-price','check-water',
+      'check-heat','edit-advance','edit-unit','new-tenancy','edit-tenancy']);
+    if(annualLocked()&&writeActions.has(action)){
+      toast('Dieser historische Musterstand ist schreibgeschützt.');return;
+    }
     if(action==='delete-unused-cost'){
       if(!window.confirm('Diese nur in der synthetischen Jahresdemo angelegte Kostenart endgültig löschen?'))return;
       try{data=workflow.removeUnused(data,id);stateChange();toast('Unbenutzte Demo-Kostenart gelöscht.');}
