@@ -23,6 +23,7 @@ jobs:
           node --check private/private-sw.js
           node --check integrated-data.js
           node --check integrated-app.js
+          node --check nkpro2-sw.js
           node --check scripts/verify-private-snapshot.cjs
           node --check scripts/build-private-site.cjs
           node scripts/build-private-site.cjs
