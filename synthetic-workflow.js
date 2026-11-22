@@ -87,8 +87,9 @@
  const YEAR_DAYS=365.2425;
  function agreementPreview(t,p){
    const mode=p?.mode==="monthly"?"monthly":"annual";
-   const agreed=Number(mode==="monthly"?p?.agreedMonthly:p?.agreedAnnual);
-   if(!money(agreed))return{valid:false,monthly:null,annual:null,weekly:null,expected:null};
+   const input=mode==="monthly"?p?.agreedMonthly:p?.agreedAnnual;
+   if(!money(input))return{valid:false,monthly:null,annual:null,weekly:null,expected:null};
+   const agreed=Number(input);
    const annual=mode==="monthly"?agreed*12:agreed;
    const monthly=annual/12,weekly=annual*7/YEAR_DAYS;
    let target=null;
@@ -112,7 +113,8 @@
    const mode=p?.paidMode==="monthly"?"monthly":"annual";
    if(mode==="monthly"){
      const monthly=Number(p?.paidMonthly),months=Number(p?.paidMonths);
-     if(!money(monthly)||!Number.isInteger(months)||months<0||months>12)
+     if(!money(p?.paidMonthly)||p?.paidMonths===null||p?.paidMonths===undefined||
+       p?.paidMonths===""||!Number.isInteger(months)||months<0||months>12)
        return{valid:false,actual:null,monthly:null,months:null};
      return{valid:true,actual:round(monthly*months),monthly,months};
    }
