@@ -12,7 +12,8 @@
   const qualityModule = window.NKPRO2_REVIEW;
   const letterModule = window.NKPRO2_LETTERS;
   const estates = window.NKPRO2_ESTATES;
-  if (!demoLedger || !functionalBilling || !waterDetails || !propertyModel || !caseBilling || !workflow || !qualityModule || !letterModule || !estates || typeof caseBilling.calculate !== 'function') throw new Error('Synthetic billing modules missing.');
+  const masterUi = window.NKPRO2_MASTER_UI;
+  if (!demoLedger || !functionalBilling || !waterDetails || !propertyModel || !caseBilling || !workflow || !qualityModule || !letterModule || !estates || !masterUi || typeof caseBilling.calculate !== 'function') throw new Error('Synthetic billing modules missing.');
   const icons = {
     overview:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
     bill:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>',
@@ -616,7 +617,12 @@
     return '<div class="drawer-breakdown"><div class="eyebrow">Kostenpositionen · Muster-Nachweis</div><div class="drawer-table-scroll"><table class="data-table"><thead><tr><th>Position</th><th class="money">Umlagefähig</th><th class="money">Wohnungsanteil</th></tr></thead><tbody>'+costRows+'</tbody></table></div><div class="drawer-note">Getestete Referenzformeln, Centverteilung mit Restcents. Nicht zugeordnete Beträge bleiben offen. Keine produktive Umlageabrechnung.</div></div>';
   }
   function openDrawer(type,id){const d={type,id};ui.drawer=d;ui.lastFocus=document.activeElement;let title='',eyebrow='',body='',actionLabel='Änderungen speichern';
-    if(type==='property'){
+    if(type.startsWith('master-')||type==='new-master-tenancy'){
+      const result=masterUi.form(type,master(),id);
+      if(!result)return toast('Stammdatensatz nicht gefunden.');
+      title=result.title;eyebrow=result.eyebrow;body=result.body;
+      ui.draftMasterTenancy=result.draft;
+    }else     if(type==='property'){
       const p=data.property||{};
       title='Objektdaten';eyebrow='SYNTHETISCHER OBJEKTSTAMM';
       body='<form id="editForm" data-type="property">'+
@@ -821,7 +827,18 @@
     $('overlay').hidden=false;$('drawer').hidden=false;document.body.style.overflow='hidden';setTimeout(()=>{const input=$('drawerBody').querySelector('input,textarea,select');if(input)input.focus();else $('closeDrawer').focus()},10);
   }
   function saveDrawer(form){const {type,id}=ui.drawer||{};let good=true,msg='Musterwert gespeichert.';
-    if(type==='property'){
+    if(type.startsWith('master-')||type==='new-master-tenancy'){
+      try{
+        const parsed=masterUi.parse(type,form.elements,id,ui.draftMasterTenancy);
+        portfolio=estates.editMaster(portfolio,master().id,parsed.kind,parsed.entry);
+        data=estates.current(portfolio);
+        savePortfolio();
+        closeDrawer();render();toast('Stammdaten gespeichert. Jahresabrechnungen bleiben unverändert.');
+      }catch(e){toast('Stammdaten nicht gespeichert: '+e.message)}
+      return;
+    }
+    if(annualLocked())return toast('Historischer Musterstand: Änderungen gesperrt.');
+        if(type==='property'){
       const name=form.elements.propertyName.value.trim();
       if(!name)return toast('Ein Objektname ist erforderlich.');
       data.property={...data.property,name,
@@ -862,7 +879,7 @@
       if(next.letterDate&&!/^\d{4}-\d{2}-\d{2}$/.test(next.letterDate))
         return toast('Briefdatum ungültig.');
       data.letterSettings=next;msg='Briefvorlage (Muster) gespeichert.';
-
+    }else if(type==='payment'){
       try{data=workflow.setPayment(data,id,{mode:form.elements.mode.value,
          agreed:parseField(form.elements.agreed),paid:parseField(form.elements.paid)});}
       catch(e){return toast('Zahlungsdaten prüfen: '+e.message)}
@@ -1041,6 +1058,10 @@
       if(c.active===false)c.active=true;else data=workflow.deactivate(data,id);
       stateChange();toast('Kostenstatus geändert.');return
     }
+    if(action==='edit-master-property'){openDrawer('master-property');return}
+    if(action==='edit-master-unit'){openDrawer('master-unit',id);return}
+    if(action==='edit-master-tenancy'){openDrawer('master-tenancy',id);return}
+    if(action==='new-master-tenancy'){openDrawer('new-master-tenancy');return}
     if(action==='edit-letter-settings'){openDrawer('letter-settings');return}
     if(action==='edit-case-water'){openDrawer('case-water',id);return}
     if(action==='edit-external'){openDrawer('external',id);return}
