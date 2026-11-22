@@ -960,6 +960,14 @@
          safeText(p.paidMonths??'')+'"></label></div></div>'+
        '<div class="payment-actual-total">Tatsächlich gezahlt im Abrechnungszeitraum: <strong id="paidPreview">'+
          fmt(p.paidActual??t.advance)+'</strong></div>'+
+       '<p class="form-help">Rechnerischer Ist-Durchschnitt über die tatsächliche Mietdauer (keine zusätzlichen Zahlungseingänge):</p>'+
+       '<div class="payment-preview payment-preview-actual" id="paidEquivalents">'+
+         ['Woche','Monat','Jahr'].map((label,i)=>{
+           const actual=workflow.actualPreview({...p,paidActual:p.paidActual??t.advance},t);
+           const value=[actual.weekly,actual.monthly,actual.annual][i];
+           return '<div><small>Ø pro '+label+'</small><strong>'+
+             (actual.valid&&Number.isFinite(value)?fmt(value):'–')+'</strong></div>';
+         }).join('')+'</div>'+
        '<div class="drawer-note">Soll ist eine Berechnung aus der Vereinbarung. Ist wird ausschließlich aus tatsächlich erfassten Zahlungseingängen übernommen; keine Zahlung wird allein aufgrund des Mietvertrags als geleistet unterstellt.</div></form>';
     }else if(type==='cost'||type==='new-cost'||type==='cost-view'){
       const viewing=type==='cost-view';
@@ -1549,10 +1557,14 @@
     form.querySelectorAll('[data-paid-monthly]').forEach(el=>el.hidden=!actualMonthly);
     form.querySelectorAll('[data-paid-annual]').forEach(el=>el.hidden=actualMonthly);
     const paid=actualMonthly?workflow.actualPreview({paidMode:'monthly',
-      paidMonthly:form.elements.paidMonthly.value,paidMonths:form.elements.paidMonths.value}):
-      workflow.actualPreview({paidMode:'annual',paidActual:form.elements.paid.value});
+      paidMonthly:form.elements.paidMonthly.value,paidMonths:form.elements.paidMonths.value},t):
+      workflow.actualPreview({paidMode:'annual',paidActual:form.elements.paid.value},t);
     const target=form.querySelector('#paidPreview');
     if(target)target.textContent=paid.valid?fmt(paid.actual):'–';
+    const actualCells=form.querySelectorAll('#paidEquivalents strong');
+    [paid.weekly,paid.monthly,paid.annual].forEach((value,i)=>{
+      if(actualCells[i])actualCells[i].textContent=paid.valid&&Number.isFinite(value)?fmt(value):'–';
+    });
   }
   document.addEventListener('change',e=>{
     if(e.target.name==='mode'&&e.target.closest('#editForm')?.dataset.type==='payment'){
