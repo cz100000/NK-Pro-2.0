@@ -63,7 +63,7 @@
   const fmtVolume=v=>Number(v).toLocaleString('de-DE',{maximumFractionDigits:3});
   const parseField=(field)=>{const raw=String(field.value||'').trim().replace(/\s/g,'').replace(',','.');const val=Number(raw);return Number.isFinite(val)?val:NaN};
   function load(){try{const v=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(v&&v.fixture===true&&v.period==='2025'&&Array.isArray(v.units)&&v.units.length===7&&Array.isArray(v.costs))return workflow.upgrade(propertyModel.upgrade(waterDetails.upgrade(v)));}catch(_){/* standalone file localStorage might be blocked */}return initial()}
-  let data=load();const ui={view:'overview',step:'tenancies',analytics:'nk',objectTab:'overview',consumptionTab:'water',letterId:null,filter:'',drawer:null,lastFocus:null};
+  let data=load();const ui={view:'overview',step:'tenancies',analytics:'nk',objectTab:'overview',consumptionTab:'water',letterId:null,showAllLetters:false,filter:'',drawer:null,lastFocus:null};
   function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch(_){/* safe in-memory fallback; never touch real NK-Pro keys */}}
   function stateChange(){data.demoFinalized=false;persist();render()}
   const ledger=()=>caseBilling.calculate(data);
@@ -117,7 +117,7 @@
     else if(ui.step==='advance'){content=advances();}
     else if(ui.step==='allocation'){content=allocations();}
     else if(ui.step==='review'){content=review();}
-    else if(ui.step==='letters'){action=button(icon('print')+' Musterbrief drucken','print-letter',null,'button-primary');content=letters();}
+    else if(ui.step==='letters'){action=button(icon('print')+' Musterentwurf drucken','print-letter',null,'button-quiet');content=letters();}
     return head(`ABRECHNUNG 2025 · ${ending}`,title,description,action)+renderSteps()+content;
   }
   function tenancies(){
@@ -291,9 +291,9 @@
       '<td class="money">'+t.days+'</td><td class="money">'+fmt(t.costCents/100)+'</td>'+
       '<td class="money">'+fmt(t.advanceCents/100)+'</td>'+
       '<td class="money"><span class="outcome '+(t.balanceCents>0?'neg':'pos')+'">'+fmt(t.balanceCents/100)+'</span></td>'+
-      '<td>'+iconButton('edit-tenancy',t.id,'Abrechnungsfall öffnen')+'</td></tr>').join('');
+      '<td><span class="small soft">Nur Anzeige</span></td></tr>').join('');
     return '<div class="inline-toolbar"><h2>Abrechnungsergebnis je Mietverhältnis</h2>'+
-      '<span class="status amber">Synthetischer Fachtest</span></div>'+
+      '<span class="status amber">Vorläufig · nicht geprüft</span></div>'+
       '<section class="section"><div class="big-total"><div><small>Gesamtsaldo · keine echten Abrechnungsdaten</small>'+
       '<strong>'+fmt(sum/100)+'</strong></div><span class="small muted">'+r.tenants.length+' Abrechnungsfälle</span></div>'+
       '<div class="table-wrap"><table class="data-table"><thead><tr><th>Teilnehmer</th><th>Wohnung</th>'+
@@ -304,15 +304,56 @@
       ', umlagefähige Kosten '+fmt(r.totals.allocableCostsCents/100)+
       ', verteilt '+fmt(r.totals.distributedCents/100)+
       ', **nicht zugeordnet** '+fmt(r.totals.differenceCents/100)+
-      '. Fehlbeträge und Leerstand werden nicht still verteilt.</div></section>'+
-      '<div style="margin-top:18px;text-align:right">'+button('Zur Prüfung','go-review',null,'button-primary')+'</div>';
+      '. Fehlbeträge und Leerstand werden nicht still verteilt. Anzeige ist ausschließlich vorläufig, bis alle 44 Regeln und Briefe freigegeben sind.</div></section>'+
+      '<div style="margin-top:18px;text-align:right">'+button('Zur Briefvorschau','go-letter',null,'button-primary')+'</div>';
   }
-  function review(){const list=checks();const todo=list.filter(x=>!x.done);return `<div class="inline-toolbar"><h2>Prüfen und abschließen</h2><span class="status ${todo.length?'amber':'green'}">${todo.length?todo.length+' offene Punkte':'Alle Musterpunkte geprüft'}</span></div><section class="section"><div class="section-header"><div><h2>Abschlusskontrolle</h2><p>Jede Auffälligkeit führt direkt zur Ursache und möglichen Lösung.</p></div></div>`+
-    list.map(c=>`<div class="check-item"><div class="check-dot ${c.done?'pass':'todo'}">${icon(c.done?'check':'alert')}</div><div class="check-content"><strong>${safeText(c.title)}</strong><span>${safeText(c.note)}</span></div>${c.done?'<span class="status green">Erledigt</span>':`<button class="link" type="button" data-action="${c.action}">Bearbeiten →</button>`}</div>`).join('')+
-    `<div class="progress-foot" style="display:flex;align-items:center;justify-content:space-between;gap:14px"><span class="note">${list.length-todo.length}/${list.length} Musterkontrollen erledigt</span>${button(data.demoFinalized?'Musterabschluss erfolgt': 'Musterabschluss simulieren','demo-finish',null,'button-primary'+(todo.length?' disabled-look':''))}</div></section>`+
-    `<div class="info-line">Der Musterabschluss ist eine reine Simulation. Die echte Freigabe bleibt bis zur vollständigen Prüfung aller 44 Originalregeln, Briefe, Archiv und Datenmigration gesperrt.</div>`;}
-  function docPaper(){const u=data.units[0];const cost=allocation(u),adv=u.advance,saldo=balance(u);return `<article class="doc-paper"><div class="doc-top">MUSTERHAUS · DEMO-VERMIETUNG</div><div class="doc-address">Musterempfänger<br>Wohnung A<br>Beispielstraße 1<br>00000 Musterstadt</div><div class="doc-title">Nebenkostenabrechnung 2025</div><div class="doc-prose">Sehr geehrte Damen und Herren,<br><br>für den Abrechnungszeitraum 01.01.2025 bis 31.12.2025 ergibt sich aus diesem unverbindlichen Muster folgende Übersicht:</div><div class="doc-results"><div><small>Umlagekosten</small><b>${fmt(cost)}</b></div><div><small>Vorauszahlungen</small><b>${fmt(adv)}</b></div><div><small>${saldo>0?'Nachzahlung':'Guthaben'}</small><b>${fmt(Math.abs(saldo))}</b></div></div><div class="doc-prose">Dies ist ausschließlich eine Layoutvorschau mit synthetischen Beträgen. Sie stellt keine versandfertige Abrechnung dar.</div><div class="doc-sign">Mit freundlichen Grüßen<strong>Mustermann Immobilien</strong>Vermietung</div><div class="demo-watermark">DESIGNDEMO · NICHT VERSENDEN</div></article>`;}
-  function letters(){return `<div class="inline-toolbar"><h2>Briefvorschau</h2><span class="status ${letterResolved()?'green':'amber'}">${letterResolved()?'Layout geprüft (Demo)':'Layoutprüfung offen'}</span></div><p class="print-note">Diese Vorschau nutzt keine realen Mieterdaten. Der spätere Dokumentengenerator muss auf dem bestehenden geprüften Briefsystem aufbauen.</p><section class="section printable"><div class="section-header"><div><h2>Musterbrief – Wohnung A</h2></div><button type="button" class="link" data-action="mark-letter">${letterResolved()?'Prüfung zurücksetzen':'Musterlayout als geprüft markieren'}</button></div><div class="section-body">${docPaper()}</div></section>`;}
+  function review(){
+    const q=qualityReport(),real=q.rows.filter(x=>x.status!=='not-run'),
+      waiting=q.rows.filter(x=>x.status==='not-run');
+    const item=x=>'<div class="check-item"><div class="check-dot '+(x.status==='passed'?'pass':'todo')+'">'+
+      icon(x.status==='passed'?'check':'alert')+'</div><div class="check-content"><strong>'+
+      safeText(x.id)+' · '+safeText(x.title)+'</strong><span>'+
+      safeText(x.status==='not-run'?'Originalprüfung noch nicht umgesetzt.':x.status==='passed'?'Vorprüfung bestanden (synthetisch)':x.status==='not-applicable'?'Nicht anwendbar':'Kritisch / zu klären')+
+      '</span></div>'+(x.status==='critical'?'<button class="link" type="button" data-action="'+safeText(x.route)+'">Ursache →</button>':'')+'</div>';
+    return '<div class="inline-toolbar"><div><h2>Prüfen · vollständiges Regelregister</h2>'+
+      '<p class="small muted">Die Abrechnung wird intern vorab berechnet. Nur tatsächlich ausgeführte Regeln erhalten einen Prüfstatus.</p></div>'+
+      '<span class="status amber">Abschluss gesperrt</span></div>'+
+      '<div class="case-summary">'+
+        '<div><small>Originalregeln</small><strong>'+q.counts.total+'</strong></div>'+
+        '<div><small>Experimentell ausgeführt</small><strong>'+q.counts.executed+'</strong></div>'+
+        '<div><small>Noch nicht ausgeführt</small><strong>'+q.counts.notRun+'</strong></div>'+
+        '<div><small>Kritische Meldungen</small><strong>'+q.counts.critical+'</strong></div></div>'+
+      '<section class="section"><div class="section-header"><div><h2>Vorprüfungen und aktuelle Abrechnungsfehler</h2>'+
+        '<p>Die 10 Basisregeln sind unabhängig auf Musterdaten geprüft; 34 Originalregeln und die druckfertige Briefprüfung fehlen.</p></div></div>'+
+        real.map(item).join('')+q.dynamic.map(d=>'<div class="check-item"><div class="check-dot todo">'+icon('alert')+
+          '</div><div class="check-content"><strong>'+safeText(d.title)+'</strong><span>Dynamischer Berechnungs- oder Briefmangel</span></div>'+
+          '<button class="link" type="button" data-action="'+safeText(d.route)+'">Bearbeiten →</button></div>').join('')+
+        '<details class="review-remaining"><summary>'+waiting.length+' weitere Originalregeln · noch nicht portiert</summary>'+
+          waiting.map(item).join('')+'</details>'+
+        '<div class="progress-foot"><strong>Keine Abrechnungsfreigabe möglich</strong><span class="note">'+
+          safeText(q.reason)+'</span></div></section>'+
+        '<div class="info-line">Die 44 Originalregeln sind jetzt sichtbar inventarisiert. „Nicht ausgeführt“ bedeutet ausdrücklich NICHT bestanden. Finalisierung, Archiv und echte Brieffreigabe bleiben gesperrt.</div>';
+  }
+  function letters(){
+    const bundle=letterBundle(),list=bundle.letters,chosen=ui.letterId&&list.find(x=>x.id===ui.letterId)||list[0];
+    const selected=ui.showAllLetters?list:chosen?[chosen]:[];
+    const incomplete=bundle.missingRecipients.length+bundle.errors.length;
+    return '<div class="inline-toolbar"><div><h2>Briefe · Einzelvorschau und Sammelentwurf</h2>'+
+      '<p class="small muted">Vollständige Muster-Empfängerliste aus dem Abrechnungskern · keine Versandfreigabe</p></div>'+
+      button('Briefvorlage bearbeiten','edit-letter-settings',null,'button-quiet')+'</div>'+
+      '<div class="case-summary"><div><small>Abrechnungsfälle</small><strong>'+data.tenancies.length+'</strong></div>'+
+      '<div><small>Briefentwürfe</small><strong>'+bundle.letters.length+'</strong></div>'+
+      '<div><small>Fehlende Daten</small><strong>'+incomplete+'</strong></div>'+
+      '<div><small>A4-/Fachfreigabe</small><strong>Gesperrt</strong></div></div>'+
+      '<section class="section printable"><div class="section-header"><div><h2>Entwurfsauswahl</h2>'+
+      '<p>Alle Entwürfe enthalten eine Nicht-versenden-Kennzeichnung.</p></div>'+
+      '<button class="link" type="button" data-action="all-letters">'+(ui.showAllLetters?'Einzelbrief anzeigen':'Alle Entwürfe anzeigen')+'</button></div>'+
+      '<div class="letter-picker">'+list.map(x=>'<button type="button" class="'+(chosen?.id===x.id?'active':'')+
+         '" data-action="select-letter" data-id="'+safeText(x.id)+'">'+safeText(x.name)+' · '+safeText(x.unit)+'</button>').join('')+'</div>'+
+      '<div class="section-body letter-paper-stack">'+selected.map(x=>letterModule.html(x,bundle.config)).join('')+'</div></section>'+
+      '<div class="info-line">Die Briefdaten und Beträge stammen aus dem fallbezogenen Abrechnungsmodell. Dokumentpreflight: '+safeText(bundle.status)+
+      '. Druck- und A4-Layoutparität, alle Original-Briefeinstellungen und finale Freigabe sind noch nicht abgeschlossen.</div>';
+  }
   function objectUnits(){return head('STAMMDATEN','Objekt','Wohnungen und Zähler sind einmalig gepflegt. Jahresbezogene Daten werden im Abrechnungsarbeitsplatz bearbeitet.')+
     `<div class="section"><div class="section-header"><div><h2>Musterobjekt</h2><p>7 Wohnungen · 1 Gebäude · ausschließlich synthetische Daten</p></div><span class="status green">Demo aktiv</span></div><div class="stat-inline"><div><small>Wohneinheiten</small><strong>${data.units.length}</strong></div><div><small>Gesamtfläche</small><strong>${int(data.units.reduce((s,u)=>s+u.area,0))} m²</strong></div><div><small>Zähler erfasst</small><strong>${data.units.length*2} Zählerkanäle</strong></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Wohnung</th><th>Kennung</th><th>Lage</th><th class="money">Fläche</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
     data.units.map(u=>`<tr><td><strong>${safeText(u.label)}</strong></td><td>${safeText(u.id)}</td><td>${safeText(u.position)}</td><td class="money">${int(u.area)} m²</td><td>${iconButton('edit-unit',u.id,'Wohnung bearbeiten')}</td></tr>`).join('')+`</tbody></table></div><div class="table-caption">Wohnfläche und Aktivstatus werden hier gepflegt. Personen und Miettage liegen ausschließlich bei den Mietverhältnissen.</div></div>`;}
@@ -703,9 +744,10 @@
     if(action==='check-water'){const r=waterReport();if(!r.canReview){navigate('billing','water');toast('Bitte fehlende Zählerstände und Ablesedaten ergänzen.');return}if(r.exactMatch){toast('Beide Wasserabgleiche stimmen überein.');return}openDrawer('water-decision');return}
     if(action==='edit-water-price'){openDrawer('cost','water');return}
     if(action==='go-water'){navigate('billing','water');return}if(action==='go-advance'){navigate('billing','advance');return}if(action==='check-heat'){openDrawer('heat-evidence');return}if(action==='go-costs'){navigate('billing','costs');return}if(action==='go-review'){navigate('billing','review');return}if(action==='go-letter'){navigate('billing','letters');return}
-    if(action==='mark-letter'){if(letterResolved()){data.letterChecked=false;data.letterFingerprint=null}else{data.letterChecked=true;data.letterFingerprint=letterFingerprint()}stateChange();toast(letterResolved()?'Musterlayout als geprüft markiert.':'Musterprüfung zurückgesetzt.');return}
-    if(action==='print-letter'){window.print();return}
-    if(action==='demo-finish'){if(unresolved().length){toast('Bitte zunächst alle offenen Musterprüfungen bearbeiten.');return}data.demoFinalized=true;persist();render();toast('Musterabschluss simuliert – keine echte Freigabe.');return}
+    if(action==='all-letters'){ui.showAllLetters=!ui.showAllLetters;render();return}
+    if(action==='select-letter'){ui.letterId=id;ui.showAllLetters=false;render();return}
+    if(action==='print-letter'){ui.showAllLetters=true;render();window.print();return}
+    if(action==='demo-finish'){toast('Abschluss gesperrt: 34 Originalregeln, Briefdruck und Archiv sind nicht freigegeben.');return}
     if(action==='close-drawer'){closeDrawer();return}
   }
   document.addEventListener('click',e=>{
