@@ -22,3 +22,7 @@
 .drawer-breakdown .data-table td{padding:9px 7px}
 .drawer-breakdown .data-table th{padding:8px 7px}
 .drawer-breakdown .data-table strong{font-weight:600}
+
+/* Cost-level free text and consumption-price controls (0.4). */
+.cost-note-cell{min-width:105px;max-width:270px;overflow-wrap:anywhere;white-space:pre-wrap;line-height:1.4}
+[data-price-group][hidden],[data-manual-price][hidden]{display:none!important}
