@@ -51,10 +51,13 @@
 /* 0.5 | tenancy cases and object secondary navigation */
 .object-switch{display:flex;gap:8px;align-items:center;margin:3px 0 22px;border-bottom:1px solid var(--line)}
 .object-switch button{border:0;border-bottom:2px solid transparent;background:none;padding:13px 17px;font:inherit;font-weight:600;font-size:12px;color:var(--sub);cursor:pointer}
-.object-switch button.active{color:var(--accent);border-color:var(--accent)}
+.object-switch button.active{color:var(--blue);border-color:var(--blue)}
 .case-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
 .case-summary>div{background:white;border:1px solid var(--border);border-radius:9px;padding:17px;display:flex;flex-direction:column;gap:8px}
 .case-summary small{font-size:11px;color:var(--sub)}.case-summary strong{font-size:23px;font-variant-numeric:tabular-nums}
 .case-table{min-width:1000px}.case-table td{vertical-align:middle}
 @media(max-width:800px){.case-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:450px){.object-switch button{padding:12px 10px}.case-summary{gap:8px}.case-summary>div{padding:13px}}
+
+/* 0.5 · focused contextual cost and meter editing */
+.cost-exceptions{border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin:12px 0}.cost-exceptions summary{color:var(--blue);font-size:12px;font-weight:650;cursor:pointer}.cost-exceptions[open] summary{margin-bottom:14px}.case-checkbox{display:flex;align-items:center;gap:9px;margin:7px 0;font-size:12px}.case-checkbox input{width:auto;margin:0}.meter-history{display:grid;gap:5px;margin:12px 0}.meter-history>div{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;border-bottom:1px solid var(--line);padding:7px 0;font-size:11px}.meter-history>div span{color:var(--sub)}.tab-bar{overflow-x:auto;scrollbar-width:thin}

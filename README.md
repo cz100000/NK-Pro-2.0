@@ -112,3 +112,7 @@ Nach Vergleich mit den Modulen `ui-metering.js`, `ui-costs.js` und `cost-actions
 ## Abgleich mit der bisherigen NK-Pro-1.0-Funktionsvielfalt
 
 Die [vollständige, priorisierte Funktions-Tiefenanalyse vom 22.11.2026](docs/LEGACY_FUNCTION_GAP_AUDIT_2026-11-22.md) vergleicht die Originalmodule mit dem synthetischen Fachtest 0.4 und legt die nächste Umsetzung in integrierten Abrechnungsstufen fest. Es werden **keine echten Mieterdaten** in die Demo übernommen.
+
+## Fachtest 0.5: gemeinsame Entwicklung von Stufe 1 und Stufe 2
+
+Die Funktionen werden auf einem **gemeinsamen synthetischen Datenmodell** entwickelt: Objektstamm, Wohnungen, mehrere Mietverhältnisse je Wohnung, Leerstands-/Privatanteilslogik, Vorauszahlungen je Abrechnungsfall, fallbasierte Umlagen, gesonderte Verbrauchsmengen und Kostenberechtigungen, getrennte KW/WW-Messperioden, Zählerwechsel und unveränderte Rohablesungen. Der neue, schlanke Fünf-Bereiche-Entwurf wird beibehalten. Die neue Anwendung ist noch nicht produktionsreif und noch nicht vollständig fachparitätisch. [Siehe Scope und Abnahmegates](docs/STAGES_1_2_INTEGRATED_2026-11-22.md).

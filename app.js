@@ -60,7 +60,7 @@
   const fmtVolume=v=>Number(v).toLocaleString('de-DE',{maximumFractionDigits:3});
   const parseField=(field)=>{const raw=String(field.value||'').trim().replace(/\s/g,'').replace(',','.');const val=Number(raw);return Number.isFinite(val)?val:NaN};
   function load(){try{const v=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(v&&v.fixture===true&&v.period==='2025'&&Array.isArray(v.units)&&v.units.length===7&&Array.isArray(v.costs))return propertyModel.upgrade(waterDetails.upgrade(v));}catch(_){/* standalone file localStorage might be blocked */}return initial()}
-  let data=load();const ui={view:'overview',step:'costs',analytics:'nk',objectTab:'tenancies',filter:'',drawer:null,lastFocus:null};
+  let data=load();const ui={view:'overview',step:'costs',analytics:'nk',objectTab:'overview',filter:'',drawer:null,lastFocus:null};
   function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));}catch(_){/* safe in-memory fallback; never touch real NK-Pro keys */}}
   function stateChange(){data.demoFinalized=false;persist();render()}
   const ledger=()=>caseBilling.calculate(data);
@@ -90,7 +90,7 @@
   const button=(label,action,id,cls='')=>`<button class="button ${cls}" type="button" data-action="${action}"${id?` data-id="${safeText(id)}"`:''}>${label}</button>`;
   const section=(title,inner,extra='',classes='')=>`<section class="section ${classes}"><div class="section-header"><div><h2>${title}</h2></div>${extra}</div>${inner}</section>`;
   const head=(kicker,title,description,action='')=>`<div class="page-heading"><div><div class="eyebrow">${safeText(kicker)}</div><h1>${title}</h1><p>${description}</p></div>${action?`<div class="heading-actions">${action}</div>`:''}</div>`;
-  function progress(){const done=checks().filter(c=>c.done).length;let html='<div class="flow-track">';for(let i=0;i<6;i++)html+=`<div class="flow-segment ${i<done?'complete':i===done?'current':''}"></div>`;return html+`</div><div class="flow-labels">${['Kosten','Verbräuche','Zahlungen','Umlage','Prüfen','Briefe'].map((x,i)=>`<span class="${i===Math.min(done,5)?'highlight':''}">${x}</span>`).join('')}</div>`}
+  function progress(){const done=checks().filter(c=>c.done).length;let html='<div class="flow-track">';for(let i=0;i<7;i++)html+=`<div class="flow-segment ${i<done?'complete':i===done?'current':''}"></div>`;return html+`</div><div class="flow-labels">${['Mietverhältnisse','Kosten','Verbräuche','Zahlungen','Umlage','Prüfen','Briefe'].map((x,i)=>`<span class="${i===Math.min(done,6)?'highlight':''}">${x}</span>`).join('')}</div>`}
   function overview(){
     const done=checks().length-unresolved().length;
     const tasks=unresolved();
@@ -106,7 +106,7 @@
   function billing(){
     const ending=data.demoFinalized?'Musterabschluss simuliert':'Synthetischer Fachtest';
     let content='';let action='';let title='Abrechnung 2025';let description='Alle Arbeitsschritte in einem gemeinsamen Arbeitsplatz. Details bearbeiten, ohne den Kontext zu verlieren.';
-    if(ui.step==='tenancies'){action=button('Musterfall hinzufügen','new-tenancy',null,'button-primary');content=tenancies();}
+    if(ui.step==='tenancies'){content=tenancies();}
     else if(ui.step==='costs'){action=button('Kostenart hinzufügen','new-cost',null,'button-primary');content=costs();}
     else if(ui.step==='water'){action=button('Hauszähler prüfen','edit-house',null,'button-primary');content=water();}
     else if(ui.step==='advance'){content=advances();}

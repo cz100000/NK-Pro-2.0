@@ -29,3 +29,12 @@ Das alte NK-Pro-Repositorium ist ausdrücklich nicht Teil dieses Deployments und
 ## Vollständiger Funktionsvergleich 1.0 → 2.0
 
 Die priorisierte, quellcodegestützte Tiefenanalyse ist in [LEGACY_FUNCTION_GAP_AUDIT_2026-11-22.md](LEGACY_FUNCTION_GAP_AUDIT_2026-11-22.md) dokumentiert: einzeln rückverfolgbare Lücken, 5-Bereiche-UX-Ziel, fachliche Paritätsfallen und End-to-End-Abnahmegates. NK-Pro 1.0 bleibt unangetastet.
+
+## Fachtest 0.5 · Stufe 1 + 2 gemeinsam entwickeln (22.11.2026)
+
+- [x] Synthetischer Objekt-/Wohnungsstamm und Mietverhältnisse als getrennte Abrechnungsfälle mit Ein-/Auszug, Privatanteil, Vorauszahlungen und Leerstandsprüfungen.
+- [x] Referenzbasierte Umlage auf einzelne Mietverhältnisse; Kosten-Ausnahmen je Fall, eigene Verbräuche und keine stille Verteilung ungeklärter Beträge.
+- [x] Kalt-/Warmwasser getrennt; Originalstände mit Nachkommastellen, Hausabgleich, Zählerwechsel und mehrere Messperioden, besondere Rundung 2025 nur bei ausdrücklich bestätigter Evidenz.
+- [x] Sichtbare 0.5-UX innerhalb der fünf Hauptbereiche mit Objekt-Unteransichten und Detail-Drawern.
+- [ ] Stufe 1+2 fachlich abschließen: alle K-IDs/Kostenarten, historische Miet-/Zählerzuordnungen, kontrollierter Jahreswechsel und Bestandstransfer, sämtliche 2025-Rundungs-/Techem-/Einzelkosten-Sonderfälle mit vollständiger Originalparität.
+- [ ] Fachprüfungen, finale Briefe, Archiv, sicherer Echtdatenhost, Import/Backup/Restore und Betriebsfreigabe sind weiter offen.
