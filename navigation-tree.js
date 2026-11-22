@@ -85,7 +85,7 @@
             safeText(o.id)+'"><span class="tree-arrow'+(expanded?' open':'')+'" aria-hidden="true">'+
             icon('chevron')+'</span><span class="tree-icon">'+icon('building')+
             '</span><span class="tree-property-label">'+safeText(o.name)+
-            '</span><span class="tree-units">'+o.units.length+' WE</span></button>'+
+            '</span><span class="tree-units">'+(o.sourceKind==='locked'?'– WE':o.units.length+' WE')+'</span></button>'+
           (expanded?'<div class="tree-children">'+
             group('master','Stammdaten',null,masterItems)+
             group('years','Jahresabrechnungen',years.length,yearItems)+
