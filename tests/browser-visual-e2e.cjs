@@ -190,6 +190,20 @@ const chromeBinary=()=>{
   assert.ok(await evalJS("return document.querySelectorAll('.result-detail-table tbody tr').length===7;"));
   assert.equal(await evalJS("return document.querySelectorAll('#appMain [data-action=go-letter],.result-detail-table .edit-action').length;"),0);
   await snap("06e-desktop-detailed-results");
+  await click('[data-step="letters"]');
+  await waitFor("return !!document.querySelector('.letter-workspace .nk-letter-document .letter-main-sheet');");
+  assert.equal(await evalJS("return document.querySelectorAll('.letter-recipient').length;"),7);
+  assert.equal(await evalJS("return document.querySelectorAll('.letter-workspace>.letter-list-panel,.letter-workspace>.letter-settings-panel,.letter-workspace>.letter-preview-panel').length;"),3);
+  assert.ok(await evalJS("return !!document.querySelector('.letter-sheet .abrechnung-table .col-prepayment');"));
+  assert.ok(await evalJS("return document.querySelector('.letter-preview-canvas').innerText.includes('Abrechnungsübersicht im Detail');"));
+  assert.ok(await evalJS("return !!document.querySelector('[data-action=letter-print-all]');"));
+  assert.ok(await evalJS("return !!document.querySelector('[data-action=letter-internal-all]');"));
+  await snap("06f-desktop-ported-AP13-letter");
+  await click('[data-action="letter-fit-width"]');
+  assert.ok(await evalJS("return document.querySelector('.letter-preview-stage').style.getPropertyValue('--letter-scale')!=='';"));
+  await click('[data-action="select-letter"][data-id="SYN-A-T02"]');
+  assert.ok(await evalJS("return document.querySelector('#letterConfigForm')?.dataset.caseId==='SYN-A-T02';"));
+  await snap("06g-desktop-letter-settings");
   await cmd("Emulation.setDeviceMetricsOverride",{width:390,height:844,deviceScaleFactor:1,mobile:true});
   await pause(220);
   const mobile=await evalJS("return{vw:innerWidth,sw:document.documentElement.scrollWidth,"+
