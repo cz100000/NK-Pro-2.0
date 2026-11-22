@@ -68,7 +68,7 @@ test("synthetic 0.6 UI initializes without runtime errors and uses seven tenancy
 test("synthetic case editor saves start/end, and new cases cannot be silently merged",()=>{
  const app=browser(),first=app.getState().tenancies[0];
  app.click("[data-action]",{action:"edit-tenancy",id:first.id});
- assert.match(app.drawer(),/Verbrauch bei Mieterwechsel/);
+ assert.doesNotMatch(app.drawer(),/Verbrauch bei Mieterwechsel/);
  app.save({firstName:first.firstName,lastName:first.lastName,salutation:"neutral",customSalutation:"",recipientStreet:"",recipientPostalCode:"",recipientCity:"",unitId:first.unitId,role:"Mieter",
    start:"2025-01-01",end:"2025-06-30",persons:1,advance:1000,
    consumptionCold:"",consumptionHot:"",tenantNote:"Demo"});
@@ -116,4 +116,22 @@ test("Techem costs live in consumption workspace not general invoices",()=>{
  app.click("[data-step]",{step:"water"});app.click("[data-consumption-tab]",{consumptionTab:"techem"});
  assert.match(app.source(),/Heizung/);
  assert.match(app.source(),/Kosten laut Techem/);
+});
+
+test("single source of truth: case water editable only in Verbräuche",()=>{
+ const app=browser(),t=app.getState().tenancies[0];
+ app.click("[data-action]",{action:"edit-tenancy",id:t.id});
+ assert.doesNotMatch(app.drawer(),/name="consumptionCold"/);
+ app.click("[data-action]",{action:"edit-case-water",id:t.id});
+ assert.match(app.drawer(),/Kaltwasser-Verbrauch/);
+ app.save({caseCold:5,caseHot:8});
+ assert.equal(app.getState().tenancies[0].consumptionCold,5);
+ assert.equal(app.getState().tenancies[0].consumptionHot,8);
+});
+test("water form no longer offers manual vacancy consumption",()=>{
+ const app=browser(),u=app.getState().units[0];
+ app.click("[data-action]",{action:"edit-water",id:u.id});
+ assert.doesNotMatch(app.drawer(),/name="vacancyCold"/);
+ assert.match(app.drawer(),/KW-Zwischenablesung/);
+ assert.match(app.drawer(),/water-live-sum/);
 });
