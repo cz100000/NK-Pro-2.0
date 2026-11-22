@@ -39,7 +39,7 @@
    const payments=result.payments||{};
    result.payments=Object.fromEntries(result.tenancies.map(t=>[t.id,
      {...defaultPayment(t),...(payments[t.id]||{})}]));
-   result.costs=result.costs.map(c=>({...c,sourceId:c.sourceId||"",active:c.active!==false,
+   result.costs=result.costs.map(c=>({...c,sourceId:c.sourceId||({water:"K002",waste:"K009",heat:"K006",insurance:"K015",power:"K013"}[c.id]||""),active:c.active!==false,
      invoiceDate:c.invoiceDate||"",documentDate:c.documentDate||"",invoiceNumber:c.invoiceNumber||"",
      issuer:c.issuer||"",invoiceReference:c.invoiceReference||"",note:c.note||""}));
    result.settlement={year:state.period,status:"draft",revision:0,...(result.settlement||{})};
@@ -84,18 +84,61 @@
    }
    return round(total);
  }
- function expected(t,p){
-   if(p?.mode==="monthly"&&money(p.agreedMonthly))return expectedMonthly(t.start,t.end,p.agreedMonthly);
-   if(p?.mode==="annual"&&money(p.agreedAnnual))return Number(p.agreedAnnual);
-   return null;
+ const YEAR_DAYS=365.2425;
+ function agreementPreview(t,p){
+   const mode=p?.mode==="monthly"?"monthly":"annual";
+   const agreed=Number(mode==="monthly"?p?.agreedMonthly:p?.agreedAnnual);
+   if(!money(agreed))return{valid:false,monthly:null,annual:null,weekly:null,expected:null};
+   const annual=mode==="monthly"?agreed*12:agreed;
+   const monthly=annual/12,weekly=annual*7/YEAR_DAYS;
+   let target=null;
+   if(date(t?.start)&&date(t?.end)&&t.start<=t.end){
+     if(mode==="monthly")target=expectedMonthly(t.start,t.end,agreed);
+     else if(p.annualBasis==="fullYear"){
+       // Prorate across the actual calendar-year length (including leap years).
+       const year=Number(t.start.slice(0,4));
+       const endYear=Number(t.end.slice(0,4));
+       if(year===endYear){
+         const span=days(t.start,t.end),yearDays=days(year+"-01-01",year+"-12-31");
+         target=round(annual*span/yearDays);
+       }
+     }else target=round(agreed); // Legacy records stored amount for *existing case*.
+   }
+   return{valid:true,monthly:round(monthly),annual:round(annual),
+     weekly:round(weekly),expected:target};
  }
- function setPayment(state,id,{mode,agreed,paid}){
+ function expected(t,p){return agreementPreview(t,p).expected;}
+ function actualPreview(p){
+   const mode=p?.paidMode==="monthly"?"monthly":"annual";
+   if(mode==="monthly"){
+     const monthly=Number(p?.paidMonthly),months=Number(p?.paidMonths);
+     if(!money(monthly)||!Number.isInteger(months)||months<0||months>12)
+       return{valid:false,actual:null,monthly:null,months:null};
+     return{valid:true,actual:round(monthly*months),monthly,months};
+   }
+   if(!money(p?.paidActual))return{valid:false,actual:null,monthly:null,months:null};
+   return{valid:true,actual:Number(p.paidActual),monthly:null,months:null};
+ }
+ function setPayment(state,id,{mode,agreed,paid,paidMode="annual",paidMonthly=null,paidMonths=null}){
    const x=upgrade(state),t=x.tenancies.find(t=>t.id===id);
-   if(!t||!["monthly","annual"].includes(mode)||!money(agreed)||!money(paid))
-     throw new RangeError("Invalid synthetic payment values");
-   x.payments[id]={mode,agreedMonthly:mode==="monthly"?Number(agreed):null,
-     agreedAnnual:mode==="annual"?Number(agreed):null,paidActual:Number(paid)};
-   // Tenant identity, usage role and dates stay unmodified.
+   if(!t||!["monthly","annual"].includes(mode)||!money(agreed)||
+     !["monthly","annual"].includes(paidMode))throw new RangeError("Invalid synthetic payment values");
+   let total;
+   if(paidMode==="monthly"){
+     if(!money(paidMonthly)||!Number.isSafeInteger(Number(paidMonths))||
+       Number(paidMonths)<0||Number(paidMonths)>12)
+       throw new RangeError("Monatszahlungen benötigen Betrag und Anzahl tatsächlich gebuchter Zahlungen (0–12)");
+     total=round(Number(paidMonthly)*Number(paidMonths));
+   }else{
+     if(!money(paid))throw new RangeError("Invalid actual payment total");
+     total=Number(paid);
+   }
+   x.payments[id]={mode,annualBasis:"fullYear",
+     agreedMonthly:mode==="monthly"?Number(agreed):null,
+     agreedAnnual:mode==="annual"?Number(agreed):null,
+     paidMode,paidMonthly:paidMode==="monthly"?Number(paidMonthly):null,
+     paidMonths:paidMode==="monthly"?Number(paidMonths):null,paidActual:total};
+   // Never infer actual receipts from the agreement or tenancy duration.
    return x;
  }
  function renameTenant(state,id,props){
@@ -144,7 +187,7 @@
    return x;
  }
  function invoiceCatalog(id){return catalog.find(x=>x.id===id)||null}
- return {catalog,guard,upgrade,example,splitName,expectedMonthly,expected,setPayment,
+ return {catalog,guard,upgrade,example,splitName,expectedMonthly,expected,agreementPreview,actualPreview,setPayment,
    renameTenant,setInvoice,deactivate,removeUnused,setExternal,invoiceCatalog,
    version:"synthetic-stage-3-workflow-1"};
 });
