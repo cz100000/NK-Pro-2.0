@@ -1,0 +1,344 @@
+{
+  "contractVersion": 1,
+  "scope": "Schema-5 read-only intake mapping; not an approved or deployed real-data schema",
+  "allowPublicData": false,
+  "knownRootFields": [
+    "wohnungen",
+    "mieter",
+    "kostenarten",
+    "vorauszahlungen",
+    "umlageInputs",
+    "waterMeters",
+    "meterReadings",
+    "briefSettings",
+    "meta",
+    "jahresArchiv",
+    "kostenartenMieterUmlage",
+    "abrechnungsEinzelwerte",
+    "objektStandard",
+    "zaehlerDaten",
+    "stammdaten",
+    "waterMeterHistory",
+    "briefAddresses",
+    "abrechnungsPruefungen",
+    "prepaymentAdjustmentSettings",
+    "kostenUmlagenAbgleich"
+  ],
+  "fields": [
+    {
+      "id": "OBJECT",
+      "from": [
+        "objektStandard.objekt",
+        "meta.objektId"
+      ],
+      "to": "portfolio.objects[].identity",
+      "targetStatus": "planned",
+      "required": true,
+      "note": "Keep source object ID and ARB5 business code separately; no forced rename."
+    },
+    {
+      "id": "BUILDINGS",
+      "from": [
+        "objektStandard.gebaeude"
+      ],
+      "to": "portfolio.objects[].buildings[]",
+      "targetStatus": "planned",
+      "required": true,
+      "note": "Address and building IDs; never inferred from tenants."
+    },
+    {
+      "id": "MASTER_UNITS",
+      "from": [
+        "objektStandard.einheiten",
+        "stammdaten.wohnungen"
+      ],
+      "to": "portfolio.objects[].units[]",
+      "targetStatus": "prototype-only",
+      "required": true,
+      "note": "Canonical areas differ from old billing snapshots; reconcile, do not overwrite history."
+    },
+    {
+      "id": "MASTER_TENANCIES",
+      "from": [
+        "objektStandard.vertraege",
+        "stammdaten.mieter"
+      ],
+      "to": "portfolio.objects[].tenancies[]",
+      "targetStatus": "prototype-only",
+      "required": true,
+      "note": "Preserve IDs, dates and private-use role without allocation exemption."
+    },
+    {
+      "id": "PARTNERS",
+      "from": [
+        "objektStandard.partner"
+      ],
+      "to": "portfolio.objects[].parties[]",
+      "targetStatus": "missing",
+      "required": false,
+      "note": "Separate identity/contact from tenancy record."
+    },
+    {
+      "id": "SOURCE_BUILDING_ROLES",
+      "from": [
+        "objektStandard.eigentuemer"
+      ],
+      "to": "portfolio.objects[].ownership[]",
+      "targetStatus": "missing",
+      "required": false,
+      "note": "Ownership data not transformed to tenant costs."
+    },
+    {
+      "id": "ANNUAL_SCOPE",
+      "from": [
+        "meta.abrechnungsjahr",
+        "objektStandard.abrechnungszeitraeume"
+      ],
+      "to": "portfolio.objects[].settlements[year].period",
+      "targetStatus": "prototype-only",
+      "required": true,
+      "note": "Use original period rather than assuming calendar year."
+    },
+    {
+      "id": "ANNUAL_UNIT_SNAPSHOT",
+      "from": [
+        "wohnungen"
+      ],
+      "to": "portfolio.objects[].settlements[year].unitSnapshot[]",
+      "targetStatus": "missing",
+      "required": true,
+      "note": "Freeze yearly values; a 55 m² snapshot is not a master-area replacement."
+    },
+    {
+      "id": "ANNUAL_TENANT_SNAPSHOT",
+      "from": [
+        "mieter"
+      ],
+      "to": "portfolio.objects[].settlements[year].caseSnapshot[]",
+      "targetStatus": "missing",
+      "required": true,
+      "note": "Under-year stays, status, historical case values."
+    },
+    {
+      "id": "COSTS",
+      "from": [
+        "kostenarten"
+      ],
+      "to": "portfolio.objects[].settlements[year].costs[]",
+      "targetStatus": "prototype-only",
+      "required": true,
+      "note": "Keep K IDs, original cost name, basis and gross invoice amount."
+    },
+    {
+      "id": "COST_CATALOG",
+      "from": [
+        "objektStandard.kostenarten"
+      ],
+      "to": "portfolio.objects[].costCatalog[]",
+      "targetStatus": "prototype-only",
+      "required": true,
+      "note": "Canonical cost catalog; never invent splits between K002 and K003."
+    },
+    {
+      "id": "COST_APPORTIONMENT",
+      "from": [
+        "umlageInputs"
+      ],
+      "to": "portfolio.objects[].settlements[year].allocationInputs",
+      "targetStatus": "missing",
+      "required": true,
+      "note": "Preserve allocation modes, case values and external provider detail."
+    },
+    {
+      "id": "COST_CASE_ALLOCATION",
+      "from": [
+        "kostenartenMieterUmlage"
+      ],
+      "to": "portfolio.objects[].settlements[year].caseAllocations",
+      "targetStatus": "missing",
+      "required": false,
+      "note": "For cent-accurate regression against original."
+    },
+    {
+      "id": "COST_RECONCILIATION",
+      "from": [
+        "kostenUmlagenAbgleich"
+      ],
+      "to": "portfolio.objects[].settlements[year].costReconciliation",
+      "targetStatus": "missing",
+      "required": false,
+      "note": "Keep corrections, approvals and owner shares."
+    },
+    {
+      "id": "PREPAYMENTS",
+      "from": [
+        "vorauszahlungen",
+        "objektStandard.vorauszahlungen"
+      ],
+      "to": "portfolio.objects[].settlements[year].prepaymentByCost",
+      "targetStatus": "missing",
+      "required": true,
+      "note": "Distinguish agreed advance from actual money received."
+    },
+    {
+      "id": "WATER_LEGACY",
+      "from": [
+        "waterMeters"
+      ],
+      "to": "portfolio.objects[].settlements[year].legacyWaterReadings",
+      "targetStatus": "prototype-only",
+      "required": false,
+      "note": "Use as evidence, not as meter-identity master."
+    },
+    {
+      "id": "WATER_METER_READINGS",
+      "from": [
+        "meterReadings"
+      ],
+      "to": "portfolio.objects[].settlements[year].waterReadings",
+      "targetStatus": "missing",
+      "required": false,
+      "note": "Preserve provenance and reference."
+    },
+    {
+      "id": "METER_MASTER",
+      "from": [
+        "zaehlerDaten.zaehler"
+      ],
+      "to": "portfolio.objects[].meters[]",
+      "targetStatus": "prototype-only",
+      "required": true,
+      "note": "Stable physical meter identities including inactive/retired."
+    },
+    {
+      "id": "METER_READINGS",
+      "from": [
+        "zaehlerDaten.messwerte"
+      ],
+      "to": "portfolio.objects[].meterReadings[]",
+      "targetStatus": "missing",
+      "required": true,
+      "note": "Reading date, provenance, replaced reading linkage."
+    },
+    {
+      "id": "METER_PERIODS",
+      "from": [
+        "zaehlerDaten.messperioden"
+      ],
+      "to": "portfolio.objects[].meterPeriods[]",
+      "targetStatus": "missing",
+      "required": true,
+      "note": "Do not recalculate historical water without periods."
+    },
+    {
+      "id": "METER_ASSIGNMENTS",
+      "from": [
+        "zaehlerDaten.zuordnungen"
+      ],
+      "to": "portfolio.objects[].meterAssignments[]",
+      "targetStatus": "missing",
+      "required": true,
+      "note": "Unit/case and dated source assignments."
+    },
+    {
+      "id": "METER_REPLACEMENTS",
+      "from": [
+        "zaehlerDaten.zaehlerwechsel"
+      ],
+      "to": "portfolio.objects[].meterReplacements[]",
+      "targetStatus": "missing",
+      "required": false,
+      "note": "Preserve zero or more recorded swaps."
+    },
+    {
+      "id": "WATER_HISTORY",
+      "from": [
+        "waterMeterHistory"
+      ],
+      "to": "portfolio.objects[].waterEvidence",
+      "targetStatus": "missing",
+      "required": false,
+      "note": "Evidence-based rounded 2025 consumption after reconciling start/end."
+    },
+    {
+      "id": "INDIVIDUAL_VALUES",
+      "from": [
+        "abrechnungsEinzelwerte"
+      ],
+      "to": "portfolio.objects[].settlements[year].individualValues[]",
+      "targetStatus": "missing",
+      "required": false,
+      "note": "Provider/manual case values and special overrides."
+    },
+    {
+      "id": "LETTER_SETTINGS",
+      "from": [
+        "briefSettings"
+      ],
+      "to": "portfolio.objects[].settlements[year].letterSettings",
+      "targetStatus": "prototype-only",
+      "required": false,
+      "note": "Document content and A4 design, not legacy renderer code."
+    },
+    {
+      "id": "LETTER_ADDRESSES",
+      "from": [
+        "briefAddresses"
+      ],
+      "to": "portfolio.objects[].settlements[year].letterAddresses",
+      "targetStatus": "missing",
+      "required": false,
+      "note": "Preserve explicit addresses only, do not guess."
+    },
+    {
+      "id": "QUALITY_DECISIONS",
+      "from": [
+        "abrechnungsPruefungen"
+      ],
+      "to": "portfolio.objects[].settlements[year].qualityDecisions",
+      "targetStatus": "missing",
+      "required": false,
+      "note": "Preserve evidence history and decision fingerprints."
+    },
+    {
+      "id": "PREPAYMENT_ADJUSTMENTS",
+      "from": [
+        "prepaymentAdjustmentSettings"
+      ],
+      "to": "portfolio.objects[].settlements[year].adjustmentSettings",
+      "targetStatus": "missing",
+      "required": false,
+      "note": "Never auto-generate unverified future monthly amounts."
+    },
+    {
+      "id": "ANNUAL_ARCHIVE",
+      "from": [
+        "jahresArchiv"
+      ],
+      "to": "portfolio.objects[].settlements[year].immutableLegacySnapshot",
+      "targetStatus": "missing",
+      "required": true,
+      "note": "Full raw historical case preserved privately, never recalculated/overwritten."
+    },
+    {
+      "id": "ACCOUNTING_SETTINGS",
+      "from": [
+        "objektStandard.abrechnungsrelevanteEinstellungen"
+      ],
+      "to": "portfolio.objects[].billingConfig",
+      "targetStatus": "missing",
+      "required": false,
+      "note": "Additional rules and allocation configuration."
+    },
+    {
+      "id": "ANNUAL_RESULTS",
+      "from": [
+        "jahresArchiv"
+      ],
+      "to": "portfolio.objects[].settlements[year].approvedOutcome",
+      "targetStatus": "missing",
+      "required": false,
+      "note": "Original approved/partial results used as golden references."
+    }
+  ]
+}
