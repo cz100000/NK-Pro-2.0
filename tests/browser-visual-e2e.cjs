@@ -101,12 +101,16 @@ const chromeBinary=()=>{
   await waitFor("return document.querySelectorAll('#portfolioTree .tree-property-button').length===3;");
   let d=await layout();
   assert.equal(d.tree,3);assert.ok(d.sw<=d.vw+1&&d.sbRight<=d.mainLeft+4);
-  assert.match(d.h,/Übersicht/);
+  assert.match(d.h,/Startseite/);assert.ok(d.sbRight>=265);
   await snap("01-desktop-portfolio");
-  await click('[data-view="billing"]');
+  await click('[data-action="all-billings"]');
   await waitFor("return document.querySelectorAll('.annual-row').length===7;");
   d=await layout();assert.ok(d.sw<=d.vw+1);assert.match(d.h,/Jahresabrechnungen/);
   await snap("02-desktop-all-annual-records");
+  await click('[data-view="analytics"]');
+  await waitFor("return document.querySelector('#appMain h1')?.textContent==='Analysezentrum';");
+  assert.equal(await evalJS("return document.querySelectorAll('.tree-property.expanded').length;"),0);
+  await click('[data-view="overview"]');
   await click('.tree-property-button[data-id="SYN-B"]');
   await waitFor("return document.querySelector('#breadcrumbView').textContent.includes('Musterobjekt B');");
   await click('[data-object-tab="units"]');
@@ -140,8 +144,9 @@ const chromeBinary=()=>{
   await click('#openMenu');
   assert.equal(await evalJS("return document.body.classList.contains('menu-open');"),true);
   await waitFor("return document.querySelector('.sidebar').getBoundingClientRect().right>0;");
+  assert.ok(await evalJS("return document.querySelector('.sidebar').getBoundingClientRect().width>=275;"));
   await snap("08-mobile-explorer");
-  await click('[data-view="billing"]');
+  await click('[data-action="object-billings"][data-id="SYN-A"]');
   await waitFor("return document.querySelector('#appMain h1')?.textContent==='Jahresabrechnungen';");
   const m2=await evalJS("return{vw:innerWidth,sw:document.documentElement.scrollWidth,"+
     "menu:document.body.classList.contains('menu-open')};");

@@ -51,7 +51,7 @@ test("0.7 boots a genuine 3-property portfolio and a clear 7-year overview",()=>
  assert.match(x.tree(),/Musterobjekt A/);
  assert.match(x.tree(),/Musterobjekt B/);
  assert.match(x.tree(),/Musterobjekt C/);
- x.click("[data-view]",{view:"billing"});
+ x.act("all-billings");
  assert.match(x.html(),/Jahresabrechnungen/);
  assert.match(x.html(),/Abrechnung 2025/);
  assert.match(x.html(),/Abrechnung 2023/);
@@ -159,4 +159,36 @@ test("quality remains incomplete, no completed bill or final letters",()=>{
  assert.match(x.html(),/Abschluss gesperrt/);
  const r=x.window.NKPRO2_REVIEW.assess(x.state(),x.window.NKPRO2_CASE_BILLING.calculate(x.state()));
  assert.equal(r.readyForClose,false);
+});
+
+test("0.8 navigation has one route per task, grouped property branches and clear global context",()=>{
+ const x=browser(),shell=fs.readFileSync(path.join(root,"index.html"),"utf8");
+ const views=[...shell.matchAll(/class="nav-item(?: active)?" data-view="([^"]+)"/g)].map(m=>m[1]);
+ assert.deepEqual(views,["overview","analytics","documents"]);
+ assert.match(x.html(),/Startseite/);
+ assert.doesNotMatch(x.tree(),/tree-section-children/);
+ x.act("select-property","SYN-B");
+ assert.match(x.tree(),/Stammdaten/);
+ assert.match(x.tree(),/Jahresabrechnungen/);
+ assert.match(x.tree(),/2024/);
+ assert.doesNotMatch(x.tree(),/Objektdaten/);
+ x.act("toggle-tree-section","master");
+ assert.match(x.tree(),/Objektdaten/);
+ assert.match(x.tree(),/Wohnungen/);
+ x.act("open-object-tab","units");
+ assert.match(x.html(),/Wohnungen/);
+ assert.match(x.tree(),/tree-subitem selected/);
+ x.act("object-billings","SYN-B");
+ assert.match(x.html(),/Jahresabrechnungen/);
+ x.act("open-year","SYN-B|2024");
+ assert.match(x.tree(),/tree-year selected/);
+ x.click("[data-view]",{view:"analytics"});
+ assert.match(x.html(),/Analysezentrum/);
+ assert.match(x.node("breadcrumbView").textContent,/Objektübergreifend/);
+ assert.doesNotMatch(x.tree(),/tree-property expanded/);
+ x.click("[data-view]",{view:"documents"});
+ assert.match(x.node("breadcrumbView").textContent,/Dokumente & Archiv/);
+ x.click("[data-view]",{view:"overview"});
+ assert.match(x.html(),/Startseite/);
+ assert.equal(x.portfolio().selectedObjectId,"SYN-B");
 });

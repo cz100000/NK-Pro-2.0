@@ -1,5 +1,16 @@
 # Roadmap für NK-Pro 2.0
 
+## Fachtest 0.8 · Einfache, objektzentrierte Navigation (22.11.2026)
+
+- [x] Doppelte Hauptnavigation entfernt; Startseite und **ein** Objektbaum für Stammdaten und Jahresabrechnungen.
+- [x] Pro Immobilie die Gruppen Stammdaten und Jahresabrechnungen aufklappbar; sämtliche Jahresabläufe bleiben rechts in sechs Schritten.
+- [x] Analysen und Dokumente & Archiv als getrennte objektübergreifende Navigationseinstiege; Breadcrumbs unterscheiden Objekt- und globale Kontexte.
+- [x] Sidebar von 232 auf 268 px (Desktop) verbreitert, mobile Navigationsbreite 280 px, Navigationsschrift vergrößert.
+- [x] Synthetische Daten/LocalStorage-Key unverändert; das bisherige NK-Pro 1.0 nicht beschrieben.
+- [ ] Fachliche Aggregation über alle Objekte und Jahre und übergreifender Dokumentenindex sind noch ausstehend, ebenso Produktivfreigabe.
+
+Weitere Details: [STAGE_0_8_NAVIGATION_2026-11-22.md](STAGE_0_8_NAVIGATION_2026-11-22.md).
+
 ## Maßgeblicher Entwicklungsplan für Stufen 3–7 (konsolidiertes Feedback 41 Punkte, 22.11.2026)
 
 **Für alle neuen Entwicklungsaufträge ist [ENTWICKLUNGSPLAN_3_BIS_7_FEEDBACK_41_2026-11-22.md](ENTWICKLUNGSPLAN_3_BIS_7_FEEDBACK_41_2026-11-22.md) der verbindliche Arbeitsplan.** Er ordnet sämtliche 41 Nutzeranforderungen einzeln den überarbeiteten Stufen 3 bis 7 zu, mit übergreifenden UX-/Datenregeln, fachlichen Abhängigkeiten und Stufen-Abnahmegates. Frühere Stufenpläne unten dienen als historische Grundlage, nicht als widersprechende Umsetzungspriorität. Stufe 1+2 ist synthetisch angebunden, aber noch nicht fachlich vollständig abgenommen. **Diese Änderung ist Planung, nicht App-Funktionalität; keine produktive Abnahme.**

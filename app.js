@@ -76,7 +76,8 @@
   let portfolio=load(),data=estates.current(portfolio);
   const ui={view:'overview',step:'advance',billingHome:true,objectListFilter:null,
     analytics:'nk',objectTab:'overview',unitDetailId:null,consumptionTab:'water',
-    letterId:null,showAllLetters:false,filter:'',drawer:null,lastFocus:null};
+    letterId:null,showAllLetters:false,filter:'',drawer:null,lastFocus:null,
+    treeOpenObjectId:null,treeSections:{master:false,years:true}};
   const master=()=>estates.object(portfolio);
   const activeYear=()=>portfolio.selectedYear;
   const annualLocked=()=>estates.readonly(data);
@@ -142,7 +143,7 @@
       '<div class="overview-count"><strong>'+o.units.length+'</strong><span>Wohnungen</span></div>'+
       '<div class="overview-actions">'+button('Objekt öffnen','select-property',o.id,'button-quiet')+
         button('Abrechnungen','object-billings',o.id,'button-quiet')+'</div></div>').join('');
-    return head('IMMOBILIENBESTAND · NUR MUSTERDATEN','Übersicht',
+    return head('IMMOBILIENBESTAND · NUR MUSTERDATEN','Startseite',
       'Drei fiktive Immobilien. Die vollständige Dashboard-Gestaltung folgt nach Abschluss der Kernfunktionen.',
       button('Alle Jahresabrechnungen','all-billings',null,'button-primary'))+
       '<div class="portfolio-summary"><div><small>Objekte</small><strong>'+portfolio.objects.length+'</strong></div>'+
@@ -157,34 +158,61 @@
   const renderSteps=()=>`<div class="tab-bar" role="tablist" aria-label="Abrechnungsprozess">${steps.map(([id,label])=>`<button class="tab-button ${ui.step===id?'active':''}" role="tab" aria-selected="${ui.step===id}" type="button" data-step="${id}">${label}</button>`).join('')}</div>`;
   function renderTree(){
     const el=$('portfolioTree');if(!el)return;
-    el.innerHTML='<div class="tree-heading"><span>IMMOBILIENBESTAND</span><span class="tree-count">'+
+    el.innerHTML='<div class="tree-heading"><span>IMMOBILIEN</span><span class="tree-count">'+
       portfolio.objects.length+'</span></div>'+
       portfolio.objects.map(o=>{
-        const active=o.id===portfolio.selectedObjectId;
+        const expanded=o.id===ui.treeOpenObjectId;
+        const related=o.id===portfolio.selectedObjectId &&
+          (ui.view==='object'||(ui.view==='billing'&&(!ui.billingHome||ui.objectListFilter===o.id)));
         const years=Object.keys(o.settlements).sort((a,b)=>b.localeCompare(a));
-        const item=(label,action,tab,count)=>'<button type="button" class="tree-subitem" data-action="'+
-          action+'" data-id="'+safeText(tab||o.id)+'">'+safeText(label)+
-          (count!=null?'<span>'+count+'</span>':'')+'</button>';
-        return '<div class="tree-property '+(active?'expanded':'')+'">'+
-          '<button class="tree-property-button" type="button" aria-expanded="'+active+
-            '" aria-label="'+safeText(o.name)+' öffnen" data-action="select-property" data-id="'+safeText(o.id)+'">'+
-            '<span class="tree-arrow">'+(active?'⌄':'›')+'</span><span class="tree-property-label">'+
-            safeText(o.name)+'</span><span class="tree-units">'+o.units.length+' WE</span></button>'+
-          (active?'<div class="tree-children">'+
-            item('Objektdaten','open-object-tab','overview')+
-            item('Wohnungen','open-object-tab','units',o.units.length)+
-            item('Mietverhältnisse','open-object-tab','tenancies',o.tenancies.length)+
-            item('Zähler','open-object-tab','meters',o.units.length*2)+
-            item('Alle Abrechnungen','object-billings',o.id,years.length)+
-            '<div class="tree-year-list">'+years.map(year=>{
-              const a=o.settlements[year],selected=ui.view==='billing'&&!ui.billingHome&&
-                portfolio.selectedYear===year;
-              return '<button type="button" class="tree-year '+(selected?'selected':'')+
-                '" data-action="open-year" data-id="'+safeText(o.id)+'|'+year+'">'+
-                '<span>'+year+'</span><small>'+safeText(a.settlement?.status==='draft'?'In Bearbeitung':'Musterstand')+'</small></button>';
-            }).join('')+'</div></div>':'')+'</div>';
+        const item=(label,action,id,count,selected)=>'<button type="button" class="tree-subitem'+
+          (selected?' selected':'')+'" data-action="'+action+'" data-id="'+safeText(id)+
+          '"'+(selected?' aria-current="page"':'')+'>'+safeText(label)+
+          (count!=null?'<span class="tree-meta">'+count+'</span>':'')+'</button>';
+        const group=(id,label,count,children)=>{
+          const open=ui.treeSections[id];
+          return '<div class="tree-section"><button type="button" class="tree-group-toggle"'+
+            ' data-action="toggle-tree-section" data-id="'+id+'" aria-expanded="'+open+'">'+
+            '<span class="tree-arrow" aria-hidden="true">'+(open?'⌄':'›')+'</span>'+
+            '<span class="tree-group-label">'+label+'</span>'+
+            (count!=null?'<span class="tree-meta">'+count+'</span>':'')+'</button>'+
+            (open?'<div class="tree-section-children">'+children+'</div>':'')+'</div>';
+        };
+        const masterItems=item('Objektdaten','open-object-tab','overview',null,
+            related&&ui.view==='object'&&ui.objectTab==='overview')+
+          item('Wohnungen','open-object-tab','units',o.units.length,
+            related&&ui.view==='object'&&ui.objectTab==='units')+
+          item('Mietverhältnisse','open-object-tab','tenancies',o.tenancies.length,
+            related&&ui.view==='object'&&ui.objectTab==='tenancies')+
+          item('Zähler','open-object-tab','meters',o.units.length*2,
+            related&&ui.view==='object'&&ui.objectTab==='meters');
+        const yearItems=item('Alle Jahre','object-billings',o.id,years.length,
+            related&&ui.view==='billing'&&ui.billingHome&&ui.objectListFilter===o.id)+
+          years.map(year=>{
+            const a=o.settlements[year];
+            const selected=related&&ui.view==='billing'&&!ui.billingHome&&
+              portfolio.selectedYear===year;
+            return '<button type="button" class="tree-year'+(selected?' selected':'')+
+              '" data-action="open-year" data-id="'+safeText(o.id)+'|'+year+'"'+
+              (selected?' aria-current="page"':'')+'>'+
+              '<span>'+year+'</span><small>'+
+              safeText(a.settlement?.status==='draft'?'In Bearbeitung':'Musterstand')+
+              '</small></button>';
+          }).join('');
+        return '<div class="tree-property'+(expanded?' expanded':'')+'">'+
+          '<button class="tree-property-button'+(related?' is-current':'')+
+            '" type="button" aria-expanded="'+expanded+'"'+
+            (related?' aria-current="location"':'')+
+            ' aria-label="'+safeText(o.name)+' öffnen" data-action="select-property" data-id="'+
+            safeText(o.id)+'"><span class="tree-arrow" aria-hidden="true">'+
+            (expanded?'⌄':'›')+'</span><span class="tree-property-label">'+safeText(o.name)+
+            '</span><span class="tree-units">'+o.units.length+' WE</span></button>'+
+          (expanded?'<div class="tree-children">'+
+            group('master','Stammdaten',null,masterItems)+
+            group('years','Jahresabrechnungen',years.length,yearItems)+
+            '</div>':'')+'</div>';
       }).join('')+
-      '<p class="tree-footnote">Alle Daten sind fiktiv. Abgeschlossene echte Abrechnungen sind hier nicht enthalten.</p>';
+      '<p class="tree-footnote">Ausschließlich fiktive Musterobjekte.</p>';
   }
   function billingList(){
     const candidates=portfolio.objects.filter(o=>!ui.objectListFilter||o.id===ui.objectListFilter);
@@ -576,20 +604,32 @@
       section('Kostenstruktur 2025',`<div class="section-body"><div class="bars">${data.costs.map(c=>`<div class="bar-row"><span>${safeText(c.name)}</span><div class="bar-rail"><div class="bar-fill" style="width:${Math.round(c.amount/max*100)}%"></div></div><span class="bar-value">${fmt(c.amount)}</span></div>`).join('')}</div><p class="footnote" style="margin-top:24px">Preis-/Verbrauchseffekte und Mehrjahresvergleiche werden erst gezeigt, wenn vergleichbare Vorjahresdaten nachweislich verfügbar sind.</p></div>`);
     }else if(ui.analytics==='finance'){body=`<div class="no-data-box"><strong>Cashflow derzeit nicht berechenbar</strong><p>Die Demo enthält Kosten und Vorauszahlungen, aber keine verifizierten tatsächlichen Miet- oder Lieferantenzahlungen. NK-Pro 2.0 wird Soll, Ist, Forderungen und Cashflow getrennt erfassen.</p></div>`+section('Finanzielle Überleitung (Beispiel)',`<div class="stat-inline"><div><small>Nebenkosten (Soll)</small><strong>${fmt(allCost())}</strong></div><div><small>Vorauszahlungen (Abrechnungswert)</small><strong>${fmt(allAdvance())}</strong></div><div><small>Tatsächliche Zahlungen</small><strong>–</strong></div></div><div class="table-caption">Keine fiktiven Zahlungseingänge oder Renditen.</div>`);
     }else{body=`<div class="no-data-box"><strong>Steuerliche Werte noch nicht klassifiziert</strong><p>Privatanteile, Steuerjahr, abzugsfähige Kosten und Belege müssen gesondert fachlich zugeordnet und bestätigt werden. Die Demo nimmt keine steuerlichen Einstufungen vor.</p></div>`+section('Steuerliche Überleitung',`<div class="stat-inline"><div><small>Unklassifizierte Kostenarten</small><strong>${data.costs.length}</strong></div><div><small>Bestätigtes Steuerjahr</small><strong>–</strong></div><div><small>Abzugsfähige Beträge</small><strong>–</strong></div></div><div class="table-caption">Kein Ersatz für steuerliche Prüfung.</div>`);}
-    return head('ANALYSEN','Analysezentrum','Drei fachlich getrennte Perspektiven. Werte ohne belastbare Datenbasis bleiben bewusst leer.')+`<div class="analytic-switch" role="tablist" aria-label="Analyseperspektive">${choices.map(([id,label])=>`<button type="button" role="tab" aria-selected="${ui.analytics===id}" class="${ui.analytics===id?'selected':''}" data-analytics="${id}">${label}</button>`).join('')}</div>`+body;
+    return head('OBJEKTÜBERGREIFEND','Analysezentrum',
+      'Zentraler Zugang für Analysen sämtlicher Immobilien und Jahre. Eine gemeinsame Auswertung folgt in einer späteren Entwicklungsstufe.')+
+      '<div class="info-line">Fachtest: Angezeigte Musterkennzahlen stammen derzeit nur aus '+safeText(master().name)+' / '+safeText(activeYear())+'. Keine objektübergreifende Aggregation.</div>'+
+      `<div class="analytic-switch" role="tablist" aria-label="Analyseperspektive">${choices.map(([id,label])=>`<button type="button" role="tab" aria-selected="${ui.analytics===id}" class="${ui.analytics===id?'selected':''}" data-analytics="${id}">${label}</button>`).join('')}</div>`+body;
   }
-  function documents(){return head('DOKUMENTE & HISTORIE','Dokumente & Archiv','Briefe, Prüfungen, Ausgabe und historische Stände – klar getrennt von der Bearbeitung.')+
-    `<section class="section"><div class="section-header"><div><h2>Dokumente · 2025</h2><p>Erstellte Dokumente werden erst nach der fachlichen Freigabe verbindlich.</p></div></div><div class="task-row"><div class="task-icon">${icon('file')}</div><div class="task-copy"><strong>Musterbrief · Wohnung A</strong><span>Vorschau · synthetische Beträge · nicht versandfertig</span></div><button class="link" type="button" data-action="go-letter">Vorschau →</button></div><div class="task-row"><div class="task-icon">${icon('layers')}</div><div class="task-copy"><strong>Prüf- und Abschlussprotokoll</strong><span>Erst nach Fachfreigabe des vollständigen Systems verfügbar</span></div><button class="link" type="button" data-action="go-review">Prüfstatus →</button></div></section>`+
-    `<section class="section"><div class="section-header"><div><h2>Archiv</h2></div><span class="status neutral">Leer</span></div><div class="empty"><div class="empty-icon">${icon('folder')}</div><h3>Keine historischen Abrechnungen in der Demo</h3><p>Das echte Archiv wird später vollständig separat und schreibgeschützt migriert. Die bisherige NK-Pro-App bleibt unverändert.</p></div></section>`;}
-  const viewTitles={overview:'Übersicht',billing:'Abrechnungen',object:'Objekt',analytics:'Analysen',documents:'Dokumente & Archiv'};
+  function documents(){return head('OBJEKTÜBERGREIFEND','Dokumente & Archiv',
+      'Zentraler Zugang für Unterlagen sämtlicher Immobilien und Jahre. Der übergreifende Dokumentenindex ist noch nicht umgesetzt.')+
+    '<div class="info-line">Aktuelle Musteransicht: '+safeText(master().name)+' / '+safeText(activeYear())+'. Keine produktiv freigegebenen Dokumente.</div>'+
+    `<section class="section"><div class="section-header"><div><h2>Dokumente · ${safeText(master().name)} · ${safeText(activeYear())}</h2><p>Erstellte Dokumente werden erst nach der fachlichen Freigabe verbindlich.</p></div></div><div class="task-row"><div class="task-icon">${icon('file')}</div><div class="task-copy"><strong>Musterbrief · Wohnung A</strong><span>Vorschau · synthetische Beträge · nicht versandfertig</span></div><button class="link" type="button" data-action="go-letter">Vorschau →</button></div><div class="task-row"><div class="task-icon">${icon('layers')}</div><div class="task-copy"><strong>Prüf- und Abschlussprotokoll</strong><span>Erst nach Fachfreigabe des vollständigen Systems verfügbar</span></div><button class="link" type="button" data-action="go-review">Prüfstatus →</button></div></section>`+
+    `<section class="section"><div class="section-header"><div><h2>Archiv</h2></div><span class="status neutral">Leer</span></div><div class="empty"><div class="empty-icon">${icon('folder')}</div><h3>Keine fachlich archivierten Abrechnungen</h3><p>Das echte Archiv wird später vollständig separat und schreibgeschützt migriert. Die bisherige NK-Pro-App bleibt unverändert.</p></div></section>`;}
+  const objectTitles={overview:'Objektdaten',units:'Wohnungen',tenancies:'Mietverhältnisse',meters:'Zähler'};
   function render(){
     document.querySelectorAll('.nav-item').forEach(el=>{
       const active=el.dataset.view===ui.view;
       el.classList.toggle('active',active);
       if(active)el.setAttribute('aria-current','page');else el.removeAttribute('aria-current');
     });
-    const context=master().name+(ui.view==='billing'&&!ui.billingHome?' / '+activeYear():'');
-    $('breadcrumbView').textContent=context+' / '+viewTitles[ui.view];
+    let path='Startseite';
+    if(ui.view==='analytics')path='Objektübergreifend / Analysen';
+    else if(ui.view==='documents')path='Objektübergreifend / Dokumente & Archiv';
+    else if(ui.view==='object')path='Startseite / '+master().name+' / Stammdaten / '+
+      (objectTitles[ui.objectTab]||'Objektdaten');
+    else if(ui.view==='billing')path='Startseite / '+
+      (ui.billingHome?(ui.objectListFilter?master().name+' / Jahresabrechnungen':'Alle Jahresabrechnungen'):
+        master().name+' / Jahresabrechnungen / '+activeYear());
+    $('breadcrumbView').textContent=path;
     renderTree();
     const target=$('appMain');
     target.innerHTML=({overview,billing,object,analytics,documents}[ui.view]||overview)();
@@ -606,8 +646,9 @@
   }
   function navigate(view,step){
     ui.view=view;
-    if(view==='billing'&&!step){ui.billingHome=true;ui.objectListFilter=null;}
-    if(step){ui.step=step;ui.billingHome=false;}
+    if(view==='overview'||view==='analytics'||view==='documents')ui.treeOpenObjectId=null;
+    if(view==='billing'&&!step){ui.billingHome=true;ui.objectListFilter=null;ui.treeOpenObjectId=null;}
+    if(step){ui.step=step;ui.billingHome=false;ui.treeOpenObjectId=master().id;ui.treeSections.years=true;}
     ui.filter='';render();
     window.scrollTo({top:0,behavior:'instant'});
     document.body.classList.remove('menu-open');
@@ -1036,23 +1077,34 @@
   }
   function doAction(action,id){
     if(action==='select-property'){
-      switchPortfolio(estates.selectObject(portfolio,id));
+      const collapse=ui.treeOpenObjectId===id&&ui.view==='object';
+      if(portfolio.selectedObjectId!==id)switchPortfolio(estates.selectObject(portfolio,id));
+      ui.treeOpenObjectId=collapse?null:id;
       ui.view='object';ui.objectTab='overview';ui.billingHome=true;render();
       document.body.classList.remove('menu-open');return;
     }
+    if(action==='toggle-tree-section'){
+      if(id==='master'||id==='years'){
+        ui.treeSections[id]=!ui.treeSections[id];render();
+      }
+      return;
+    }
     if(action==='open-object-tab'){ui.view='object';ui.objectTab=id;ui.unitDetailId=null;
+      ui.treeOpenObjectId=master().id;ui.treeSections.master=true;
       ui.billingHome=true;render();document.body.classList.remove('menu-open');return;}
     if(action==='object-billings'){ui.objectListFilter=id;ui.billingHome=true;ui.view='billing';
       if(portfolio.selectedObjectId!==id)switchPortfolio(estates.selectObject(portfolio,id));
+      ui.treeOpenObjectId=id;ui.treeSections.years=true;
       render();document.body.classList.remove('menu-open');return;}
     if(action==='all-billings'||action==='back-billings'){ui.objectListFilter=null;ui.billingHome=true;
-      ui.view='billing';render();return;}
+      ui.treeOpenObjectId=null;ui.view='billing';render();document.body.classList.remove('menu-open');return;}
     if(action==='open-year'){
       const pos=id.lastIndexOf('|'),oid=id.slice(0,pos),year=id.slice(pos+1);
       if(pos<0)return;
       try{portfolio=estates.selectYear(portfolio,oid,year);
         data=estates.current(portfolio);savePortfolio();
         ui.billingHome=false;ui.objectListFilter=null;ui.step='advance';ui.view='billing';
+        ui.treeOpenObjectId=oid;ui.treeSections.years=true;
         ui.letterId=null;ui.showAllLetters=false;ui.consumptionTab='water';
         render();document.body.classList.remove('menu-open');
         window.scrollTo({top:0,behavior:'instant'});}
