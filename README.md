@@ -8,6 +8,21 @@ Interaktive, veröffentlichte Design-Demo: **https://cz100000.github.io/NK-Pro-2
 
 Die Anwendung ist ein interaktiver Entwurf für eine minimalistische Benutzerführung. Sie enthält eine **Startseite** mit hierarchisch aufklappbaren Immobilien, pro Objekt **Stammdaten** und **Jahresabrechnungen**, und darunter die getrennten objektübergreifenden Bereiche **Analysen** sowie **Dokumente & Archiv**. Die sechs Schritte einer Jahresabrechnung bleiben innerhalb der Arbeitsfläche.
 
+## Fachtest 0.13 – Einheitliche Tabellen und originale DIN-A4-Briefe (22.11.2026)
+
+Die am Fachtest 0.12 gesammelten Korrekturen sind umgesetzt:
+- Zähler werden nur noch im jeweiligen Wohnungsblock über einen rechtsbündigen blauen Button hinzugefügt. Der übergeordnete doppelte Button ist entfernt.
+- In Gesamtkosten, Vorauszahlungen, KW/WW, Techem und sonstigen Verbräuchen stehen **Status** und **Aktion** immer in **zwei getrennten Tabellenspalten**.
+- Gesamtkosten- und Ergebnistabellen sind deutlich kompakter; mobile Tabellen scrollen bewusst im eigenen Container.
+- Die Kostenbezeichnung ist mit dem Original-K-Katalog konsistent, z. B. K002 = Wasserversorgung. Alte kombinierte Wasser-/Abwasser-Rechnungsbeträge werden nicht ohne Beleg aufgeteilt.
+- Vorauszahlungen heißen nun **Vereinbart**, **Vorauszahlung Soll** und **Tatsächlich gezahlt**. Ein redundanter übergeordneter Hauszähler-Button ist entfernt.
+
+**Briefmigration:** Die originalen Dokumentrenderer aus NK-Pro 1.0 wurden mit unverändertem AP13-DIN-A4-Layout, neunspaltiger Abrechnungstabelle, Seitenformat, Schriftgrößen und Fußzeile in isolierte Module der Version 2.0 übernommen. Auch die alten internen A4-Vermieterunterlagen (Objektübersicht, Wohnungsblätter) sind als Originalrenderer eingebunden. Eine neue dreigeteilte Oberfläche zeigt links Empfänger, in der Mitte das echte A4-Dokument samt Zoom, Druck-/PDF- und Sammelfunktionen und rechts die editierbaren Brief-/Text-/Zusatzblatteinstellungen. Alle Ausgaben tragen einen Musterhinweis.
+
+**Keine vollständige Rechen-/Fachparität:** Die neue Version speichert bisher nur gesamte Ist-Vorauszahlungen, keine vollständige 1.0-Kostenart-Aufschlüsselung. Daher wird im A4-Brief eine ausdrücklich als Gesamt-Vorauszahlung gekennzeichnete Zeile gezeigt. Automatische Vorauszahlungsanpassungen, einige Originalkorrekturen und der verbindliche PDF-Golden-Master-Vergleich sind noch nicht portiert bzw. freigegeben. Die öffentliche Demo bleibt **synthetisch, ohne Cloud und nicht produktiv**.
+
+[Technische Dokumentation für 0.13](docs/STAGE_0_13_UI_LETTER_MIGRATION_2026-11-22.md)
+
 ## Fachtest 0.12 – Jahresabrechnungen, Kosten und Ergebnis (22.11.2026)
 
 - Klick auf **Jahresabrechnungen** im Objektbaum öffnet rechts sofort die Jahresübersicht. Der überflüssige Unterpunkt „Alle Jahre“ wurde entfernt. Jahreszeilen zeigen einheitlich **Bearbeiten** (Entwurf) oder **Ansehen** (historischer, gesperrter Stand).

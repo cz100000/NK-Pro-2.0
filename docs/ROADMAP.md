@@ -1,5 +1,22 @@
 # Roadmap für NK-Pro 2.0
 
+## Fachtest 0.13 · UI-Korrekturen und Originalbriefmigration (22.11.2026)
+
+- [x] Doppelte Zähleranlage entfernt; Primärbutton pro Wohnung rechts, mit vorausgewähltem Wohnungsbezug.
+- [x] Status und Aktion als zwei physisch getrennte Tabellenspalten in allen betroffenen Jahresansichten.
+- [x] Gesamtkosten- und Ergebnistabellen verdichtet, mobile Overflow-Container berücksichtigt.
+- [x] Katalogbezeichnungen in Anzeige und bei Bearbeitung aus der K-Code-Quelle abgeleitet.
+- [x] Vorauszahlungsbegriffe präzisiert; redundanten allgemeinen Hauszähler-Button entfernt.
+- [x] Vollständigen Original-AP13-DIN-A4-Dokumentrenderer und internen Vermieter-A4-Renderer aus NK-Pro 1.0 unverändert innerhalb isolierter Module eingebunden.
+- [x] Originalquellen als Referenzen gepinnt, Git-Blob-SHA sowie bytegetreue Quelle im Adapter testbar.
+- [x] Drei-Bereichs-Briefverwaltung: Empfänger, Original-A4-Vorschau und Brief-/Zahlungseinstellungen. Persönliche Anreden, Textbausteine, Zusatzblatt, Schwarzweiß, Zoom, Einzel-/Sammeldruck, PDF über Browser und interne Vermieterunterlagen.
+- [x] Test-Sicherheitskennzeichnung und Pflichtdaten-Preflight vor Musterbriefdruck.
+- [ ] Fehlende Kostenart-spezifische Ist-Vorauszahlungsverteilung und automatische zukünftige Vorauszahlungsanpassung fachlich portieren.
+- [ ] Gesamte alte Korrektur- und Regelwelt sowie verbindlichen 1.0-gegen-2.0-PDF-Bildvergleich nachholen.
+- [ ] Produktive Echt-Daten-Freigabe, Google-Sync, Backup/Restore, Freigabe und Versand weiterhin gesperrt.
+
+[Technische Details 0.13](STAGE_0_13_UI_LETTER_MIGRATION_2026-11-22.md)
+
 ## Fachtest 0.12 · Jahresabrechnungs-Workflow und konsistente Bearbeitung (22.11.2026)
 
 - [x] „Jahresabrechnungen“ im Baum öffnet das objektbezogene Jahresverzeichnis; separater „Alle Jahre“-Zweig entfernt.
