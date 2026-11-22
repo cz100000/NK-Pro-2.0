@@ -1,20 +1,16 @@
 # NK-Pro 2.0 – Designprototyp (nicht produktiv)
 
-## Private Datenstrecke – GitHub Pages und Google Drive (22.11.2026)
+## Google Drive direkt unter Systemstatus · Echtdatenmigration (22.11.2026)
 
-Die private Migration und verschlüsselte Google-Drive-Anbindung werden **innerhalb der bereits vorhandenen GitHub-/Google-Infrastruktur** angeboten. Kein neuer Hostinganbieter, keine neue Domain und kein neues Google-Projekt sind für diese Stufe erforderlich.
+Die Hauptanwendung [NK-Pro 2.0](https://cz100000.github.io/NK-Pro-2.0/) enthält die Google-Cloud-Anbindung direkt im Systemstatus. Der alte zusätzliche Bereich `/NK-Pro-2.0/private/` wird **nicht mehr veröffentlicht**. Verschlüsselte Speicherung und Google Drive sind jetzt technische Komponenten der einen Hauptanwendung, ohne zusätzlichen Hostinganbieter.
 
-**Öffentliche Fachtest-Demo:** https://cz100000.github.io/NK-Pro-2.0/ (weiterhin ausschließlich synthetisch)
+Ein Schema-5-Original-Snapshot aus NK-Pro 1.0 kann über den Button unter **Systemstatus** lokal ausgewählt werden. Es werden **nur die Stammdaten des echten Objekts ARB5 (Am Rauhen Biehl 5), seine 7 Wohnungen und 5 Mietverhältnisse, der Zählerstamm sowie die 5 historischen Archiv-Snapshots** migriert. Beide Fassungen für 2023 bleiben erhalten. **Die gesamte Abrechnung 2025 wird nicht migriert:** keine aktuellen Rechnungen, Kostenzuordnungen, Wasserstände, Vorauszahlungen, Techem-Einzelwerte oder Rechenergebnisse. 2025 wird in NK-Pro 2.0 neu angelegt.
 
-**Separater verschlüsselter Datentresor:** https://cz100000.github.io/NK-Pro-2.0/private/ (Programmcode öffentlich abrufbar; Echtdaten niemals im Repository/Hosting; noch **keine produktive Abrechnungssoftware**)
+Die Echtdaten werden nur verschlüsselt im Browser und in einem getrennten privaten Google-Drive-Ordner gespeichert. GitHub hostet ausschließlich App-Code. Der neue 2.0-Echtdatenmodus ist derzeit eine **lesende Stammdaten-/Archivübersicht**, keine freigegebene produktive Abrechnungssoftware. Insbesondere für 2025 ist die vollständige Rechnungsfunktion noch zu entwickeln und fachlich abzunehmen. Die bisherige 1.0-Version bleibt unverändert funktionsfähig.
 
-GitHub Pages liefert ausschließlich statische Programmdateien aus einer strengen Allowlist. Der Tresor verschlüsselt persönliche Daten im Browser vor Speicherung in lokalem Storage und in dem eigenen Google-Drive-Ordner `NK-Pro 2.0 – Privatdaten`. Die vorhandene öffentliche OAuth-Web-Client-ID aus NK-Pro 1.0 kann auf derselben `github.io`-Origin wiederverwendet werden, sofern diese Origin tatsächlich bereits in der Google-Konsole freigeschaltet ist. Die Anmeldung und tatsächliche API-Berechtigung müssen mit dem Nutzerkonto bestätigt und auf iPhone/Safari getestet werden.
+**Abnahmetests:** Die Originaldaten wurden lokal ohne Veröffentlichung mit dem neuen selektiven Migrationsmodul überprüft. Automatisierte Browser-, Mobil-/Offline-, Migrations- und Synchronisierungstests verwenden nur synthetische Quellen. Reale Google-OAuth-Verbindung, Cloud-Upload und iPhone-Safari-Wiederherstellung müssen mit Nutzerkonto gesondert verifiziert werden.
 
-**Sicherheitsgrenze:** NK-Pro 1.0 und 2.0 bleiben während der Parallelphase unterschiedliche Repositorys und Verzeichnisse, aber **derselbe Browser-Origin**. Auch unterschiedliche Storage-Schlüssel bieten hier keine echte Isolation. Der Endnutzer darf die private 2.0-Oberfläche nur mit Bewusstsein für das Übergangsrisiko nutzen. Nach vollständiger Fachparität wird NK-Pro 1.0 kontrolliert außer Betrieb genommen: endgültiges Backup, Datennachweis, Abschalten der 1.0-Pages-Veröffentlichung und Prüfung alter Service Worker/Caches. Das entfernt den parallel laufenden 1.0-Code, ändert aber nicht rückwirkend die gemeinsame Origin oder die schon vorhandenen Browserdaten. Eine unabhängige Origin kann künftig zusätzlich sinnvoll sein, ist aber für diese Migration nicht zwingend.
-
-Der echte NK-Pro-1.0-Snapshot V99.4.81 wurde mit dem neuen Importmodul erfolgreich geprüft; 7 Wohnungen, 5 Verhältnisse, 16 Zähler, 90 Messwerte und fünf individuelle Archive sind übertragbar. **Keine echten Daten sind im GitHub-Repository enthalten.** Die private Ansicht zeigt vorerst ein lesendes Inventar; die vollständige Fachberechnung, Bearbeitung und Abrechnungsfreigabe fehlen.
-
-Details: [Google/GitHub-Betriebsplan](docs/EXISTING_GITHUB_GOOGLE_HOSTING_2026-11-22.md) und [Private Migration](docs/PRIVATE_VAULT_DRIVE_MIGRATION_2026-11-22.md).
+Details: [Integrations- und Migrationsbericht](docs/INTEGRATED_DRIVE_MASTER_ARCHIVES_2026-11-22.md).
 
 Dies ist die **eigenständige Neugestaltung** von NK-Pro. Das ursprüngliche Projekt [cz100000/NK-Pro](https://github.com/cz100000/NK-Pro) bleibt unverändert. Alle Inhalte dieser Demo sind **synthetische Musterdaten**; der aktuelle Stand ist **kein für Nebenkostenabrechnungen zugelassenes Produkt**.
 

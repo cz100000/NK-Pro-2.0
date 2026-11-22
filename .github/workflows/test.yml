@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Validate allowlisted private client, still without real personal data
+      - name: Validate integrated app with private client and no production data
         shell: bash
         run: |
           node --check private/private-model.js
@@ -21,10 +21,13 @@ jobs:
           node --check private/drive-adapter.js
           node --check private/private-app.js
           node --check private/private-sw.js
+          node --check integrated-data.js
+          node --check integrated-app.js
+          node --check nkpro2-sw.js
           node --check scripts/verify-private-snapshot.cjs
           node --check scripts/build-private-site.cjs
           node scripts/build-private-site.cjs
-          node -e 'const fs=require("node:fs"); const h=fs.readFileSync("private/index.html","utf8")+fs.readFileSync("private/private-app.js","utf8"); const files=["index.html","private-model.js","vault-crypto.js","drive-adapter.js","private-app.js","private.css","private-sw.js","private.webmanifest"]; for(const f of files) if(!fs.existsSync("private/"+f)) throw Error("Missing private dependency: "+f); const y=fs.readFileSync(".github/workflows/pages.yml","utf8"); const stage=y.split("\n").find(x=>/^\s*cp private\/index.html.*_site\/private\/$/.test(x)); if(!stage)throw Error("Private allowlist missing"); for(const f of files)if(!stage.includes("private/"+f))throw Error("Missing allowlisted file "+f); if(/cp -r private\//.test(y)||/cp private\/\*/.test(y))throw Error("Unsafe wildcard private staging"); const publicHtml=fs.readFileSync("index.html","utf8"); if(publicHtml.includes("private/private-app.js"))throw Error("Private scripts linked into demo");'
+          node -e 'const fs=require("node:fs"); const h=fs.readFileSync("private/index.html","utf8")+fs.readFileSync("private/private-app.js","utf8"); const files=["private-model.js","vault-crypto.js","drive-adapter.js"]; for(const f of files) if(!fs.existsSync("private/"+f)) throw Error("Missing private dependency: "+f); const y=fs.readFileSync(".github/workflows/pages.yml","utf8"); const stage=y.split("\n").find(x=>/^\s*cp private\/private-model\.js.*_site\/private\/$/.test(x)); if(!stage)throw Error("Private allowlist missing"); for(const f of files)if(!stage.includes("private/"+f))throw Error("Missing allowlisted file "+f); if(/cp -r private\//.test(y)||/cp private\/\*/.test(y)||y.includes("cp private/index.html"))throw Error("Unsafe private staging"); const publicHtml=fs.readFileSync("index.html","utf8"); if(publicHtml.includes("private/private-app.js"))throw Error("Private scripts linked into demo");'
       - run: npm test
       - name: Preserve isolated static private-hosting package
         if: success()
@@ -38,6 +41,8 @@ jobs:
         run: node tests/browser-visual-e2e.cjs
       - name: Chromium private encrypted-vault desktop/mobile acceptance
         run: node tests/private-browser-e2e.cjs
+      - name: Chromium integrated Systemstatus, real historical import, mobile and offline acceptance
+        run: node tests/integrated-browser-e2e.cjs
       - name: Preserve desktop/mobile screenshots
         if: always()
         uses: actions/upload-artifact@v4
