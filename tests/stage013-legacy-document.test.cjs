@@ -78,6 +78,7 @@ test("0.13 monthly prepayment adjustments and extra notes create optional origin
    oldMonthly:15,newMonthly:21}];
  const r=letter.render(a,calc(),"T1");
  assert.equal(r.pageCount,2);
+ assert.ok(r.preflight.errors>0,"Without verified base rent, the optional warm-rent adjustment may be previewed but cannot be printed.");
  assert.match(r.html,/letter-supplement-sheet/);
  assert.match(r.html,/Anpassung der Nebenkostenvorauszahlung/);
  assert.match(r.html,/Neuer Betrag/);
