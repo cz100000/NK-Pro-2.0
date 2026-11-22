@@ -21,7 +21,7 @@ test("Integrated Google Drive client but no standalone vault or real data is pub
  assert.ok(!pages.includes("cp private/*"));
  for(const name of allowed)assert.ok(pages.includes("private/"+name));
  for(const name of ["integrated-app.js","integrated-data.js","integrated-ui.css"])
-  assert.ok(pages.includes("cp integrated-data.js integrated-app.js integrated-ui.css _site/"));
+  assert.ok(pages.includes("cp integrated-data.js integrated-app.js integrated-ui.css nkpro2-sw.js nkpro2.webmanifest _site/"));
  assert.ok(pages.includes("test ! -e _site/private/index.html"));
  assert.ok(!/cp private\/index\.html/.test(pages));
  assert.ok(!/cp\s+[^\n]*nkpro-cloud-snapshot/.test(pages));
