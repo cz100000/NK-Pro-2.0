@@ -1,0 +1,11 @@
+{
+  "name": "NK-Pro 2.0 – Nebenkostenabrechnung",
+  "short_name": "NK-Pro 2.0",
+  "lang": "de",
+  "description": "NK-Pro 2.0 mit privater Google-Drive-Synchronisierung",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#0b65af",
+  "background_color": "#f7f9fa"
+}
