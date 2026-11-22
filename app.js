@@ -118,11 +118,66 @@
       (c.length?c.map(x=>`<tr><td><strong>${safeText(x.name)}</strong></td><td>${safeText(x.category)}</td><td>${safeText(x.method)}</td><td class="money">${x.method==='Verbrauch'?(waterDetails.priceFor(x,data.houseWater).valid?fmtPrice(waterDetails.priceFor(x,data.houseWater).effective):'Preis fehlt'):'–'}</td><td class="money">${fmt(x.amount)}</td><td class="cost-note-cell">${x.note?safeText(x.note):'<span class="soft">–</span>'}</td><td>${labelStatus(x.amount>0)}</td><td>${iconButton('edit-cost',x.id,'Kostenart bearbeiten')}</td></tr>`).join(''):`<tr><td colspan="8" class="muted">Keine Treffer.</td></tr>`)+
       `</tbody></table></div><div class="table-caption">Klicken Sie auf eine Kostenart. Alle Einstellungen öffnen rechts – die Übersicht bleibt bestehen.</div></section><p class="footnote">Funktionsmuster: Sechs Originalverfahren werden für synthetische Ein-Mieter-Wohnungen berechnet. Kein Produktivbetrieb, keine Mieterwechsel, keine vollständige Techem-Einzelabrechnung.</p>`;
   }
-  function water(){const used=unitConsumption(),gap=waterGap();return `<div class="inline-toolbar"><h2>Wohnungszähler</h2><span class="status ${waterResolved()?'green':'amber'}">${waterResolved()?'Geprüft':'Abgleich offen'}</span></div>`+
-    `<section class="section"><div class="stat-inline"><div><small>Hauszähler</small><strong>${int(data.houseWater)} m³</strong></div><div><small>Summe Wohnungen</small><strong>${int(used)} m³</strong></div><div><small>Differenz</small><strong style="color:${gap?'var(--amber)':'var(--green)'}">${gap>0?'+':''}${int(gap)} m³</strong></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Wohnung</th><th class="money">Anfang</th><th class="money">Ende</th><th class="money">Verbrauch</th><th>Status</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
-    data.units.map(u=>`<tr><td><strong>${safeText(u.label)}</strong><div class="small soft">${safeText(u.position)}</div></td><td class="money">${int(u.waterStart)} m³</td><td class="money">${int(u.waterEnd)} m³</td><td class="money"><strong>${int(consumption(u))} m³</strong></td><td>${labelStatus(u.waterEnd>=u.waterStart,'Plausibel','Fehler')}</td><td>${iconButton('edit-water',u.id,'Zählerstand bearbeiten')}</td></tr>`).join('')+
-    `</tbody></table></div><div class="table-caption">Nur Beispielzähler: ein Zähler je Musterwohnung. Der Originalbestand führt getrennte Kalt-/Warmwasserzähler.</div></section>`+
-    (gap!==0?`<div style="margin-top:18px" class="warning-line">${icon('alert')}<div>Die Summe der Wohnungszähler weicht um <strong>${int(gap)} m³</strong> vom Hauszähler ab. Die Differenz wird nicht still verteilt. ${waterResolved()?'Eine begründete Musterentscheidung liegt vor.':'Die Bearbeitung erfolgt direkt im Prüfbereich.'} <button class="link" type="button" data-action="check-water">Prüfen →</button></div></div>`:'');}
+  function water(){
+    const report=waterReport(),units=report.totals.units,house=report.house.valid?report.house.consumption:null;
+    const waterCost=data.costs.find(c=>c.id==='water');
+    const price=waterDetails.priceFor(waterCost,data.houseWater);
+    const waterAllocation=ledger().costs.find(c=>c.id==='water');
+    const show=v=>v===null?'–':int(v)+' m³';
+    const diff=v=>v===null?'–':(v>0?'+':'')+int(v)+' m³';
+    const metric=(label,value,sub)=>'<div class="water-metric"><small>'+safeText(label)+'</small><strong>'+safeText(value)+'</strong><span>'+safeText(sub)+'</span></div>';
+    const rows=data.units.map((u,i)=>{
+      const m=u.waterMeters||{},r=report.rows[i];
+      const half=key=>{
+        const meter=m[key]||{},part=r[key];
+        return '<td class="money">'+(waterDetails.volume(meter.start)?int(meter.start):'–')+'</td>'+
+          '<td class="money">'+(waterDetails.volume(meter.end)?int(meter.end):'–')+'</td>'+
+          '<td class="money"><strong>'+(part.valid?show(part.consumption):'–')+'</strong></td>';
+      };
+      const share=waterAllocation?.rows.find(x=>x.unitId===u.id);
+      return '<tr><td><strong>'+safeText(u.label)+'</strong><span class="water-unit-sub">'+safeText(u.id)+'</span></td>'+
+        half('cold')+half('hot')+'<td class="money"><strong>'+show(r.total)+'</strong></td>'+
+        '<td class="money">'+(share?fmt(share.cents/100):'–')+'</td><td>'+
+        labelStatus(r.valid,'Vollständig','Prüfen')+'</td><td>'+
+        iconButton('edit-water',u.id,'Kalt- und Warmwasserzähler bearbeiten')+'</td></tr>';
+    }).join('');
+    const KPIs='<div class="water-metric-grid">'+
+      metric('Wasserwerksrechnung',show(report.invoice),'Rechnungsverbrauch')+
+      metric('Hauszähler',show(house),'Endstand minus Anfangsstand')+
+      metric('Summe Wohnungszähler',show(units),'Kalt- und Warmwasser')+
+      metric('Preis je m³',price.valid?fmtPrice(price.effective):'–',
+        price.mode==='manual'?'Manuell vorgegeben':'Automatisch aus Kosten / m³')+'</div>';
+    const differences='<section class="section"><div class="section-header"><div><h2>Verbrauchsabgleich</h2>'+
+      '<p>Rechnungsverbrauch, Hauszähler und Wohnungszähler bleiben unabhängige Prüfwerte.</p></div>'+
+      labelStatus(waterResolved(),'Geprüft','Prüfung offen')+'</div>'+
+      '<div class="water-comparison">'+
+        '<div><span>Rechnung ↔ Hauszähler</span><strong class="'+(report.delta.invoiceHouse===0?'is-ok':'is-open')+'">'+diff(report.delta.invoiceHouse)+'</strong></div>'+
+        '<div><span>Hauszähler ↔ Wohnungen</span><strong class="'+(report.delta.houseUnits===0?'is-ok':'is-open')+'">'+diff(report.delta.houseUnits)+'</strong></div>'+
+        '<div><span>KW / WW gesamt</span><strong>'+show(report.totals.cold)+' / '+show(report.totals.hot)+'</strong></div></div>'+
+      '<div class="water-actions">'+button('Preis je m³ bearbeiten','edit-water-price',null,'button-quiet')+
+        (!report.exactMatch&&report.canReview?button('Abweichungen begründen','check-water',null,'button-quiet'):'')+'</div>'+
+      (report.issues.length?'<div class="water-issues"><strong>Offene Zähler- oder Rechnungsangaben</strong><ul>'+
+        report.issues.slice(0,12).map(x=>'<li>'+safeText((x.unitId?x.unitId+' · ':'')+x.reason)+'</li>').join('')+
+        '</ul></div>':'')+'</section>';
+    const table='<section class="section" style="margin-top:18px"><div class="section-header"><div><h2>Wohnungszähler</h2>'+
+      '<p>Anfangs- und Endstände, Datum, Zählernummer und Notiz werden je Wohnung im Detailpanel bearbeitet.</p></div></div>'+
+      '<div class="table-wrap"><table class="data-table water-table"><thead><tr><th rowspan="2">Wohnung</th>'+
+      '<th colspan="3">Kaltwasser (m³)</th><th colspan="3">Warmwasser (m³)</th>'+
+      '<th rowspan="2" class="money">Gesamt</th><th rowspan="2" class="money">Kostenanteil</th>'+
+      '<th rowspan="2">Status</th><th rowspan="2">Aktion</th></tr><tr>'+
+      '<th class="money">Anfang</th><th class="money">Ende</th><th class="money">Verbrauch</th>'+
+      '<th class="money">Anfang</th><th class="money">Ende</th><th class="money">Verbrauch</th>'+
+      '</tr></thead><tbody>'+rows+'</tbody><tfoot><tr><td><strong>Summe</strong></td>'+
+      '<td colspan="2"></td><td class="money"><strong>'+show(report.totals.cold)+'</strong></td>'+
+      '<td colspan="2"></td><td class="money"><strong>'+show(report.totals.hot)+'</strong></td>'+
+      '<td class="money"><strong>'+show(units)+'</strong></td><td colspan="3"></td></tr></tfoot></table></div>'+
+      '<div class="table-caption">Zwei getrennte Musterzähler je Wohnung, insgesamt 14. Die Originalversion hat weitere Funktionen wie Zählerwechsel, historischen Ableseverlauf und kontrollierte Vorjahresübernahme; diese sind noch nicht migriert.</div></section>';
+    return '<div class="inline-toolbar"><div><h2>Wasser · Kalt- und Warmwasser</h2>'+
+      '<p class="small muted">Erfassung und Kontrolle · 2025 · nur synthetische Musterdaten</p></div>'+
+      button('Hauszähler & Rechnung bearbeiten','edit-house',null,'button-primary')+'</div>'+
+      KPIs+differences+table+
+      (data.units.some(u=>u.waterSourceNotice)?'<p class="footnote"><strong>Ältere Demowerte:</strong> Die früheren Ein-Zähler-Daten bleiben als KW-Entwurf erhalten. Warmwasser wurde nicht erfunden. Bitte vervollständigen oder die Demo zurücksetzen.</p>':'');
+  }
   function advances(){return `<div class="inline-toolbar"><h2>Vorauszahlungen</h2><span class="small muted">Jahreswerte · Musterstand</span></div><section class="section"><div class="stat-inline"><div><small>Summe Vorauszahlungen</small><strong>${fmt(allAdvance())}</strong></div><div><small>Erfasste Wohnungen</small><strong>${data.units.length} von 7</strong></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Wohnung</th><th class="money">Vorauszahlung/Jahr</th><th class="money">Monatsäquivalent*</th><th>Status</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
       data.units.map(u=>`<tr><td><strong>${safeText(u.label)}</strong><div class="small soft">${safeText(u.position)}</div></td><td class="money">${fmt(u.advance)}</td><td class="money">${fmt(u.advance/12)}</td><td>${labelStatus(u.advance>0)}</td><td>${iconButton('edit-advance',u.id,'Vorauszahlung bearbeiten')}</td></tr>`).join('')+`</tbody></table></div><div class="table-caption">*Nur rechnerisches Monatsäquivalent, keine Prüfung tatsächlich gezahlter Einzelmonate.</div></section>`;}
   function allocations(){let res=data.units.map(u=>({unit:u,cost:allocation(u),saldo:balance(u)}));let sum=res.reduce((s,r)=>s+r.saldo,0);return `<div class="inline-toolbar"><h2>Abrechnungsergebnis</h2><span class="status amber">Nicht produktiv</span></div><section class="section"><div class="big-total"><div><small>Gesamtsaldo · synthetische Beispielrechnung</small><strong>${fmt(round(sum))}</strong></div><span class="small muted">Kosten minus Vorauszahlungen</span></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Wohnung</th><th class="money">Umlagekosten</th><th class="money">Vorauszahlungen</th><th class="money">Saldo</th><th aria-label="Aktion"></th></tr></thead><tbody>`+
