@@ -732,10 +732,13 @@
  function printHtml(bodyHtml,label){
    // Distinct from the original renderer's production print: every page bears
    // a visible demo notice, while all AP13 geometry and document markup stay intact.
-   const guide='<div class="nk2-test-print-guide">FACHTEST – FIKTIVE DATEN – NICHT VERSENDEN · '+
-     escapeHtml(label||"Musterbriefe")+'</div>';
+   const guide='<div class="nk2-test-print-guide"><strong>FACHTEST – FIKTIVE DATEN – NICHT VERSENDEN · '+
+     escapeHtml(label||"Musterbriefe")+'</strong><div class="nk2-print-actions">'+
+     '<button type="button" onclick="window.print()">Drucken / PDF</button> '+
+     '<button type="button" onclick="window.close()">Schließen</button></div></div>';
    const safety='<style>@media print{.nk2-test-print-guide{display:none!important}}'+
      '.nk2-test-print-guide{font:12px Arial;background:#fff2db;border:1px solid #f4cc8c;color:#7c4c07;padding:10px 15px;margin:8px auto;max-width:210mm}'+
+     '.nk2-print-actions{margin-top:8px;display:flex;gap:8px}.nk2-print-actions button{background:white;color:#6c4c20;border:1px solid #d4b47c;border-radius:5px;padding:7px 11px;cursor:pointer}'+
      '.nk-letter-document .letter-sheet:after{content:"MUSTER – NICHT VERSENDEN";position:absolute;pointer-events:none;top:50%;left:8%;right:8%;text-align:center;transform:rotate(-24deg);color:rgba(124,77,8,.13);font:700 26pt Arial;z-index:50}</style>';
    return '<!doctype html><html lang="de"><head><meta charset="utf-8"><title>NK-Pro Musterbrief</title>'+
      '<style>'+namespace.NKProDocumentRenderer.briefPrintStyles()+'</style>'+safety+
