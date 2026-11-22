@@ -466,7 +466,30 @@
           '<p class="form-help">Bei mehreren Fällen pro Wohnung alle KW-/WW-Mengen eingeben. Die Summe muss exakt mit den Wohnungszählern übereinstimmen. Keine automatische Schätzung.</p></fieldset>'+
         '<div class="form-row"><label>Notizen<textarea name="tenantNote" maxlength="2000" rows="3">'+safeText(t.note||'')+'</textarea></label></div>'+
         '<div class="drawer-note">Nur fiktive Musterpersonen erfassen – keine echten Mieterdaten. Überlappungen oder fehlende Verbrauchsaufteilungen verhindern die Musterabrechnung.</div></form>';
-    }else if(type==='payment'){
+    }else if(type==='letter-settings'){
+      const x=data.letterSettings||{};
+      title='Briefvorlage · Muster';eyebrow='DOKUMENTE · EINSTELLUNGEN';
+      const field=(label,name,value,type='text')=>
+        '<div class="form-row"><label>'+label+'<input name="'+name+'" type="'+type+'" maxlength="500" value="'+safeText(value||'')+'"></label></div>';
+      const txt=(label,name,value)=>
+        '<div class="form-row"><label>'+label+'<textarea name="'+name+'" rows="4" maxlength="4000">'+safeText(value||'')+'</textarea></label></div>';
+      body='<form id="editForm" data-type="letter-settings">'+
+        field('Absendername','senderName',x.senderName)+
+        field('Absenderstraße','senderStreet',x.senderStreet)+
+        field('Absenderort','senderCity',x.senderCity)+
+        '<div class="water-form-grid">'+field('Briefdatum','letterDate',x.letterDate,'date')+
+        field('Zahlungsziel','paymentDue',x.paymentDue,'date')+'</div>'+
+        field('Bankverbindung','bankAccount',x.bankAccount)+
+        field('Betreff','subject',x.subject||'Nebenkostenabrechnung 2025')+
+        txt('Einleitungstext ({zeitraum} als Variable)','openingText',x.openingText)+
+        txt('Abschlusstext','closingText',x.closingText)+
+        txt('Zusatztext Nachzahlung','paymentText',x.paymentText)+
+        txt('Hinweis bei Guthaben','creditText',x.creditText)+
+        txt('Anlagenhinweis / Techem','annexText',x.annexText)+
+        field('Grußformel','greeting',x.greeting||'Mit freundlichen Grüßen')+
+        field('Unterschrift / Signatur','signature',x.signature)+
+        '<div class="drawer-note">Nur synthetische Mustertexte. Die umfangreichen Original-Briefeinstellungen, A4-Druckprüfung und Originalparität werden weiter portiert; diese Felder stellen noch keine Versandfreigabe dar.</div></form>';
+
       const t=data.tenancies.find(x=>x.id===id);if(!t)return;
       const p=data.payments?.[id]||{},mode=p.mode||'annual';
       title='Vorauszahlungen · '+t.name;eyebrow='ZAHLUNGEN · 2025';
@@ -613,7 +636,16 @@
       }
       catch(e){return toast('Abrechnungsfall kann nicht gespeichert werden: '+e.message)}
       msg='Muster-Abrechnungsfall gespeichert; Kontrollregeln erneut berechnet.';
-    }else if(type==='payment'){
+    }else if(type==='letter-settings'){
+      const names=['senderName','senderStreet','senderCity','letterDate','paymentDue',
+        'bankAccount','subject','openingText','closingText','paymentText',
+        'creditText','annexText','greeting','signature'];
+      const next={...data.letterSettings};
+      for(const key of names)next[key]=String(form.elements[key].value||'').trim().slice(0,4000);
+      if(next.letterDate&&!/^\d{4}-\d{2}-\d{2}$/.test(next.letterDate))
+        return toast('Briefdatum ungültig.');
+      data.letterSettings=next;msg='Briefvorlage (Muster) gespeichert.';
+
       try{data=workflow.setPayment(data,id,{mode:form.elements.mode.value,
          agreed:parseField(form.elements.agreed),paid:parseField(form.elements.paid)});}
       catch(e){return toast('Zahlungsdaten prüfen: '+e.message)}
@@ -731,6 +763,7 @@
       if(c.active===false)c.active=true;else data=workflow.deactivate(data,id);
       stateChange();toast('Kostenstatus geändert.');return
     }
+    if(action==='edit-letter-settings'){openDrawer('letter-settings');return}
     if(action==='edit-external'){openDrawer('external',id);return}
     if(action==='edit-other-consumption'){openDrawer('other-consumption',id);return}
     if(action==='edit-property'){openDrawer('property');return}
