@@ -8,6 +8,10 @@ const root=path.resolve(__dirname,".."),artifacts=path.join(root,"_visual-test-a
 fs.mkdirSync(artifacts,{recursive:true});
 const server=http.createServer((req,res)=>{
  const u=decodeURIComponent((req.url||"/").split("?")[0]);
+ if(u==="/__nk_test_legacy.json"){
+  res.writeHead(200,{"Content-Type":"application/json","Cache-Control":"no-store"});
+  res.end(JSON.stringify(source()));return;
+ }
  const target=path.resolve(root,"."+(u==="/"?"/index.html":u));
  if(!target.startsWith(root+path.sep)||!fs.existsSync(target)||!fs.statSync(target).isFile()){
   res.writeHead(404);res.end("Not found");return;
@@ -143,6 +147,37 @@ const chromeBinary=()=>{
    "document.querySelector('#nkSyncPassword').value='Synthetic Long Passphrase 2026';"+
    "document.querySelector('#nkUnlock').click();");
   await until("return document.querySelector('#appMain h1')?.textContent.includes('Synthetisches Haus');");
+  // Simulate the EXISTING Google OAuth/Drive identity and a 1.0 cloud snapshot.
+  // No upload selection: invoke the Systemstatus Google-to-Google import button.
+  await cmd("Network.emulateNetworkConditions",{
+   offline:false,latency:0,downloadThroughput:0,uploadThroughput:0});
+  await evalJS("localStorage.removeItem('nkpro2_live_cloud_encrypted_v1');"+
+   "sessionStorage.removeItem('__nk_test_cloud');");
+  const mockDrive="(() => {\n const legacyFolder={id:\"old-folder\",name:\"NK-Pro – Privatdaten\",mimeType:\"application/vnd.google-apps.folder\"};\n const newFolder={id:\"new-folder\",name:\"NK-Pro 2.0 – Privatdaten\",mimeType:\"application/vnd.google-apps.folder\"};\n const legacyFile={id:\"legacy-2026\",name:\"nkpro-cloud-snapshot-2026-11-21T19-34-02-synthetic-snapshot-2026-xx.json\",mimeType:\"application/json\",size:\"10000\",parents:[\"old-folder\"],createdTime:\"2026-11-21T19:34:02Z\"};\n const mockRead=()=>JSON.parse(sessionStorage.getItem(\"__nk_test_cloud\")||\"[]\");\n const mockSave=records=>sessionStorage.setItem(\"__nk_test_cloud\",JSON.stringify(records));\n const respond=data=>new Response(JSON.stringify(data),{status:200,headers:{\"Content-Type\":\"application/json\"}});\n const nativeFetch=window.fetch.bind(window);\n window.google={accounts:{oauth2:{initTokenClient:cfg=>({\n  requestAccessToken:()=>cfg.callback({access_token:\"synthetic-oauth-token\",expires_in:3600})\n })}}};\n window.fetch=async (url,options={})=>{\n  if(typeof url===\"string\"&&url.startsWith(\"https://www.googleapis.com/\")){\n   const u=new URL(url),q=u.searchParams.get(\"q\")||\"\",method=options.method||\"GET\";\n   if(u.pathname===\"/drive/v3/files\"&&method===\"GET\"){\n    if(q.includes(\"mimeType = 'application/vnd.google-apps.folder'\"))\n     return respond({files:q.includes(\"NK-Pro 2.0\")?[newFolder]:[legacyFolder]});\n    if(q.includes(\"'old-folder' in parents\"))return respond({files:[legacyFile]});\n    if(q.includes(\"nkpro2-vault-v1-\"))return respond({files:mockRead().map(x=>x.metadata)});\n    throw Error(\"Unexpected Drive list query \"+q);\n   }\n   if(u.pathname.startsWith(\"/drive/v3/files/\")&&method===\"GET\"){\n    const id=u.pathname.split(\"/\").pop();\n    if(id===\"legacy-2026\")return nativeFetch(\"/__nk_test_legacy.json\");\n    const f=mockRead().find(x=>x.metadata.id===id);\n    return f?respond(f.encrypted):new Response(\"\",{status:404});\n   }\n   if(u.pathname===\"/upload/drive/v3/files\"&&method===\"POST\"){\n    const body=await options.body.text(),boundary=options.body.type.split(\"boundary=\")[1];\n    const parts=body.split(\"--\"+boundary).filter(x=>x.includes(\"Content-Type: application/json\"));\n    if(parts.length!==2)throw Error(\"multipart upload malformed\");\n    const [meta,encrypted]=parts.map(x=>JSON.parse(x.slice(x.indexOf(\"\\r\\n\\r\\n\")+4).trim()));\n    const records=mockRead(),metadata={...meta,id:\"new-\"+(records.length+1)};\n    records.push({metadata,encrypted});mockSave(records);\n    return respond(metadata);\n   }\n   throw Error(\"Unexpected Google Drive request \"+method+\" \"+u.pathname);\n  }\n  return nativeFetch(url,options);\n };\n})();";
+  await cmd("Page.addScriptToEvaluateOnNewDocument",{source:mockDrive});
+  await cmd("Page.reload",{ignoreCache:true});
+  await until("return !!document.querySelector('#nkSyncButton') && !document.querySelector('#nkOpenLocked');");
+  await evalJS("document.querySelector('#nkSyncButton').click();"+
+   "document.querySelector('#nkSyncPassword').value='Synthetic Long Passphrase 2026';"+
+   "document.querySelector('#nkConnect').click();");
+  await until("return !!document.querySelector('#nkImportDrive') && "+
+   "!document.querySelector('#nkImportDrive').disabled;");
+  assert.ok(await evalJS("return document.querySelector('#nkSyncMessage').textContent.includes('Originaldaten');"));
+  await shot("integrated-08-google-legacy-automatically-found");
+  await evalJS("document.querySelector('#nkImportDrive').click();");
+  await until("return !!document.querySelector('#nkOpenLocked');");
+  const synced=await evalJS("const r=JSON.parse(sessionStorage.getItem('__nk_test_cloud')||'[]');"+
+   "return {count:r.length,folder:r[0]?.metadata?.parents?.[0],"+
+   "cipher:r[0]?.encrypted?.format,containsPlain:JSON.stringify(r).includes('Synthetic Tenant')};");
+  assert.deepEqual(synced,{count:1,folder:"new-folder",
+   cipher:"nkpro2-encrypted-vault-v1",containsPlain:false});
+  await evalJS("document.querySelector('#nkSyncButton').click();"+
+   "document.querySelector('#nkSyncPassword').value='Synthetic Long Passphrase 2026';"+
+   "document.querySelector('#nkUnlock').click();");
+  await until("return document.querySelector('#appMain h1')?.textContent.includes('Synthetisches Haus');");
+  assert.equal(await evalJS("return document.querySelectorAll('#appMain .nk-live-archive').length;"),5);
+  await shot("integrated-09-one-click-legacy-drive-migration");
+  console.log("INTEGRATED_CLOUD_BRIDGE_PASS: legacy Drive discovery, no file selection, encrypted separate cloud upload, 5 archives, 2025 blank");
   console.log("INTEGRATED_CHROMIUM_PASS: Systemstatus, 5 archives, one object, no legacy 2025 costs, AES cache, mobile and offline restore");
  }finally{
   if(ws&&ws.readyState===WebSocket.OPEN)ws.close();
