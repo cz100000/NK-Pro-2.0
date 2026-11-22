@@ -1,5 +1,15 @@
 # NK-Pro 2.0 – Designprototyp (nicht produktiv)
 
+## Private Datenstrecke – getrennt und nicht veröffentlicht (22.11.2026)
+
+Im Unterverzeichnis **private/** ist jetzt eine eigenständige, verschlüsselte Migrations-/Google-Drive-Lösung vorbereitet. Der echte NK-Pro-1.0-Cloud-Snapshot V99.4.81 vom 21.11.2026 wurde mit dem neuen Importmodul vollständig und unverändert überprüft; die fachlichen Daten einschließlich fünf historischer Archivinstanzen sind migrierbar. Die echte Datenquelle wurde **nicht** in dieses öffentliche Repository übernommen.
+
+Wichtig: Der private Tresor darf **nicht unter der öffentlichen GitHub-Pages-Origin** dieser Demo betrieben werden, weil beide NK-Pro-Versionen dort denselben Browser-Origin teilen. Er ist ausdrücklich **nicht Teil des Pages-Builds**. Eine separate HTTPS-Origin und die Freischaltung dieser Origin im vorhandenen Google-OAuth-Webclient sind erforderlich, bevor echte Daten cloudbasiert nutzbar werden. Die Google-API-Tests sind simuliert; echte OAuth-/iPhone-Tests stehen noch aus. Im privaten Tresor ist die derzeitige Anzeige ausschließlich lesend; vollständige Fachberechnung und produktive Abrechnungsfreigabe fehlen weiterhin.
+
+Details: [Private Migration und Drive-Tresor](docs/PRIVATE_VAULT_DRIVE_MIGRATION_2026-11-22.md).
+
+
+
 Dies ist die **eigenständige Neugestaltung** von NK-Pro. Das ursprüngliche Projekt [cz100000/NK-Pro](https://github.com/cz100000/NK-Pro) bleibt unverändert. Alle Inhalte dieser Demo sind **synthetische Musterdaten**; der aktuelle Stand ist **kein für Nebenkostenabrechnungen zugelassenes Produkt**.
 
 ## Demo
