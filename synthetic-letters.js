@@ -7,7 +7,7 @@ const escape=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">"
 const money=c=>(Number(c)/100).toLocaleString("de-DE",{style:"currency",currency:"EUR"});
 const date=s=>{const d=new Date(String(s)+"T00:00:00Z");return /^\d{4}-\d{2}-\d{2}$/.test(String(s))&&!Number.isNaN(d.getTime())&&d.toISOString().slice(0,10)===s};
 function make(state,ledger){
- if(!state||state.fixture!==true||state.period!=="2025"||!Array.isArray(ledger?.tenants))
+ if(!state||state.fixture!==true||!["2023","2024","2025"].includes(state.period)||!Array.isArray(ledger?.tenants))
    throw new TypeError("Synthetic-only letters");
  const config=state.letterSettings||{},errors=[],warnings=[],missingRecipients=[];
  if(!config.senderName?.trim())errors.push("Absendername fehlt.");
@@ -26,7 +26,7 @@ function make(state,ledger){
      cents:c.rows.filter(x=>x.tenantId===result.id).reduce((a,x)=>a+x.cents,0)}));
    if(items.reduce((a,x)=>a+x.cents,0)!==result.costCents)
       errors.push("Kostenzeilen im Brief weichen ab: "+result.id);
-   return{id:result.id,name:t.name||result.name,unit:u.label||result.unitId,
+   return{id:result.id,year:state.period,name:t.name||result.name,unit:u.label||result.unitId,
      street:t.recipientStreet||"",postalCode:t.recipientPostalCode||"",city:t.recipientCity||"",
      salutation:sal,items,costCents:result.costCents,
      paidCents:result.advanceCents,balanceCents:result.balanceCents,missing};
@@ -38,7 +38,7 @@ function make(state,ledger){
 }
 function html(letter,config={}){
  const safe=x=>escape(x||"NICHT ERFASST"),intro=String(config.openingText||"")
-   .replaceAll("{zeitraum}","01.01.2025 bis 31.12.2025");
+   .replaceAll("{zeitraum}","01.01."+letter.year+" bis 31.12."+letter.year);
  const saldo=letter.balanceCents>0?"Nachzahlung":letter.balanceCents<0?"Guthaben":"Ausgeglichen";
  return '<article class="doc-paper letter-a4-draft">'+
  '<div class="doc-top">'+safe(config.senderName)+' · SYNTHETISCHE BRIEFVORSCHAU</div>'+
@@ -46,7 +46,7 @@ function html(letter,config={}){
  safe(letter.postalCode)+' '+safe(letter.city)+'</div>'+
  '<div class="letter-meta">'+escape(config.senderStreet||"")+' · '+escape(config.senderCity||"")+
  ' · '+escape(config.letterDate||"Datum fehlt")+'</div>'+
- '<h2 class="doc-title">'+escape(config.subject||'Nebenkostenabrechnung 2025')+' · '+escape(letter.unit)+'</h2>'+
+ '<h2 class="doc-title">'+escape(config.subject||('Nebenkostenabrechnung '+letter.year))+' · '+escape(letter.unit)+'</h2>'+
  '<div class="doc-prose">'+escape(letter.salutation)+'<br><br>'+escape(intro)+'</div>'+
  '<table class="letter-cost-table"><thead><tr><th>Kostenposition</th><th>Verteilung</th><th>Mein Anteil</th></tr></thead><tbody>'+
  letter.items.map(i=>'<tr><td>'+escape(i.name)+'</td><td>'+escape(i.method)+'</td>'+

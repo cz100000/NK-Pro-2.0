@@ -8,6 +8,7 @@
 })(typeof globalThis!=="undefined"?globalThis:this,function(){
  "use strict";
  const YEAR="2025",FROM="2025-01-01",TO="2025-12-31";
+ const period=s=>({from:s.period+"-01-01",to:s.period+"-12-31"});
  const date=s=>{if(typeof s!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;
  const n=new Date(s+"T00:00:00Z");return !Number.isNaN(n.valueOf())&&n.toISOString().slice(0,10)===s};
  const ordinal=s=>Math.floor(Date.parse(s+"T00:00:00Z")/86400000);
@@ -15,15 +16,16 @@
  const number=v=>v!==""&&v!==undefined&&v!==null&&typeof v!=="boolean"&&Number.isFinite(Number(v));
  const validAmount=v=>number(v)&&Number(v)>=0&&Math.round(Number(v)*100)/100===Number(v);
  function checkState(state){
-   if(!state||state.fixture!==true||state.period!==YEAR||!Array.isArray(state.units)||!Array.isArray(state.costs))
+   if(!state||state.fixture!==true||!["2023","2024","2025"].includes(state.period)||!Array.isArray(state.units)||!Array.isArray(state.costs))
       throw new TypeError("Synthetic 2025 fixture required; real data rejected");
  }
  function upgrade(state){
    checkState(state);
    const output={...state,units:state.units.map(x=>({...x})),costs:state.costs.map(c=>({...c}))};
+   const {from:yearStart,to:yearEnd}=period(state);
    const base=output.units.map((u,i)=>({
       id:"SYN-T"+String(i+1).padStart(2,"0"),unitId:String(u.id),
-      name:"Musterperson "+String.fromCharCode(65+i),start:FROM,end:TO,
+      name:"Musterperson "+String.fromCharCode(65+i),start:yearStart,end:yearEnd,
       persons:u.people??1,role:"Mieter",advance:u.advance??0,note:"",
       consumptionCold:null,consumptionHot:null
    }));
@@ -41,6 +43,7 @@
  }
  function inspect(state,waterReport){
    checkState(state);
+   const {from:FROM,to:TO}=period(state);
    const errors=[],warnings=[],cases=[],vacancy=[],units=new Map(),tenantIds=new Set();
    const err=(code,message,entityId)=>errors.push({code,message,entityId,action:"go-tenancies"});
    const warn=(code,message,entityId)=>warnings.push({code,message,entityId,action:"go-tenancies"});
@@ -59,10 +62,10 @@
      const u=units.get(String(t.unitId));
      if(!u){err("TENANCY_UNIT_MISSING","Wohnungszuordnung fehlt: "+t.id,t.id);continue}
      if(!t.name||!String(t.name).trim())err("TENANCY_NAME_MISSING","Name des Abrechnungsfalls fehlt: "+t.id,t.id);
-     if(!date(t.start)||!date(t.end)||t.start>t.end){
+     if(!date(t.start)||(t.end!=null&&t.end!==""&&!date(t.end))||(t.end&&t.start>t.end)){
        err("INVALID_TENANCY_DATES","Ungültige Ein-/Auszugsdaten: "+t.id,t.id);continue}
-     if(t.end<FROM||t.start>TO){warn("OUTSIDE_PERIOD","Mietzeitraum außerhalb der Abrechnung: "+t.id,t.id);continue}
-     const start=t.start<FROM?FROM:t.start,end=t.end>TO?TO:t.end;
+     if((t.end&&t.end<FROM)||t.start>TO){warn("OUTSIDE_PERIOD","Mietzeitraum außerhalb der Abrechnung: "+t.id,t.id);continue}
+     const start=t.start<FROM?FROM:t.start,end=!t.end||t.end>TO?TO:t.end;
      const people=Number(t.persons);
      if(!Number.isSafeInteger(people)||people<0||people>1000)
        err("INVALID_PERSONS","Ungültige Personenzahl: "+t.id,t.id);
@@ -140,7 +143,7 @@
  function shift(input,offset){const ms=Date.parse(input+"T00:00:00Z")+offset*86400000;return new Date(ms).toISOString().slice(0,10)}
  function updateTenancy(state,entry){
    checkState(state);
-   if(!entry||!entry.id||!entry.unitId||!date(entry.start)||!date(entry.end)||entry.start>entry.end)
+   if(!entry||!entry.id||!entry.unitId||!date(entry.start)||(entry.end!=null&&entry.end!==""&&!date(entry.end))||(entry.end&&entry.start>entry.end))
      throw new TypeError("Complete synthetic tenancy entry required");
    if(!state.units.some(u=>String(u.id)===String(entry.unitId)))
      throw new RangeError("Unknown synthetic unit");

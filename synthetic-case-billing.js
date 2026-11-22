@@ -19,7 +19,7 @@
  const canon=x=>x==="Fläche"?"Wohnfläche":x;
  const limited=base.METHODS;
  function calculate(data){
-   if(!data||data.fixture!==true||data.period!=="2025"||
+   if(!data||data.fixture!==true||!["2023","2024","2025"].includes(data.period)||
      !Array.isArray(data.units)||!Array.isArray(data.costs)||!Array.isArray(data.tenancies))
      throw new TypeError("Synthetic 2025 tenancy billing only; actual datasets rejected");
    const waterReport=water.diagnostics(data);

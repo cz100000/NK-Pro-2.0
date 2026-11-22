@@ -18,10 +18,10 @@
    Number.isFinite(Number(v))&&Number(v)>=0;
  const money=volume;
  const round4=n=>Math.round((n+Number.EPSILON)*10000)/10000;
- const defaults=(start="",end="")=>({start,end,startDate:"2025-01-01",endDate:"2025-12-30",number:""});
+ const defaults=(start="",end="",year="2025")=>({start,end,startDate:year+"-01-01",endDate:year+"-12-30",number:""});
  const clone=x=>JSON.parse(JSON.stringify(x));
  function assertSynthetic(state){
-   if(!state||state.fixture!==true||state.period!=="2025"||
+   if(!state||state.fixture!==true||!["2023","2024","2025"].includes(state.period)||
       !Array.isArray(state.units)||!Array.isArray(state.costs))
      throw new TypeError("Synthetic 2025 water fixture required");
  }
@@ -30,15 +30,15 @@
    const units=state.units.map((u,i)=>{
      const total=Number(u.waterEnd)-Number(u.waterStart);
      if(!Number.isSafeInteger(total)||total<10)throw new Error("Unexpected example water unit");
-     const cold={...defaults(Number(u.waterStart),Number(u.waterEnd)-10),
+     const cold={...defaults(Number(u.waterStart),Number(u.waterEnd)-10,state.period),
        number:"DEMO-KW-"+String(i+1).padStart(2,"0")};
-     const hot={...defaults(300+i*20,310+i*20),
+     const hot={...defaults(300+i*20,310+i*20,state.period),
        number:"DEMO-WW-"+String(i+1).padStart(2,"0")};
      return {...u,waterMeters:{cold,hot},waterNote:""};
    });
-   return {...state,waterSettings:{houseMeterNumber:"DEMO-HZ-2025",
-     houseStart:700,houseEnd:966,houseStartDate:"2025-01-01",
-     houseEndDate:"2025-12-30",invoiceNote:"Nur synthetische Musterrechnung."},
+   return {...state,waterSettings:{houseMeterNumber:"DEMO-HZ-"+state.period,
+     houseStart:700,houseEnd:966,houseStartDate:state.period+"-01-01",
+     houseEndDate:state.period+"-12-30",invoiceNote:"Nur synthetische Musterrechnung."},
      units};
  }
  function upgrade(state){
@@ -47,8 +47,8 @@
      if(u.waterMeters&&u.waterMeters.cold&&u.waterMeters.hot)
        return {...u,waterMeters:clone(u.waterMeters)};
      return {...u,waterMeters:{
-       cold:{...defaults(u.waterStart??"",u.waterEnd??"")},
-       hot:{...defaults("","")}
+       cold:{...defaults(u.waterStart??"",u.waterEnd??"",state.period)},
+       hot:{...defaults("","",state.period)}
      },waterSourceNotice:"Frühere Ein-Zähler-Demo: KW-Stand übernommen, WW nicht bekannt.",waterNote:u.waterNote||""};
    });
    const costs=state.costs.map(c=>({...c,note:String(c.note??""),
@@ -56,7 +56,7 @@
    return {...state,units,costs,waterSettings:state.waterSettings&&
      typeof state.waterSettings==="object"?{...state.waterSettings}:{
        houseMeterNumber:"",houseStart:"",houseEnd:"",
-       houseStartDate:"2025-01-01",houseEndDate:"2025-12-30",invoiceNote:""
+       houseStartDate:state.period+"-01-01",houseEndDate:state.period+"-12-30",invoiceNote:""
      }};
  }
  function readingResult(row,roundEach){
@@ -100,21 +100,22 @@
    assertSynthetic(state);
    const out={};
    if(!Array.isArray(state.tenancies))return out;
+   const FROM=state.period+"-01-01",TO=state.period+"-12-31";
    for(const u of state.units){
-     const tenancy=state.tenancies.filter(t=>t.unitId===u.id&&date(t.start)&&date(t.end))
-       .map(t=>({...t,start:t.start<"2025-01-01"?"2025-01-01":t.start,
-         end:t.end>"2025-12-31"?"2025-12-31":t.end}))
+     const tenancy=state.tenancies.filter(t=>t.unitId===u.id&&date(t.start)&&(!t.end||date(t.end)))
+       .map(t=>({...t,start:t.start<FROM?FROM:t.start,
+         end:!t.end||t.end>TO?TO:t.end}))
        .filter(t=>t.start<=t.end).sort((a,b)=>a.start.localeCompare(b.start));
      const gaps=[],channels=["cold","hot"],gapRows=[];
-     let nextStart="2025-01-01",previous=null;
+     let nextStart=FROM,previous=null;
      for(const t of tenancy){
        if(t.start>nextStart)gaps.push({start:nextStart,end:previousDay(t.start),
-         before:previous?.end||"2025-01-01",after:t.start});
+         before:previous?.end||FROM,after:t.start});
        if(followingDay(t.end)>nextStart)nextStart=followingDay(t.end);
        previous=t;
      }
-     if(nextStart<="2025-12-31")gaps.push({start:nextStart,end:"2025-12-31",
-       before:previous?.end||"2025-01-01",after:"2025-12-31"});
+     if(nextStart<=TO)gaps.push({start:nextStart,end:TO,
+       before:previous?.end||FROM,after:TO});
      let complete=true,cold=0,hot=0;
      for(const gap of gaps){
        const quantities={};

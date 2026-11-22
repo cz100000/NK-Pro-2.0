@@ -16,7 +16,7 @@
    Number.isFinite(Number(n))&&Number(n)>=0&&Math.abs(Number(n)*100-Math.round(Number(n)*100))<1e-7;
  const round=n=>Math.round((n+Number.EPSILON)*100)/100;
  function guard(state){
-   if(!state||state.fixture!==true||state.period!=="2025"||
+   if(!state||state.fixture!==true||!["2023","2024","2025"].includes(state.period)||
      !Array.isArray(state.tenancies)||!Array.isArray(state.costs))
      throw new TypeError("Synthetic 2025 fixture required; no real datasets");
  }
@@ -42,7 +42,7 @@
    result.costs=result.costs.map(c=>({...c,sourceId:c.sourceId||"",active:c.active!==false,
      invoiceDate:c.invoiceDate||"",documentDate:c.documentDate||"",invoiceNumber:c.invoiceNumber||"",
      issuer:c.issuer||"",invoiceReference:c.invoiceReference||"",note:c.note||""}));
-   result.settlement={year:"2025",status:"draft",revision:0,...(result.settlement||{})};
+   result.settlement={year:state.period,status:"draft",revision:0,...(result.settlement||{})};
    result.externalValues=result.externalValues&&typeof result.externalValues==="object"?result.externalValues:{};
    result.letterSettings={senderName:"",senderStreet:"",senderCity:"",letterDate:"",
       paymentDue:"",bankAccount:"",openingText:"für den Abrechnungszeitraum {zeitraum} erhalten Sie folgende Übersicht:",

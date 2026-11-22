@@ -10,10 +10,10 @@ const ported=new Set(["NKP-FACH-001","NKP-FACH-002","NKP-FACH-003","NKP-FACH-004
 "NKP-FACH-016","NKP-PLAU-010","NKP-FACH-017","NKP-FACH-018"]);
 const isDate=s=>{if(typeof s!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;const d=new Date(s+"T00:00:00Z");return !Number.isNaN(d.valueOf())&&d.toISOString().slice(0,10)===s};
 function assess(state,ledger,letters){
- if(!state||state.fixture!==true||state.period!=="2025")throw new TypeError("Synthetic review only");
+ if(!state||state.fixture!==true||!["2023","2024","2025"].includes(state.period))throw new TypeError("Synthetic review only");
  const t=state.tenancies||[],u=state.units||[],c=(state.costs||[]).filter(x=>x.active!==false),ids=new Set(u.map(x=>x.id));
  const failed={
-  "NKP-FACH-001":state.period!=="2025",
+  "NKP-FACH-001":!["2023","2024","2025"].includes(state.period),
   "NKP-FACH-002":!u.some(x=>x.active!==false),
   "NKP-FACH-003":!t.length,
   "NKP-FACH-004":t.some(x=>!String(x.name||"").trim()),
@@ -34,7 +34,7 @@ function assess(state,ledger,letters){
  const externalCost=c.some(x=>x.method==="Externe Einzelabrechnung");
  const hasConsumption=consumptionCost||externalCost;
  // The following are synthetic counterparts of individual original rule branches.
- if(t.some(x=>x.start>"2025-01-01"||x.end<"2025-12-31"))
+ if(t.some(x=>x.start>state.period+"-01-01"||(x.end&&x.end<state.period+"-12-31")))
    remark("NKP-HINW-001","hint","Unterjähriges Mietverhältnis: Datumsanteile prüfen.");
  if((ledger?.occupancy?.vacancyDays||0)>0)
    remark("NKP-HINW-002","hint","Zeitlicher Leerstand erkannt.");
