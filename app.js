@@ -709,6 +709,24 @@
         '<div class="form-row"><label>Vereinbarter Betrag (€)<input name="agreed" type="number" step="0.01" min="0" required value="'+safeText(mode==='monthly'?p.agreedMonthly??'':p.agreedAnnual??'')+'"></label><p class="form-help">Der Sollbetrag wird bei Monatsangaben für den Mietzeitraum berechnet.</p></div>'+
         '<div class="form-row"><label>Tatsächlich gezahlt im Jahr (€)<input name="paid" type="number" min="0" step="0.01" required value="'+safeText(p.paidActual??t.advance)+'"></label></div>'+
         '<div class="drawer-note">Nur Zahlungsbeträge editieren. Die Stammdaten stammen ausschließlich aus Mietverhältnisse.</div></form>';
+    }else if(type==='payment'){
+      const t=data.tenancies.find(x=>x.id===id);if(!t)return;
+      const p=data.payments?.[id]||{},mode=p.mode||'annual',
+        unit=data.units.find(x=>x.id===t.unitId)?.label||t.unitId;
+      title='Vorauszahlungen · '+t.name;eyebrow='ZAHLUNGEN · '+activeYear();
+      body='<form id="editForm" data-type="payment">'+
+       '<div class="drawer-note">Abrechnungsfall: '+safeText(t.name)+' · '+safeText(unit)+
+       ' · '+safeText(t.start)+' bis '+safeText(t.end)+
+       '. Mieter, Wohnung und Mietzeitraum sind hier schreibgeschützt.</div>'+
+       '<div class="form-row"><label>Vereinbarte Vorauszahlung<select name="mode">'+
+         '<option value="monthly" '+(mode==='monthly'?'selected':'')+'>Monatsbetrag</option>'+
+         '<option value="annual" '+(mode==='annual'?'selected':'')+'>Jahresbetrag</option></select></label></div>'+
+       '<div class="form-row"><label>Vereinbarter Betrag (€)<input name="agreed" type="number" min="0" step="0.01" required value="'+
+        safeText(mode==='monthly'?p.agreedMonthly??'':p.agreedAnnual??'')+'"></label>'+
+       '<p class="form-help">Monatsbeträge werden zeitanteilig als Sollwert berechnet. Der Saldo verwendet die tatsächliche Zahlung.</p></div>'+
+       '<div class="form-row"><label>Tatsächlich gezahlt im Jahr (€)<input name="paid" type="number" min="0" step="0.01" required value="'+
+        safeText(p.paidActual??t.advance) +'"></label></div>'+
+       '<div class="drawer-note">Vereinbarte und tatsächliche Vorauszahlungen sind getrennte Angaben; historische Musterjahre können nicht bearbeitet werden.</div></form>';
     }else if(type==='cost'||type==='new-cost'){
       const c=type==='new-cost'?{name:'',amount:'',landlordShare:0,category:'Betriebskosten',method:'Fläche'}:data.costs.find(x=>x.id===id);if(!c)return;
       const costBasisFields='<div class="drawer-note">Einzelverbräuche und Techem-Einzelwerte werden ausschließlich unter Verbräuche gepflegt.</div>';
