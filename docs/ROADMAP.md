@@ -25,3 +25,7 @@ Das alte NK-Pro-Repositorium ist ausdrücklich nicht Teil dieses Deployments und
 - [x] Freitext/Bemerkung zu jeder angelegten Kostenart mit Speicherung im Demo-Datensatz.
 - [ ] Vollständige Bestandsparität für physische Zähleridentität, Messperioden, Zählerwechsel, Leerstand, Mieterwechsel und Vorjahresübernahme.
 - [ ] 2025-Sonderregel der tatsächlichen Abrechnung mit den bestätigten Originalzählerständen centgenau abnehmen, ehe Echtdaten erlaubt werden.
+
+## Vollständiger Funktionsvergleich 1.0 → 2.0
+
+Die priorisierte, quellcodegestützte Tiefenanalyse ist in [LEGACY_FUNCTION_GAP_AUDIT_2026-11-22.md](LEGACY_FUNCTION_GAP_AUDIT_2026-11-22.md) dokumentiert: einzeln rückverfolgbare Lücken, 5-Bereiche-UX-Ziel, fachliche Paritätsfallen und End-to-End-Abnahmegates. NK-Pro 1.0 bleibt unangetastet.
