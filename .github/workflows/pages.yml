@@ -45,6 +45,8 @@ jobs:
           node --check private/drive-adapter.js
           node --check private/private-app.js
           node --check private/private-sw.js
+          node --check integrated-data.js
+          node --check integrated-app.js
           node --test --test-reporter=tap tests/*.test.cjs > /tmp/nkpro2-tests.tap
           node tests/browser-visual-e2e.cjs
           tail -n 24 /tmp/nkpro2-tests.tap
@@ -61,13 +63,14 @@ jobs:
           cp experimental/settlement-cost.js _site/experimental/
           # Explicit allowlist. The private *client source* is public; no private records.
           mkdir -p _site/private
-          cp private/index.html private/private.css private/private-model.js private/vault-crypto.js private/drive-adapter.js private/private-app.js private/private-sw.js private/private.webmanifest _site/private/
+          cp private/private-model.js private/vault-crypto.js private/drive-adapter.js _site/private/
+          cp integrated-data.js integrated-app.js integrated-ui.css _site/
           touch _site/.nojekyll
           # Allowlist publishes only the synthetic reference formula, never pinned originals or tenant fixtures.
-          test "$(find _site -type f | wc -l)" -eq 29
+          test "$(find _site -type f | wc -l)" -eq 27
           # Essential release gate: do not publish a site whose HTML points to missing JS/CSS.
           node -e 'const fs=require("node:fs"),path=require("node:path");
-            for(const page of ["_site/index.html","_site/private/index.html"]){
+            for(const page of ["_site/index.html"]){
               const html=fs.readFileSync(page,"utf8");
               const refs=[...html.matchAll(/(?:src|href)="(\.\/[^"]+)"/g)].map(x=>x[1].split("?")[0]);
               if(!refs.length)throw new Error("No referenced assets found in "+page);
@@ -79,6 +82,8 @@ jobs:
               console.log("PUBLISH_ASSETS_OK:",page,refs.length);
             }'
           test ! -f _site/tests/reference/billing-calculation-v99.4.86.js
+          test ! -e _site/private/index.html
+          test ! -e _site/private/private-app.js
           test ! -e _site/private/sourceEvidence.json
           test ! -e _site/private/nkpro-cloud-snapshot-2026-11-21T19-34-02-726Z-01b27143-87e6-4dd5-b77f-707911a86a8e.json
       - uses: actions/upload-pages-artifact@v3
